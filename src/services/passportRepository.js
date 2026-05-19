@@ -1,4 +1,4 @@
-import { defaultBooths } from '../data/mockData'
+import { defaultBooths, defaultInstructions } from '../data/mockData'
 
 const STORAGE_KEY = 'tradeshow-passport-raffle-v2'
 
@@ -8,19 +8,27 @@ const initialState = {
   entries: [],
   settings: {
     requiredScanCount: 4,
-    instructions: [
-      'The Passport Raffle is one challenge: visit each participating manufacturer booth.',
-      'At each booth, scan the passport QR code or enter the code manually if the camera is not available.',
-      'Each manufacturer booth you visit is marked complete on your passport.',
-      'Scan the required number of unique manufacturer booths to unlock the raffle entry form.',
-    ],
+    instructions: defaultInstructions,
   },
 }
 
 function readState() {
   try {
     const stored = window.localStorage.getItem(STORAGE_KEY)
-    return stored ? { ...initialState, ...JSON.parse(stored) } : initialState
+    if (!stored) return initialState
+
+    const parsed = JSON.parse(stored)
+    return {
+      ...initialState,
+      ...parsed,
+      settings: {
+        ...initialState.settings,
+        ...parsed.settings,
+        instructions: parsed.settings?.instructions?.length
+          ? parsed.settings.instructions
+          : initialState.settings.instructions,
+      },
+    }
   } catch {
     return initialState
   }

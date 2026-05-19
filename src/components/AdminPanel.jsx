@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import { defaultInstructions } from '../data/mockData'
 import { PinchZoomMap } from './PinchZoomMap'
 
 const emptyBooth = {
@@ -27,6 +28,9 @@ export function AdminPanel({
   const formRef = useRef(null)
   const [draft, setDraft] = useState(emptyBooth)
   const [placementBoothId, setPlacementBoothId] = useState('')
+  const instructionsText = (
+    settings?.instructions?.length ? settings.instructions : defaultInstructions
+  ).join('\n')
 
   const editBooth = (booth) => {
     setDraft({ ...emptyBooth, ...booth })
@@ -67,8 +71,8 @@ export function AdminPanel({
           onSubmit={(event) => {
             event.preventDefault()
             const formData = new FormData(event.currentTarget)
-            const instructionsText = formData.get('instructions')
-            const instructions = instructionsText
+            const nextInstructionsText = String(formData.get('instructions') ?? '')
+            const instructions = nextInstructionsText
               .split('\n')
               .map((line) => line.trim())
               .filter((line) => line.length > 0)
@@ -94,7 +98,7 @@ export function AdminPanel({
             <textarea
               name="instructions"
               rows="6"
-              defaultValue={(settings?.instructions ?? []).join('\n')}
+              defaultValue={instructionsText}
               placeholder="Enter each instruction on a new line..."
             />
           </label>
