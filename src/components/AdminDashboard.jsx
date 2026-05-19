@@ -271,11 +271,11 @@ export function AdminDashboard({ store }) {
                   />
                 </label>
                 <label className="form-field">
-                  <span>Logo PNG{draft.logoDataUrl ? ' - logo attached' : ''}</span>
+                  <span>Logo{draft.logoDataUrl ? ' - logo attached' : ''}</span>
                   <input
                     key={draft.logoDataUrl ? 'logo-attached' : 'logo-empty'}
                     type="file"
-                    accept="image/png"
+                    accept="image/png,image/jpeg"
                     onChange={(event) => {
                       uploadLogo(event.target.files?.[0])
                       event.target.value = ''
@@ -355,7 +355,11 @@ export function AdminDashboard({ store }) {
                             <button
                               type="button"
                               className="danger"
-                              onClick={() => store.deleteBooth(booth.id)}
+                              onClick={() => {
+                                if (window.confirm(`Delete ${booth.name}?`)) {
+                                  store.deleteBooth(booth.id)
+                                }
+                              }}
                             >
                               Delete
                             </button>

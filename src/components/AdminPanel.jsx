@@ -168,13 +168,13 @@ export function AdminPanel({
           </label>
           <label className="form-field full">
             <span>
-              Manufacturer Logo PNG
+              Manufacturer Logo
               {draft.logoDataUrl ? ' - logo attached' : ''}
             </span>
             <input
               key={draft.logoDataUrl ? 'logo-attached' : 'logo-empty'}
               type="file"
-              accept="image/png"
+              accept="image/png,image/jpeg"
               onChange={(event) => {
                 uploadLogo(event.target.files?.[0])
                 event.target.value = ''
@@ -270,7 +270,11 @@ export function AdminPanel({
                 <button
                   type="button"
                   className="danger"
-                  onClick={() => onDeleteBooth(booth.id)}
+                  onClick={() => {
+                    if (window.confirm(`Delete ${booth.name}?`)) {
+                      onDeleteBooth(booth.id)
+                    }
+                  }}
                 >
                   Delete
                 </button>
