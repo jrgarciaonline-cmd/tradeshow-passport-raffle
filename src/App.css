@@ -378,6 +378,36 @@ button:disabled {
   box-shadow: 0 0 0 4px rgba(255, 90, 24, 0.28);
 }
 
+.you-are-here-pin {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  transform: translate(-50%, calc(-100% - 34px));
+  pointer-events: none;
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.3));
+}
+
+.you-are-here-pin span {
+  width: 16px;
+  height: 16px;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  background: #0b7cff;
+  box-shadow: 0 0 0 5px rgba(11, 124, 255, 0.24);
+}
+
+.you-are-here-pin strong {
+  padding: 3px 7px;
+  border-radius: 999px;
+  color: #fff;
+  background: #0b7cff;
+  font-size: 0.58rem;
+  white-space: nowrap;
+}
+
 .drawing-title,
 .drawing-meta {
   display: flex;

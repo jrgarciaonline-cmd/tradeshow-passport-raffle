@@ -117,6 +117,10 @@ export function usePassportStore() {
   const currentAttendeeEntry = currentAttendee
     ? state.entries.find((entry) => entry.attendeeId === currentAttendee.id)
     : null
+  const currentLocationBoothId =
+    currentAttendee && state.attendeeLocation
+      ? state.attendeeLocation[currentAttendee.id]
+      : ''
 
   const registerAttendee = (profile) => {
     const email = normalizeEmail(profile.email)
@@ -221,6 +225,13 @@ export function usePassportStore() {
       return {
         ...current,
         completedIds,
+        attendeeLocation:
+          current.session?.type === 'attendee'
+            ? {
+                ...current.attendeeLocation,
+                [attendeeId]: boothId,
+              }
+            : current.attendeeLocation,
         attendeeProgress:
           current.session?.type === 'attendee'
             ? {
@@ -235,6 +246,9 @@ export function usePassportStore() {
           ? {
               attendeeProgress: {
                 [next.session.attendeeId]: next.completedIds,
+              },
+              attendeeLocation: {
+                [next.session.attendeeId]: boothId,
               },
             }
           : null,
@@ -424,6 +438,7 @@ export function usePassportStore() {
     passportComplete,
     currentAttendee,
     currentAttendeeEntry,
+    currentLocationBoothId,
     registerAttendee,
     signInAttendee,
     signInAdmin,

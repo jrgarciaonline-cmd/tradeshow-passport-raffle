@@ -58,6 +58,7 @@ export function PinchZoomMap({
   onScanBooth,
   placementBoothId = '',
   focusBoothId = '',
+  locationBoothId = '',
   className = '',
   title = '',
 }) {
@@ -296,6 +297,23 @@ export function PinchZoomMap({
               </button>
             )
           })}
+          {(() => {
+            const locationBooth = booths.find((booth) => booth.id === locationBoothId)
+            if (!locationBooth) return null
+
+            return (
+              <div
+                className="you-are-here-pin"
+                style={{
+                  '--x': `${locationBooth.map.x}%`,
+                  '--y': `${locationBooth.map.y}%`,
+                }}
+              >
+                <span />
+                <strong>You are here</strong>
+              </div>
+            )
+          })()}
         </div>
         {selectedBoothId && (
           <div

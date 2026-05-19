@@ -242,6 +242,7 @@ function App() {
               booths={store.booths}
               completedIds={store.completedIds}
               focusBoothId={focusedBoothId}
+              locationBoothId={store.currentLocationBoothId}
               onClearFocus={() => setFocusedBoothId('')}
               onScanBooth={(boothId) => {
                 setFocusedBoothId(boothId)

@@ -10,6 +10,7 @@ const initialState = {
   booths: defaultBooths,
   completedIds: [],
   attendeeProgress: {},
+  attendeeLocation: {},
   entries: [],
   attendees: [],
   session: null,
@@ -56,6 +57,7 @@ function getSharedState(state) {
     entries: state.entries,
     attendees: state.attendees,
     attendeeProgress: state.attendeeProgress,
+    attendeeLocation: state.attendeeLocation,
     settings: state.settings,
   }
 }
@@ -66,6 +68,10 @@ function mergeSharedState(state, sharedState, options = {}) {
   const attendeeProgress = {
     ...state.attendeeProgress,
     ...sharedState.attendeeProgress,
+  }
+  const attendeeLocation = {
+    ...state.attendeeLocation,
+    ...sharedState.attendeeLocation,
   }
   const completedIds =
     state.session?.type === 'attendee' && attendeeProgress[state.session.attendeeId]
@@ -85,6 +91,7 @@ function mergeSharedState(state, sharedState, options = {}) {
       ? sharedState.attendees
       : state.attendees,
     attendeeProgress,
+    attendeeLocation,
     settings: preserveLocalSections.settings
       ? state.settings
       : {
@@ -116,6 +123,7 @@ function mergeSharedPatch(sharedState, patch) {
     entries: [],
     attendees: [],
     attendeeProgress: {},
+    attendeeLocation: {},
     settings: initialState.settings,
   }
 
@@ -134,6 +142,12 @@ function mergeSharedPatch(sharedState, patch) {
           ...patch.attendeeProgress,
         }
       : currentSharedState.attendeeProgress,
+    attendeeLocation: patch.attendeeLocation
+      ? {
+          ...currentSharedState.attendeeLocation,
+          ...patch.attendeeLocation,
+        }
+      : currentSharedState.attendeeLocation,
     settings: patch.settings
       ? { ...currentSharedState.settings, ...patch.settings }
       : currentSharedState.settings,
