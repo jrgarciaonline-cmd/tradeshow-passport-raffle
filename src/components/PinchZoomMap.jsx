@@ -63,6 +63,7 @@ export function PinchZoomMap({
   const frameRef = useRef(null)
   const movedDuringGesture = useRef(false)
   const [view, setView] = useState(INITIAL_VIEW)
+  const [selectedBoothId, setSelectedBoothId] = useState(null)
 
   const updateView = (nextView) => {
     if (frameRef.current) cancelAnimationFrame(frameRef.current)
@@ -239,12 +240,55 @@ export function PinchZoomMap({
                 style={{ '--x': `${booth.map.x}%`, '--y': `${booth.map.y}%` }}
                 title={`${booth.name} / ${booth.location}`}
                 aria-label={`${booth.name}, ${booth.location}`}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  if (placementBoothId) return
+                  setSelectedBoothId(booth.id)
+                }}
               >
                 <span>{completed ? '✓' : ''}</span>
               </button>
             )
           })}
         </div>
+        {selectedBoothId && (
+          <div
+            className="booth-popup-overlay"
+            onClick={() => setSelectedBoothId(null)}
+          >
+            {(() => {
+              const booth = booths.find((b) => b.id === selectedBoothId)
+              if (!booth) return null
+
+              return (
+                <div
+                  className="booth-popup"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <button
+                    type="button"
+                    className="booth-popup-close"
+                    onClick={() => setSelectedBoothId(null)}
+                    aria-label="Close"
+                  >
+                    ✕
+                  </button>
+                  <h3>{booth.name}</h3>
+                  {booth.websiteUrl && (
+                    <a
+                      href={booth.websiteUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="booth-popup-button"
+                    >
+                      Visit Website
+                    </a>
+                  )}
+                </div>
+              )
+            })()}
+          </div>
+        )}
       </div>
     </div>
   )
