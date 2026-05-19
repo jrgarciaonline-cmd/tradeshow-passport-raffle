@@ -57,7 +57,7 @@ function App() {
   )
   const visibleBooths =
     challengeView === 'Completed' ? completedBooths : activeBooths
-  const activeMode = store.session?.type === 'admin' ? 'admin' : mode
+  const activeMode = store.adminAuthenticated && mode === 'admin' ? 'admin' : 'attendee'
 
   const handleScan = (code) => {
     const result = store.checkInByCode(code)
@@ -93,21 +93,19 @@ function App() {
             type="button"
             className="icon-button"
             aria-label={
-              activeMode === 'admin' ? 'Back to sign in' : 'Open admin'
+              activeMode === 'admin' ? 'Back to attendee app' : 'Open admin'
             }
             onClick={() => {
               if (activeMode === 'admin') {
-                store.signOut()
-                setAuthView('signin')
+                setMode('attendee')
                 return
               }
 
-              if (store.session?.type === 'admin') {
+              if (store.adminAuthenticated) {
                 setMode('admin')
                 return
               }
 
-              store.signOut()
               setAuthView('admin')
             }}
           >
@@ -128,13 +126,17 @@ function App() {
         </header>
 
         <div className="app-content">
-          {!store.session && (
+          {!store.session && activeMode !== 'admin' && (
             <AuthScreen
               key={authView}
               initialView={authView}
               onRegister={store.registerAttendee}
               onSignIn={store.signInAttendee}
-              onAdminSignIn={store.signInAdmin}
+              onAdminSignIn={(credentials) => {
+                const result = store.signInAdmin(credentials)
+                if (result.ok) setMode('admin')
+                return result
+              }}
             />
           )}
 
@@ -249,7 +251,7 @@ function App() {
             <ScannerPanel booths={store.booths} onScan={handleScan} />
           )}
 
-          {store.session?.type === 'admin' && activeMode === 'admin' && (
+          {store.adminAuthenticated && activeMode === 'admin' && (
             <AdminPanel
               booths={store.booths}
               entries={store.entries}

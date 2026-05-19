@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { adminCredentials, defaultBooths } from '../data/mockData'
 import { passportRepository } from './passportRepository'
 
@@ -35,9 +35,41 @@ export function usePassportStore() {
     setState((current) => {
       const next = updater(current)
       passportRepository.save(next)
+      passportRepository.saveShared(next)
       return next
     })
   }
+
+  useEffect(() => {
+    if (!passportRepository.isRemoteEnabled()) return undefined
+
+    let cancelled = false
+
+    const syncSharedState = async () => {
+      const sharedState = await passportRepository.loadShared()
+
+      setState((current) => {
+        if (cancelled) return current
+
+        if (!sharedState) {
+          passportRepository.saveShared(current)
+          return current
+        }
+
+        const next = passportRepository.mergeShared(current, sharedState)
+        passportRepository.save(next)
+        return next
+      })
+    }
+
+    syncSharedState()
+    const intervalId = window.setInterval(syncSharedState, 5000)
+
+    return () => {
+      cancelled = true
+      window.clearInterval(intervalId)
+    }
+  }, [])
 
   const requiredScanCount = state.settings?.requiredScanCount ?? 4
   const passportComplete = state.completedIds.length >= requiredScanCount
@@ -110,14 +142,22 @@ export function usePassportStore() {
 
     updateState((current) => ({
       ...current,
-      session: { type: 'admin' },
+      adminAuthenticated: true,
     }))
 
     return { ok: true, message: 'Admin signed in.' }
   }
 
   const signOut = () => {
-    updateState((current) => ({ ...current, session: null }))
+    updateState((current) => ({
+      ...current,
+      session: null,
+      adminAuthenticated: false,
+    }))
+  }
+
+  const signOutAdmin = () => {
+    updateState((current) => ({ ...current, adminAuthenticated: false }))
   }
 
   const checkInBooth = (boothId) => {
@@ -229,10 +269,12 @@ export function usePassportStore() {
 
   const resetDemo = () => {
     const resetState = passportRepository.reset()
-    setState({
+    const nextState = {
       ...resetState,
       booths: defaultBooths,
-    })
+    }
+    setState(nextState)
+    passportRepository.saveShared(nextState)
   }
 
   return {
@@ -244,6 +286,7 @@ export function usePassportStore() {
     signInAttendee,
     signInAdmin,
     signOut,
+    signOutAdmin,
     checkInBooth,
     checkInByCode,
     undoCheckIn,
