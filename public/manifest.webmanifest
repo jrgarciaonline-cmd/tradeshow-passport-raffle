@@ -1,0 +1,17 @@
+{
+  "name": "Trade Show Passport Raffle",
+  "short_name": "Passport",
+  "description": "A mobile-first trade show passport raffle mockup.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f4f1eb",
+  "theme_color": "#007b70",
+  "icons": [
+    {
+      "src": "/pwa-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

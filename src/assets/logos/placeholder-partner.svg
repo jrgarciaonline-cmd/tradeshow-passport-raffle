@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" role="img" aria-labelledby="title desc">
+  <title id="title">Partner logo placeholder</title>
+  <desc id="desc">A simple placeholder mark for partner booth logos.</desc>
+  <rect width="160" height="160" rx="28" fill="#1d00f5"/>
+  <path fill="#fff" d="M42 43h76a16 16 0 0 1 16 16v42a16 16 0 0 1-16 16H42a16 16 0 0 1-16-16V59a16 16 0 0 1 16-16Zm5 20v34h66V63H47Z"/>
+  <path fill="#ff5a18" d="M103 73h38v16h-38zM19 73h38v16H19z"/>
+</svg>
