@@ -3,6 +3,7 @@ import './App.css'
 import { boothCategories, defaultInstructions } from './data/mockData'
 import { usePassportStore } from './services/usePassportStore'
 import { AdminPanel } from './components/AdminPanel'
+import { AuthScreen } from './components/AuthScreen'
 import { BoothCard } from './components/BoothCard'
 import { MapView } from './components/MapView'
 import { PassportSummary } from './components/PassportSummary'
@@ -20,6 +21,7 @@ const attendeeTabs = [
 function App() {
   const store = usePassportStore()
   const [mode, setMode] = useState('attendee')
+  const [authView, setAuthView] = useState('signup')
   const [activeTab, setActiveTab] = useState('Home')
   const [challengeView, setChallengeView] = useState('Active')
   const [focusedBoothId, setFocusedBoothId] = useState('')
@@ -55,6 +57,7 @@ function App() {
   )
   const visibleBooths =
     challengeView === 'Completed' ? completedBooths : activeBooths
+  const activeMode = store.session?.type === 'admin' ? 'admin' : mode
 
   const handleScan = (code) => {
     const result = store.checkInByCode(code)
@@ -77,31 +80,68 @@ function App() {
 
   return (
     <main className="app-stage">
-      <section className="phone-shell" aria-label="Trade show passport app">
+      <section
+        className={`phone-shell ${
+          store.session?.type === 'attendee' && activeMode === 'attendee'
+            ? ''
+            : 'no-bottom-nav'
+        }`}
+        aria-label="Trade show passport app"
+      >
         <header className="app-bar">
           <button
             type="button"
             className="icon-button"
-            aria-label={mode === 'admin' ? 'Back to attendee app' : 'Open admin'}
-            onClick={() => setMode(mode === 'admin' ? 'attendee' : 'admin')}
+            aria-label={
+              activeMode === 'admin' ? 'Back to sign in' : 'Open admin'
+            }
+            onClick={() => {
+              if (activeMode === 'admin') {
+                store.signOut()
+                setAuthView('signin')
+                return
+              }
+
+              if (store.session?.type === 'admin') {
+                setMode('admin')
+                return
+              }
+
+              store.signOut()
+              setAuthView('admin')
+            }}
           >
-            {mode === 'admin' ? '‹' : '⚙'}
+            {activeMode === 'admin' ? '‹' : '⚙'}
           </button>
           <strong>Land F/X Passport Raffle</strong>
           <button
             type="button"
             className="icon-button"
-            aria-label="Reset demo data"
-            onClick={store.resetDemo}
+            aria-label="Sign out"
+            onClick={() => {
+              store.signOut()
+              setAuthView('signin')
+            }}
           >
-            ↻
+            ⎋
           </button>
         </header>
 
         <div className="app-content">
-          {mode === 'attendee' && activeTab === 'Home' && (
+          {!store.session && (
+            <AuthScreen
+              key={authView}
+              initialView={authView}
+              onRegister={store.registerAttendee}
+              onSignIn={store.signInAttendee}
+              onAdminSignIn={store.signInAdmin}
+            />
+          )}
+
+          {store.session && activeMode === 'attendee' && activeTab === 'Home' && (
             <>
               <PassportSummary
+                attendeeName={store.currentAttendee?.name}
                 completedIds={store.completedIds}
                 requiredScanCount={store.requiredScanCount}
               />
@@ -127,7 +167,7 @@ function App() {
             </>
           )}
 
-          {mode === 'attendee' && activeTab === 'Booths' && (
+          {store.session && activeMode === 'attendee' && activeTab === 'Booths' && (
             <section className="content-stack">
               <div className="segmented-control" aria-label="Booth status">
                 {['Active', 'Completed'].map((view) => (
@@ -184,7 +224,7 @@ function App() {
             </section>
           )}
 
-          {mode === 'attendee' && activeTab === 'Map' && (
+          {store.session && activeMode === 'attendee' && activeTab === 'Map' && (
             <MapView
               booths={store.booths}
               completedIds={store.completedIds}
@@ -192,7 +232,9 @@ function App() {
             />
           )}
 
-          {mode === 'attendee' && activeTab === 'Instructions' && (
+          {store.session &&
+            activeMode === 'attendee' &&
+            activeTab === 'Instructions' && (
             <section className="instructions-screen">
               <h2>How to play</h2>
               {instructions.map((item) => (
@@ -201,11 +243,13 @@ function App() {
             </section>
           )}
 
-          {mode === 'attendee' && activeTab === 'QR Scanner' && (
+          {store.session &&
+            activeMode === 'attendee' &&
+            activeTab === 'QR Scanner' && (
             <ScannerPanel booths={store.booths} onScan={handleScan} />
           )}
 
-          {mode === 'admin' && (
+          {store.session?.type === 'admin' && activeMode === 'admin' && (
             <AdminPanel
               booths={store.booths}
               entries={store.entries}
@@ -220,7 +264,7 @@ function App() {
           )}
         </div>
 
-        {mode === 'attendee' && (
+        {store.session?.type === 'attendee' && activeMode === 'attendee' && (
           <nav className="bottom-nav" aria-label="Attendee views">
             {attendeeTabs.map((tab) => (
               <button

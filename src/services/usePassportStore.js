@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { defaultBooths } from '../data/mockData'
+import { adminCredentials, defaultBooths } from '../data/mockData'
 import { passportRepository } from './passportRepository'
 
 function buildBoothId(name) {
@@ -24,6 +24,10 @@ function toCsvValue(value) {
   return `"${String(value ?? '').replaceAll('"', '""')}"`
 }
 
+function normalizeEmail(email) {
+  return email.trim().toLowerCase()
+}
+
 export function usePassportStore() {
   const [state, setState] = useState(() => passportRepository.load())
 
@@ -37,6 +41,84 @@ export function usePassportStore() {
 
   const requiredScanCount = state.settings?.requiredScanCount ?? 4
   const passportComplete = state.completedIds.length >= requiredScanCount
+  const currentAttendee =
+    state.session?.type === 'attendee'
+      ? state.attendees.find((attendee) => attendee.id === state.session.attendeeId)
+      : null
+
+  const registerAttendee = (profile) => {
+    const email = normalizeEmail(profile.email)
+    const role =
+      profile.role === 'Other' ? profile.otherRole.trim() : profile.role.trim()
+
+    if (!profile.name.trim() || !email || !profile.phone.trim() || !role) {
+      return { ok: false, message: 'Please complete every required field.' }
+    }
+
+    const attendee = {
+      id: crypto.randomUUID(),
+      name: profile.name.trim(),
+      email,
+      phone: profile.phone.trim(),
+      role,
+      createdAt: new Date().toISOString(),
+    }
+
+    updateState((current) => ({
+      ...current,
+      attendees: [
+        ...current.attendees.filter((item) => item.email !== email),
+        attendee,
+      ],
+      session: { type: 'attendee', attendeeId: attendee.id },
+    }))
+
+    return { ok: true, message: `Welcome, ${attendee.name}.` }
+  }
+
+  const signInAttendee = ({ email, phone }) => {
+    const normalizedEmail = normalizeEmail(email)
+    const attendee = state.attendees.find(
+      (item) =>
+        item.email === normalizedEmail &&
+        item.phone.replace(/\D/g, '') === phone.replace(/\D/g, ''),
+    )
+
+    if (!attendee) {
+      return {
+        ok: false,
+        message: 'No attendee found with that email and phone number.',
+      }
+    }
+
+    updateState((current) => ({
+      ...current,
+      session: { type: 'attendee', attendeeId: attendee.id },
+    }))
+
+    return { ok: true, message: `Welcome back, ${attendee.name}.` }
+  }
+
+  const signInAdmin = ({ username, password }) => {
+    const usernameMatches =
+      username.trim().toLowerCase() === adminCredentials.username.toLowerCase()
+    const passwordMatches = password === adminCredentials.password
+
+    if (!usernameMatches || !passwordMatches) {
+      return { ok: false, message: 'Admin username or password is incorrect.' }
+    }
+
+    updateState((current) => ({
+      ...current,
+      session: { type: 'admin' },
+    }))
+
+    return { ok: true, message: 'Admin signed in.' }
+  }
+
+  const signOut = () => {
+    updateState((current) => ({ ...current, session: null }))
+  }
 
   const checkInBooth = (boothId) => {
     updateState((current) => ({
@@ -157,6 +239,11 @@ export function usePassportStore() {
     ...state,
     requiredScanCount,
     passportComplete,
+    currentAttendee,
+    registerAttendee,
+    signInAttendee,
+    signInAdmin,
+    signOut,
     checkInBooth,
     checkInByCode,
     undoCheckIn,

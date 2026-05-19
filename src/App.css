@@ -24,6 +24,10 @@
   box-shadow: 18px 20px 34px rgba(0, 0, 0, 0.24);
 }
 
+.phone-shell.no-bottom-nav {
+  grid-template-rows: 36px minmax(0, 1fr);
+}
+
 .app-bar,
 .bottom-nav {
   background: var(--app-blue);
@@ -394,12 +398,86 @@ button:disabled {
 .content-stack,
 .scanner-panel,
 .instructions-screen,
+.auth-screen,
 .raffle-panel,
 .admin-panel,
 .map-panel {
   display: grid;
   gap: 12px;
   padding: 12px;
+}
+
+.auth-screen {
+  min-height: 100%;
+  align-content: start;
+  gap: 16px;
+  padding: 28px 22px;
+  text-align: center;
+}
+
+.auth-logo {
+  width: min(210px, 72%);
+  max-height: 70px;
+  justify-self: center;
+  object-fit: contain;
+}
+
+.auth-screen h1 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 1.35rem;
+  font-weight: 900;
+}
+
+.auth-screen p {
+  color: #52527a;
+  font-size: 0.82rem;
+}
+
+.auth-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  border: 1px solid #d5d5d5;
+  border-radius: 5px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.auth-tabs button {
+  min-height: 34px;
+  border: 0;
+  border-radius: 0;
+  padding: 0 6px;
+  font-size: 0.72rem;
+}
+
+.auth-tabs .active {
+  color: #fff;
+  background: var(--app-blue);
+}
+
+.auth-form {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #fff;
+  text-align: left;
+}
+
+.auth-form button {
+  margin-top: 2px;
+}
+
+.demo-credentials {
+  padding: 8px;
+  border-radius: 5px;
+  color: var(--ink);
+  background: #eeeefe;
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-align: center;
 }
 
 .segmented-control {

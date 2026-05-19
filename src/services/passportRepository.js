@@ -6,6 +6,8 @@ const initialState = {
   booths: defaultBooths,
   completedIds: [],
   entries: [],
+  attendees: [],
+  session: null,
   settings: {
     requiredScanCount: 4,
     instructions: defaultInstructions,

@@ -1,4 +1,4 @@
-export function PassportSummary({ completedIds, requiredScanCount }) {
+export function PassportSummary({ attendeeName, completedIds, requiredScanCount }) {
   const completedCount = completedIds.length
   const percent = Math.round(
     requiredScanCount
@@ -16,7 +16,7 @@ export function PassportSummary({ completedIds, requiredScanCount }) {
           event.currentTarget.hidden = true
         }}
       />
-      <h1>Samuel Smith</h1>
+      <h1>{attendeeName || 'Passport Guest'}</h1>
       <div className="points-gauge" style={{ '--percent': `${percent * 1.8}deg` }}>
         <div>
           <strong>{completedCount}/{requiredScanCount}</strong>
