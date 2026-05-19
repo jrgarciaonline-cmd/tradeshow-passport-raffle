@@ -38,7 +38,7 @@ export function PassportSummary({
 
       <div className="home-image-frame">
         <img
-          src="/home/HOLD_IMAGE.PNG"
+          src="/home/HOME_IMAGE.png"
           alt=""
           onError={(event) => {
             event.currentTarget.hidden = true
