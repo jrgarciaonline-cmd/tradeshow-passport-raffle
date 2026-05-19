@@ -91,10 +91,20 @@ export function usePassportStore() {
 
     syncSharedState()
     const intervalId = window.setInterval(syncSharedState, 5000)
+    const syncWhenVisible = () => {
+      if (document.visibilityState === 'visible') syncSharedState()
+    }
+
+    window.addEventListener('focus', syncSharedState)
+    window.addEventListener('online', syncSharedState)
+    document.addEventListener('visibilitychange', syncWhenVisible)
 
     return () => {
       cancelled = true
       window.clearInterval(intervalId)
+      window.removeEventListener('focus', syncSharedState)
+      window.removeEventListener('online', syncSharedState)
+      document.removeEventListener('visibilitychange', syncWhenVisible)
     }
   }, [])
 
