@@ -693,6 +693,12 @@ textarea {
   object-fit: contain;
 }
 
+.logo-preview span {
+  color: #52527a;
+  font-size: 0.72rem;
+  font-weight: 900;
+}
+
 .booth-meta {
   display: flex;
   flex-wrap: wrap;

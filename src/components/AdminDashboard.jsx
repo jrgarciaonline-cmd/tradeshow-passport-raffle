@@ -271,11 +271,15 @@ export function AdminDashboard({ store }) {
                   />
                 </label>
                 <label className="form-field">
-                  <span>Logo PNG</span>
+                  <span>Logo PNG{draft.logoDataUrl ? ' - logo attached' : ''}</span>
                   <input
+                    key={draft.logoDataUrl ? 'logo-attached' : 'logo-empty'}
                     type="file"
                     accept="image/png"
-                    onChange={(event) => uploadLogo(event.target.files?.[0])}
+                    onChange={(event) => {
+                      uploadLogo(event.target.files?.[0])
+                      event.target.value = ''
+                    }}
                   />
                 </label>
                 <label className="form-field full">
@@ -292,6 +296,7 @@ export function AdminDashboard({ store }) {
               {draft.logoDataUrl && (
                 <div className="logo-preview">
                   <img src={draft.logoDataUrl} alt={`${draft.name} logo preview`} />
+                  <span>Current logo attached</span>
                   <button
                     type="button"
                     className="danger"

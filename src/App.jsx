@@ -270,6 +270,7 @@ function App() {
           {store.adminAuthenticated && activeMode === 'admin' && (
             <AdminPanel
               booths={store.booths}
+              attendees={store.attendees}
               entries={store.entries}
               onSaveBooth={store.saveBooth}
               onDeleteBooth={store.deleteBooth}

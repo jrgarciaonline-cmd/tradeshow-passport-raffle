@@ -16,6 +16,7 @@ const emptyBooth = {
 
 export function AdminPanel({
   booths,
+  attendees,
   entries,
   onSaveBooth,
   onDeleteBooth,
@@ -166,16 +167,24 @@ export function AdminPanel({
             />
           </label>
           <label className="form-field full">
-            <span>Manufacturer Logo PNG</span>
+            <span>
+              Manufacturer Logo PNG
+              {draft.logoDataUrl ? ' - logo attached' : ''}
+            </span>
             <input
+              key={draft.logoDataUrl ? 'logo-attached' : 'logo-empty'}
               type="file"
               accept="image/png"
-              onChange={(event) => uploadLogo(event.target.files?.[0])}
+              onChange={(event) => {
+                uploadLogo(event.target.files?.[0])
+                event.target.value = ''
+              }}
             />
           </label>
           {draft.logoDataUrl && (
             <div className="logo-preview">
               <img src={draft.logoDataUrl} alt={`${draft.name} logo preview`} />
+              <span>Current logo attached</span>
               <button
                 type="button"
                 className="danger"
@@ -269,7 +278,26 @@ export function AdminPanel({
             </article>
           ))}
 
-          <h3>Raffle entries</h3>
+          <h3>App signups ({attendees.length})</h3>
+          {attendees.length === 0 ? (
+            <p className="muted">No app signups yet.</p>
+          ) : (
+            attendees.map((attendee) => (
+              <article className="entry-card" key={attendee.id}>
+                <strong>{attendee.name}</strong>
+                <div className="entry-meta">
+                  <span className="pill">{attendee.role}</span>
+                  <span className="pill">{attendee.email}</span>
+                  <span className="pill">{attendee.phone}</span>
+                </div>
+                <p className="muted">
+                  {new Date(attendee.createdAt).toLocaleString()}
+                </p>
+              </article>
+            ))
+          )}
+
+          <h3>Raffle entries ({entries.length})</h3>
           {entries.length === 0 ? (
             <p className="muted">No raffle entries yet.</p>
           ) : (
