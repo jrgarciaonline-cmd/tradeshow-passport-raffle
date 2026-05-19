@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { adminCredentials, defaultBooths } from '../data/mockData'
 import { passportRepository } from './passportRepository'
 
@@ -28,14 +28,31 @@ function normalizeEmail(email) {
   return email.trim().toLowerCase()
 }
 
+function getAdminAttendee() {
+  return {
+    id: 'admin-user',
+    name: 'Land F/X Admin',
+    email: 'admin@landfx.local',
+    phone: '0000000000',
+    role: 'Admin',
+    createdAt: new Date().toISOString(),
+  }
+}
+
 export function usePassportStore() {
   const [state, setState] = useState(() => passportRepository.load())
+  const sharedSavePending = useRef(false)
 
-  const updateState = (updater) => {
+  const updateState = (updater, options = {}) => {
     setState((current) => {
       const next = updater(current)
       passportRepository.save(next)
-      passportRepository.saveShared(next)
+      if (options.syncShared) {
+        sharedSavePending.current = true
+        passportRepository.saveShared(next).finally(() => {
+          sharedSavePending.current = false
+        })
+      }
       return next
     })
   }
@@ -50,6 +67,7 @@ export function usePassportStore() {
 
       setState((current) => {
         if (cancelled) return current
+        if (sharedSavePending.current) return current
 
         if (!sharedState) {
           passportRepository.saveShared(current)
@@ -77,6 +95,9 @@ export function usePassportStore() {
     state.session?.type === 'attendee'
       ? state.attendees.find((attendee) => attendee.id === state.session.attendeeId)
       : null
+  const currentAttendeeEntry = currentAttendee
+    ? state.entries.find((entry) => entry.attendeeId === currentAttendee.id)
+    : null
 
   const registerAttendee = (profile) => {
     const email = normalizeEmail(profile.email)
@@ -142,6 +163,10 @@ export function usePassportStore() {
 
     updateState((current) => ({
       ...current,
+      attendees: current.attendees.some((attendee) => attendee.id === 'admin-user')
+        ? current.attendees
+        : [...current.attendees, getAdminAttendee()],
+      session: current.session ?? { type: 'attendee', attendeeId: 'admin-user' },
       adminAuthenticated: true,
     }))
 
@@ -193,18 +218,31 @@ export function usePassportStore() {
     }))
   }
 
-  const submitEntry = (entry) => {
+  const submitEntry = () => {
+    if (!currentAttendee) {
+      return { ok: false, message: 'No signed-in attendee found.' }
+    }
+
+    if (currentAttendeeEntry) {
+      return { ok: false, message: 'This attendee is already entered.' }
+    }
+
     updateState((current) => ({
       ...current,
       entries: [
         ...current.entries,
         {
-          ...entry,
+          attendeeId: currentAttendee.id,
+          name: currentAttendee.name,
+          email: currentAttendee.email,
+          phone: currentAttendee.phone,
+          role: currentAttendee.role,
           id: crypto.randomUUID(),
           submittedAt: new Date().toISOString(),
         },
       ],
-    }))
+    }), { syncShared: true })
+    return { ok: true, message: 'Raffle entry received.' }
   }
 
   const saveBooth = (booth) => {
@@ -225,7 +263,7 @@ export function usePassportStore() {
           ? current.booths.map((item) => (item.id === id ? nextBooth : item))
           : [...current.booths, nextBooth],
       }
-    })
+    }, { syncShared: true })
   }
 
   const deleteBooth = (boothId) => {
@@ -233,7 +271,7 @@ export function usePassportStore() {
       ...current,
       booths: current.booths.filter((booth) => booth.id !== boothId),
       completedIds: current.completedIds.filter((id) => id !== boothId),
-    }))
+    }), { syncShared: true })
   }
 
   const placeBoothOnMap = (boothId, map) => {
@@ -242,7 +280,7 @@ export function usePassportStore() {
       booths: current.booths.map((booth) =>
         booth.id === boothId ? { ...booth, map } : booth,
       ),
-    }))
+    }), { syncShared: true })
   }
 
   const saveSettings = (settings) => {
@@ -253,18 +291,29 @@ export function usePassportStore() {
         ...settings,
         requiredScanCount: Math.max(1, Number(settings.requiredScanCount) || 1),
       },
-    }))
+    }), { syncShared: true })
   }
 
   const exportEntriesCsv = () => {
-    const header = ['Name', 'Email', 'Phone', 'Company', 'Submitted At']
+    const header = ['Name', 'Email', 'Phone', 'Role', 'Submitted At']
     const body = state.entries.map((entry) =>
-      [entry.name, entry.email, entry.phone, entry.company, entry.submittedAt]
+      [entry.name, entry.email, entry.phone, entry.role, entry.submittedAt]
         .map(toCsvValue)
         .join(','),
     )
 
     downloadCsv('raffle-entries.csv', [header.join(','), ...body].join('\n'))
+  }
+
+  const exportAttendeesCsv = () => {
+    const header = ['Name', 'Email', 'Phone', 'Role', 'Signed Up At']
+    const body = state.attendees.map((attendee) =>
+      [attendee.name, attendee.email, attendee.phone, attendee.role, attendee.createdAt]
+        .map(toCsvValue)
+        .join(','),
+    )
+
+    downloadCsv('app-signups.csv', [header.join(','), ...body].join('\n'))
   }
 
   const resetDemo = () => {
@@ -282,6 +331,7 @@ export function usePassportStore() {
     requiredScanCount,
     passportComplete,
     currentAttendee,
+    currentAttendeeEntry,
     registerAttendee,
     signInAttendee,
     signInAdmin,
@@ -296,6 +346,7 @@ export function usePassportStore() {
     placeBoothOnMap,
     saveSettings,
     exportEntriesCsv,
+    exportAttendeesCsv,
     resetDemo,
   }
 }

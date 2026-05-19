@@ -1,4 +1,9 @@
-export function PassportSummary({ attendeeName, completedIds, requiredScanCount }) {
+export function PassportSummary({
+  attendeeName,
+  completedIds,
+  requiredScanCount,
+  onShowInstructions,
+}) {
   const completedCount = completedIds.length
   const percent = Math.round(
     requiredScanCount
@@ -23,6 +28,13 @@ export function PassportSummary({ attendeeName, completedIds, requiredScanCount 
           <span>Booths Visited</span>
         </div>
       </div>
+      <button
+        type="button"
+        className="home-action-button"
+        onClick={onShowInstructions}
+      >
+        How to Play
+      </button>
 
       <div className="home-image-frame">
         <img

@@ -7,15 +7,15 @@ import { AuthScreen } from './components/AuthScreen'
 import { BoothCard } from './components/BoothCard'
 import { MapView } from './components/MapView'
 import { PassportSummary } from './components/PassportSummary'
-import { RaffleForm } from './components/RaffleForm'
+import { RaffleEntryPanel } from './components/RaffleEntryPanel'
 import { ScannerPanel } from './components/ScannerPanel'
 
 const attendeeTabs = [
   { id: 'Home', icon: '▮' },
-  { id: 'Booths', icon: '◆' },
-  { id: 'Map', icon: '▦' },
   { id: 'Instructions', icon: '●' },
   { id: 'QR Scanner', icon: '▣' },
+  { id: 'Booths', icon: '◆' },
+  { id: 'Map', icon: '▦' },
 ]
 
 function App() {
@@ -91,7 +91,9 @@ function App() {
         <header className="app-bar">
           <button
             type="button"
-            className="icon-button"
+            className={`icon-button ${
+              activeMode === 'admin' || store.adminAuthenticated ? '' : 'is-hidden'
+            }`}
             aria-label={
               activeMode === 'admin' ? 'Back to attendee app' : 'Open admin'
             }
@@ -146,6 +148,7 @@ function App() {
                 attendeeName={store.currentAttendee?.name}
                 completedIds={store.completedIds}
                 requiredScanCount={store.requiredScanCount}
+                onShowInstructions={() => setActiveTab('Instructions')}
               />
 
               {store.passportComplete && (
@@ -161,10 +164,12 @@ function App() {
                 </section>
               )}
 
-              <RaffleForm
+              <RaffleEntryPanel
                 disabled={!store.passportComplete}
-                onSubmit={store.submitEntry}
-                latestEntry={store.entries.at(-1)}
+                attendee={store.currentAttendee}
+                hasEntered={Boolean(store.currentAttendeeEntry)}
+                onEnter={store.submitEntry}
+                latestEntry={store.currentAttendeeEntry}
               />
             </>
           )}
@@ -231,6 +236,7 @@ function App() {
               booths={store.booths}
               completedIds={store.completedIds}
               focusBoothId={focusedBoothId}
+              onClearFocus={() => setFocusedBoothId('')}
             />
           )}
 
@@ -248,7 +254,7 @@ function App() {
           {store.session &&
             activeMode === 'attendee' &&
             activeTab === 'QR Scanner' && (
-            <ScannerPanel booths={store.booths} onScan={handleScan} />
+            <ScannerPanel onScan={handleScan} />
           )}
 
           {store.adminAuthenticated && activeMode === 'admin' && (
@@ -261,6 +267,7 @@ function App() {
               settings={store.settings}
               onSaveSettings={store.saveSettings}
               onExportCsv={store.exportEntriesCsv}
+              onExportAttendeesCsv={store.exportAttendeesCsv}
               onResetDemo={store.resetDemo}
             />
           )}

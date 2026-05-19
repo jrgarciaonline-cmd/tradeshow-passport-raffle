@@ -66,6 +66,8 @@ export function PinchZoomMap({
   const viewRef = useRef(INITIAL_VIEW)
   const frameRef = useRef(null)
   const movedDuringGesture = useRef(false)
+  const pointerStart = useRef(null)
+  const lastFocusedBoothId = useRef('')
   const [view, setView] = useState(INITIAL_VIEW)
   const [mapSize, setMapSize] = useState(INITIAL_MAP_SIZE)
   const [selectedBoothId, setSelectedBoothId] = useState(null)
@@ -114,8 +116,28 @@ export function PinchZoomMap({
     startGesture(target)
   }
 
+  const placeBoothAtPoint = (clientX, clientY) => {
+    if (!placementBoothId || movedDuringGesture.current) return
+
+    const rect = viewportRef.current?.getBoundingClientRect()
+    if (!rect) return
+
+    const imageX = (clientX - rect.left - viewRef.current.x) / viewRef.current.scale
+    const imageY = (clientY - rect.top - viewRef.current.y) / viewRef.current.scale
+
+    onPlaceBooth?.(placementBoothId, {
+      x: clamp((imageX / mapSize.width) * 100, 0, 100),
+      y: clamp((imageY / mapSize.height) * 100, 0, 100),
+    })
+  }
+
   useEffect(() => {
-    if (!focusBoothId) return
+    if (!focusBoothId) {
+      lastFocusedBoothId.current = ''
+      return
+    }
+
+    if (lastFocusedBoothId.current === focusBoothId) return
 
     const booth = booths.find((item) => item.id === focusBoothId)
     const rect = viewportRef.current?.getBoundingClientRect()
@@ -136,6 +158,7 @@ export function PinchZoomMap({
 
     viewRef.current = focusedView
     setView(focusedView)
+    lastFocusedBoothId.current = focusBoothId
   }, [booths, focusBoothId, mapSize])
 
   return (
@@ -150,6 +173,7 @@ export function PinchZoomMap({
         onPointerDown={(event) => {
           event.preventDefault()
           movedDuringGesture.current = false
+          pointerStart.current = { x: event.clientX, y: event.clientY }
           event.currentTarget.setPointerCapture(event.pointerId)
           pointers.current.set(event.pointerId, {
             x: event.clientX,
@@ -160,12 +184,19 @@ export function PinchZoomMap({
         onPointerMove={(event) => {
           if (!pointers.current.has(event.pointerId)) return
           event.preventDefault()
-          movedDuringGesture.current = true
 
           pointers.current.set(event.pointerId, {
             x: event.clientX,
             y: event.clientY,
           })
+
+          if (pointerStart.current) {
+            const movedDistance = Math.hypot(
+              event.clientX - pointerStart.current.x,
+              event.clientY - pointerStart.current.y,
+            )
+            movedDuringGesture.current = movedDistance > 6
+          }
 
           const start = gestureStart.current
           if (!start) return
@@ -210,22 +241,7 @@ export function PinchZoomMap({
         <div
           className="pinch-map-area"
           onClick={(event) => {
-            if (!placementBoothId || movedDuringGesture.current) return
-
-            const rect = viewportRef.current?.getBoundingClientRect()
-            if (!rect) return
-
-            const imageX =
-              (event.clientX - rect.left - viewRef.current.x) /
-              viewRef.current.scale
-            const imageY =
-              (event.clientY - rect.top - viewRef.current.y) /
-              viewRef.current.scale
-
-            onPlaceBooth?.(placementBoothId, {
-              x: clamp((imageX / mapSize.width) * 100, 0, 100),
-              y: clamp((imageY / mapSize.height) * 100, 0, 100),
-            })
+            placeBoothAtPoint(event.clientX, event.clientY)
           }}
           style={{
             width: `${mapSize.width}px`,
@@ -262,7 +278,10 @@ export function PinchZoomMap({
                 aria-label={`${booth.name}, ${booth.location}`}
                 onClick={(e) => {
                   e.stopPropagation()
-                  if (placementBoothId) return
+                  if (placementBoothId) {
+                    placeBoothAtPoint(e.clientX, e.clientY)
+                    return
+                  }
                   setSelectedBoothId(booth.id)
                 }}
               >

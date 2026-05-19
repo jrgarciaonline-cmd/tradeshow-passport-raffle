@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import jsQR from 'jsqr'
 
-export function ScannerPanel({ booths, onScan }) {
+export function ScannerPanel({ onScan }) {
   const videoRef = useRef(null)
   const canvasRef = useRef(document.createElement('canvas'))
   const streamRef = useRef(null)
   const [manualCode, setManualCode] = useState('')
   const [message, setMessage] = useState('')
   const [cameraActive, setCameraActive] = useState(false)
+  const [scanSuccess, setScanSuccess] = useState(false)
 
   const stopCamera = useCallback(() => {
     streamRef.current?.getTracks().forEach((track) => track.stop())
@@ -22,12 +23,16 @@ export function ScannerPanel({ booths, onScan }) {
     (code) => {
       const result = onScan(code)
       setMessage(result.message)
-      if (result.ok) setManualCode('')
+      if (result.ok) {
+        setManualCode('')
+        setScanSuccess(true)
+      }
     },
     [onScan],
   )
 
   const startCamera = async () => {
+    setScanSuccess(false)
     const isSecure = window.isSecureContext
     const isLocal = ['localhost', '127.0.0.1'].includes(window.location.hostname)
 
@@ -157,8 +162,20 @@ export function ScannerPanel({ booths, onScan }) {
         <h2>Please scan the QR Code</h2>
       </div>
       <div className="scan-frame">
-        <video ref={videoRef} className="scanner-video" muted playsInline />
-        <div className="scan-corners" aria-hidden="true" />
+        <video
+          ref={videoRef}
+          className={`scanner-video ${scanSuccess ? 'is-hidden' : ''}`}
+          muted
+          playsInline
+        />
+        {scanSuccess ? (
+          <div className="scan-success" aria-live="polite">
+            <span>✓</span>
+            <strong>Scan Complete</strong>
+          </div>
+        ) : (
+          <div className="scan-corners" aria-hidden="true" />
+        )}
       </div>
       <div className="scanner-controls">
         <button
@@ -180,7 +197,7 @@ export function ScannerPanel({ booths, onScan }) {
             <input
               value={manualCode}
               onChange={(event) => setManualCode(event.target.value)}
-              placeholder={booths[0]?.qrCode}
+              placeholder="Enter manual scan code"
             />
           </label>
           <button type="submit">Enter code</button>

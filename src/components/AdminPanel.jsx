@@ -23,6 +23,7 @@ export function AdminPanel({
   settings,
   onSaveSettings,
   onExportCsv,
+  onExportAttendeesCsv,
   onResetDemo,
 }) {
   const formRef = useRef(null)
@@ -58,7 +59,10 @@ export function AdminPanel({
           <h2>Manage manufacturer booths and raffle entries</h2>
         </div>
         <button type="button" onClick={onExportCsv} disabled={!entries.length}>
-          Export CSV
+          Export raffle CSV
+        </button>
+        <button type="button" onClick={onExportAttendeesCsv}>
+          Export signups CSV
         </button>
         <button type="button" className="danger" onClick={onResetDemo}>
           Reset demo
@@ -273,7 +277,7 @@ export function AdminPanel({
               <article className="entry-card" key={entry.id}>
                 <strong>{entry.name}</strong>
                 <div className="entry-meta">
-                  <span className="pill">{entry.company}</span>
+                  <span className="pill">{entry.role}</span>
                   <span className="pill">{entry.email}</span>
                   <span className="pill">{entry.phone}</span>
                 </div>
