@@ -125,6 +125,7 @@ export function usePassportStore() {
         attendee,
       ],
       session: { type: 'attendee', attendeeId: attendee.id },
+      completedIds: current.attendeeProgress[attendee.id] ?? [],
     }), { sharedPatch: { attendees: [attendee] } })
 
     return { ok: true, message: `Welcome, ${attendee.name}.` }
@@ -148,6 +149,7 @@ export function usePassportStore() {
     updateState((current) => ({
       ...current,
       session: { type: 'attendee', attendeeId: attendee.id },
+      completedIds: current.attendeeProgress[attendee.id] ?? [],
     }))
 
     return { ok: true, message: `Welcome back, ${attendee.name}.` }
@@ -162,14 +164,19 @@ export function usePassportStore() {
       return { ok: false, message: 'Admin username or password is incorrect.' }
     }
 
-    updateState((current) => ({
-      ...current,
-      attendees: current.attendees.some((attendee) => attendee.id === 'admin-user')
-        ? current.attendees
-        : [...current.attendees, getAdminAttendee()],
-      session: current.session ?? { type: 'attendee', attendeeId: 'admin-user' },
-      adminAuthenticated: true,
-    }))
+    updateState((current) => {
+      const attendeeId = current.session?.attendeeId ?? 'admin-user'
+
+      return {
+        ...current,
+        attendees: current.attendees.some((attendee) => attendee.id === 'admin-user')
+          ? current.attendees
+          : [...current.attendees, getAdminAttendee()],
+        session: current.session ?? { type: 'attendee', attendeeId },
+        completedIds: current.attendeeProgress[attendeeId] ?? current.completedIds,
+        adminAuthenticated: true,
+      }
+    })
 
     return { ok: true, message: 'Admin signed in.' }
   }
@@ -192,6 +199,15 @@ export function usePassportStore() {
       completedIds: current.completedIds.includes(boothId)
         ? current.completedIds
         : [...current.completedIds, boothId],
+      attendeeProgress:
+        current.session?.type === 'attendee'
+          ? {
+              ...current.attendeeProgress,
+              [current.session.attendeeId]: current.completedIds.includes(boothId)
+                ? current.completedIds
+                : [...current.completedIds, boothId],
+            }
+          : current.attendeeProgress,
     }))
   }
 
@@ -216,6 +232,15 @@ export function usePassportStore() {
     updateState((current) => ({
       ...current,
       completedIds: current.completedIds.filter((id) => id !== boothId),
+      attendeeProgress:
+        current.session?.type === 'attendee'
+          ? {
+              ...current.attendeeProgress,
+              [current.session.attendeeId]: current.completedIds.filter(
+                (id) => id !== boothId,
+              ),
+            }
+          : current.attendeeProgress,
     }))
   }
 

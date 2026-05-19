@@ -9,6 +9,7 @@ const SHARED_ROW_ID = 'shared'
 const initialState = {
   booths: defaultBooths,
   completedIds: [],
+  attendeeProgress: {},
   entries: [],
   attendees: [],
   session: null,
