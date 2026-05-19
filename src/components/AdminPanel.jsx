@@ -67,8 +67,14 @@ export function AdminPanel({
           onSubmit={(event) => {
             event.preventDefault()
             const formData = new FormData(event.currentTarget)
+            const instructionsText = formData.get('instructions')
+            const instructions = instructionsText
+              .split('\n')
+              .map((line) => line.trim())
+              .filter((line) => line.length > 0)
             onSaveSettings({
               requiredScanCount: formData.get('requiredScanCount'),
+              instructions,
             })
           }}
         >
@@ -81,6 +87,15 @@ export function AdminPanel({
               min="1"
               max={booths.length}
               defaultValue={settings?.requiredScanCount ?? 4}
+            />
+          </label>
+          <label className="form-field full">
+            <span>Instructions (one per line)</span>
+            <textarea
+              name="instructions"
+              rows="6"
+              defaultValue={(settings?.instructions ?? []).join('\n')}
+              placeholder="Enter each instruction on a new line..."
             />
           </label>
           <button type="submit" className="primary">

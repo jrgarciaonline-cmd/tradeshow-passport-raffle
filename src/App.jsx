@@ -17,13 +17,6 @@ const attendeeTabs = [
   { id: 'QR Scanner', icon: '▣' },
 ]
 
-const instructions = [
-  'The Passport Raffle is one challenge: visit each participating manufacturer booth.',
-  'At each booth, scan the passport QR code or enter the code manually if the camera is not available.',
-  'Each manufacturer booth you visit is marked complete on your passport.',
-  'Scan the required number of unique manufacturer booths to unlock the raffle entry form.',
-]
-
 function App() {
   const store = usePassportStore()
   const [mode, setMode] = useState('attendee')
@@ -33,6 +26,13 @@ function App() {
   const [scannedBoothId, setScannedBoothId] = useState('')
   const [query, setQuery] = useState('')
   const [category, setCategory] = useState('All')
+
+  const instructions = store.settings?.instructions ?? [
+    'The Passport Raffle is one challenge: visit each participating manufacturer booth.',
+    'At each booth, scan the passport QR code or enter the code manually if the camera is not available.',
+    'Each manufacturer booth you visit is marked complete on your passport.',
+    'Scan the required number of unique manufacturer booths to unlock the raffle entry form.',
+  ]
 
   const filteredBooths = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase()
