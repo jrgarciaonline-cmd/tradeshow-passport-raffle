@@ -234,16 +234,23 @@ export function PinchZoomMap({
             })
           }
         }}
-        onPointerUp={(event) => endPointer(event.pointerId, event.currentTarget)}
+        onPointerUp={(event) => {
+          if (
+            placementBoothId &&
+            pointers.current.size === 1 &&
+            pointers.current.has(event.pointerId) &&
+            !movedDuringGesture.current
+          ) {
+            placeBoothAtPoint(event.clientX, event.clientY)
+          }
+          endPointer(event.pointerId, event.currentTarget)
+        }}
         onPointerCancel={(event) =>
           endPointer(event.pointerId, event.currentTarget)
         }
       >
         <div
           className="pinch-map-area"
-          onClick={(event) => {
-            placeBoothAtPoint(event.clientX, event.clientY)
-          }}
           style={{
             width: `${mapSize.width}px`,
             height: `${mapSize.height}px`,
@@ -280,7 +287,6 @@ export function PinchZoomMap({
                 onClick={(e) => {
                   e.stopPropagation()
                   if (placementBoothId) {
-                    placeBoothAtPoint(e.clientX, e.clientY)
                     return
                   }
                   setSelectedBoothId(booth.id)
