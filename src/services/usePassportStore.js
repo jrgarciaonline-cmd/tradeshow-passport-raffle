@@ -42,6 +42,7 @@ function getAdminAttendee() {
 export function usePassportStore() {
   const [state, setState] = useState(() => passportRepository.load())
   const sharedSavePending = useRef(false)
+  const preserveLocalUntil = useRef({})
 
   const updateState = (updater, options = {}) => {
     setState((current) => {
@@ -52,6 +53,7 @@ export function usePassportStore() {
           typeof options.sharedPatch === 'function'
             ? options.sharedPatch(next, current)
             : options.sharedPatch
+        if (!patch) return next
         sharedSavePending.current = true
         passportRepository.saveSharedPatch(patch).finally(() => {
           sharedSavePending.current = false
@@ -75,7 +77,13 @@ export function usePassportStore() {
 
         if (!sharedState) return current
 
-        const next = passportRepository.mergeShared(current, sharedState)
+        const now = Date.now()
+        const next = passportRepository.mergeShared(current, sharedState, {
+          preserveLocalSections: {
+            booths: (preserveLocalUntil.current.booths ?? 0) > now,
+            settings: (preserveLocalUntil.current.settings ?? 0) > now,
+          },
+        })
         passportRepository.save(next)
         return next
       })
@@ -194,21 +202,33 @@ export function usePassportStore() {
   }
 
   const checkInBooth = (boothId) => {
-    updateState((current) => ({
-      ...current,
-      completedIds: current.completedIds.includes(boothId)
+    updateState((current) => {
+      const completedIds = current.completedIds.includes(boothId)
         ? current.completedIds
-        : [...current.completedIds, boothId],
-      attendeeProgress:
-        current.session?.type === 'attendee'
+        : [...current.completedIds, boothId]
+      const attendeeId = current.session?.attendeeId
+
+      return {
+        ...current,
+        completedIds,
+        attendeeProgress:
+          current.session?.type === 'attendee'
+            ? {
+                ...current.attendeeProgress,
+                [attendeeId]: completedIds,
+              }
+            : current.attendeeProgress,
+      }
+    }, {
+      sharedPatch: (next) =>
+        next.session?.type === 'attendee'
           ? {
-              ...current.attendeeProgress,
-              [current.session.attendeeId]: current.completedIds.includes(boothId)
-                ? current.completedIds
-                : [...current.completedIds, boothId],
+              attendeeProgress: {
+                [next.session.attendeeId]: next.completedIds,
+              },
             }
-          : current.attendeeProgress,
-    }))
+          : null,
+    })
   }
 
   const checkInByCode = (code) => {
@@ -229,19 +249,31 @@ export function usePassportStore() {
   }
 
   const undoCheckIn = (boothId) => {
-    updateState((current) => ({
-      ...current,
-      completedIds: current.completedIds.filter((id) => id !== boothId),
-      attendeeProgress:
-        current.session?.type === 'attendee'
+    updateState((current) => {
+      const completedIds = current.completedIds.filter((id) => id !== boothId)
+      const attendeeId = current.session?.attendeeId
+
+      return {
+        ...current,
+        completedIds,
+        attendeeProgress:
+          current.session?.type === 'attendee'
+            ? {
+                ...current.attendeeProgress,
+                [attendeeId]: completedIds,
+              }
+            : current.attendeeProgress,
+      }
+    }, {
+      sharedPatch: (next) =>
+        next.session?.type === 'attendee'
           ? {
-              ...current.attendeeProgress,
-              [current.session.attendeeId]: current.completedIds.filter(
-                (id) => id !== boothId,
-              ),
+              attendeeProgress: {
+                [next.session.attendeeId]: next.completedIds,
+              },
             }
-          : current.attendeeProgress,
-    }))
+          : null,
+    })
   }
 
   const submitEntry = () => {
@@ -298,6 +330,7 @@ export function usePassportStore() {
         booths: next.booths,
       }),
     })
+    preserveLocalUntil.current.booths = Date.now() + 15000
   }
 
   const deleteBooth = (boothId) => {
@@ -310,6 +343,7 @@ export function usePassportStore() {
         booths: next.booths,
       }),
     })
+    preserveLocalUntil.current.booths = Date.now() + 15000
   }
 
   const placeBoothOnMap = (boothId, map) => {
@@ -323,6 +357,7 @@ export function usePassportStore() {
         booths: next.booths,
       }),
     })
+    preserveLocalUntil.current.booths = Date.now() + 15000
   }
 
   const saveSettings = (settings) => {
@@ -338,6 +373,7 @@ export function usePassportStore() {
         settings: next.settings,
       }),
     })
+    preserveLocalUntil.current.settings = Date.now() + 15000
   }
 
   const exportEntriesCsv = () => {

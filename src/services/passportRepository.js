@@ -55,27 +55,45 @@ function getSharedState(state) {
     booths: state.booths,
     entries: state.entries,
     attendees: state.attendees,
+    attendeeProgress: state.attendeeProgress,
     settings: state.settings,
   }
 }
 
-function mergeSharedState(state, sharedState) {
+function mergeSharedState(state, sharedState, options = {}) {
   if (!sharedState) return state
+  const preserveLocalSections = options.preserveLocalSections ?? {}
+  const attendeeProgress = {
+    ...state.attendeeProgress,
+    ...sharedState.attendeeProgress,
+  }
+  const completedIds =
+    state.session?.type === 'attendee' && attendeeProgress[state.session.attendeeId]
+      ? attendeeProgress[state.session.attendeeId]
+      : state.completedIds
 
   return {
     ...state,
-    booths: sharedState.booths?.length ? sharedState.booths : state.booths,
+    completedIds,
+    booths: preserveLocalSections.booths
+      ? state.booths
+      : sharedState.booths?.length
+        ? sharedState.booths
+        : state.booths,
     entries: Array.isArray(sharedState.entries) ? sharedState.entries : state.entries,
     attendees: Array.isArray(sharedState.attendees)
       ? sharedState.attendees
       : state.attendees,
-    settings: {
-      ...state.settings,
-      ...sharedState.settings,
-      instructions: sharedState.settings?.instructions?.length
-        ? sharedState.settings.instructions
-        : state.settings.instructions,
-    },
+    attendeeProgress,
+    settings: preserveLocalSections.settings
+      ? state.settings
+      : {
+          ...state.settings,
+          ...sharedState.settings,
+          instructions: sharedState.settings?.instructions?.length
+            ? sharedState.settings.instructions
+            : state.settings.instructions,
+        },
   }
 }
 
@@ -97,6 +115,7 @@ function mergeSharedPatch(sharedState, patch) {
     booths: [],
     entries: [],
     attendees: [],
+    attendeeProgress: {},
     settings: initialState.settings,
   }
 
@@ -109,6 +128,12 @@ function mergeSharedPatch(sharedState, patch) {
     entries: patch.entries
       ? mergeUniqueByIdentity(currentSharedState.entries, patch.entries)
       : currentSharedState.entries,
+    attendeeProgress: patch.attendeeProgress
+      ? {
+          ...currentSharedState.attendeeProgress,
+          ...patch.attendeeProgress,
+        }
+      : currentSharedState.attendeeProgress,
     settings: patch.settings
       ? { ...currentSharedState.settings, ...patch.settings }
       : currentSharedState.settings,
@@ -144,8 +169,8 @@ export const passportRepository = {
   save(state) {
     writeState(state)
   },
-  mergeShared(state, sharedState) {
-    return mergeSharedState(state, sharedState)
+  mergeShared(state, sharedState, options) {
+    return mergeSharedState(state, sharedState, options)
   },
   async loadShared() {
     try {
