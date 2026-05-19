@@ -21,6 +21,7 @@ const attendeeTabs = [
 
 function App() {
   const store = usePassportStore()
+  const isAdminRoute = window.location.pathname.replace(/\/$/, '') === '/admin'
   const [mode, setMode] = useState('attendee')
   const [authView, setAuthView] = useState('signup')
   const [activeTab, setActiveTab] = useState('Home')
@@ -79,7 +80,7 @@ function App() {
     return () => window.clearTimeout(timer)
   }, [scannedBoothId])
 
-  if (window.location.pathname === '/admin') {
+  if (isAdminRoute) {
     return <AdminDashboard store={store} />
   }
 
