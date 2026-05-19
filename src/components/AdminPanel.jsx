@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import { defaultInstructions } from '../data/mockData'
 import { PinchZoomMap } from './PinchZoomMap'
+import { WinnerWheel } from './WinnerWheel'
 
 const emptyBooth = {
   id: '',
@@ -300,6 +301,10 @@ export function AdminPanel({
               </article>
             ))
           )}
+
+          <div className="admin-mobile-wheel-card">
+            <WinnerWheel entries={entries} />
+          </div>
 
           <h3>Raffle entries ({entries.length})</h3>
           {entries.length === 0 ? (

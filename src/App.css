@@ -1153,6 +1153,13 @@ textarea {
   text-align: center;
 }
 
+.admin-mobile-wheel-card {
+  margin: 4px -12px 12px;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  background: #f7f7f7;
+}
+
 .eyebrow {
   margin: 0;
   color: var(--app-blue);
