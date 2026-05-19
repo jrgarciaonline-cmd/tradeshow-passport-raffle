@@ -10,7 +10,6 @@ import { MapView } from './components/MapView'
 import { PassportSummary } from './components/PassportSummary'
 import { RaffleEntryPanel } from './components/RaffleEntryPanel'
 import { ScannerPanel } from './components/ScannerPanel'
-import { WinnerWheel } from './components/WinnerWheel'
 
 const attendeeTabs = [
   { id: 'Home', icon: '▮' },
@@ -18,7 +17,6 @@ const attendeeTabs = [
   { id: 'QR Scanner', icon: '▣' },
   { id: 'Booths', icon: '◆' },
   { id: 'Map', icon: '▦' },
-  { id: 'Winner', icon: '★' },
 ]
 
 function App() {
@@ -284,12 +282,6 @@ function App() {
             activeMode === 'attendee' &&
             activeTab === 'QR Scanner' && (
             <ScannerPanel onScan={handleScan} />
-          )}
-
-          {store.session &&
-            activeMode === 'attendee' &&
-            activeTab === 'Winner' && (
-            <WinnerWheel entries={store.entries} />
           )}
 
           {store.adminAuthenticated && activeMode === 'admin' && (
