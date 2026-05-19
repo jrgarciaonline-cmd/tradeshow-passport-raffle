@@ -1,12 +1,16 @@
 import { useEffect, useRef, useState } from 'react'
 
 const MAP_SRC = '/maps/asla_map.PNG'
-const MAP_WIDTH = 1600
-const MAP_HEIGHT = 700
+const BASE_MAP_WIDTH = 1600
+const DEFAULT_MAP_RATIO = 2059 / 3000
 const MIN_SCALE = 1
 const MAX_SCALE = 3.2
 const FOCUS_SCALE = 2.35
 const INITIAL_VIEW = { scale: 1, x: 0, y: 0 }
+const INITIAL_MAP_SIZE = {
+  width: BASE_MAP_WIDTH,
+  height: Math.round(BASE_MAP_WIDTH * DEFAULT_MAP_RATIO),
+}
 
 function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value))
@@ -23,9 +27,9 @@ function midpoint(first, second) {
   }
 }
 
-function getBounds(container, scale) {
-  const width = MAP_WIDTH * scale
-  const height = MAP_HEIGHT * scale
+function getBounds(container, scale, mapSize) {
+  const width = mapSize.width * scale
+  const height = mapSize.height * scale
   const minX = Math.min(0, container.width - width)
   const minY = Math.min(0, container.height - height)
 
@@ -37,8 +41,8 @@ function getBounds(container, scale) {
   }
 }
 
-function constrainView(view, container) {
-  const bounds = getBounds(container, view.scale)
+function constrainView(view, container, mapSize) {
+  const bounds = getBounds(container, view.scale, mapSize)
 
   return {
     scale: view.scale,
@@ -63,6 +67,7 @@ export function PinchZoomMap({
   const frameRef = useRef(null)
   const movedDuringGesture = useRef(false)
   const [view, setView] = useState(INITIAL_VIEW)
+  const [mapSize, setMapSize] = useState(INITIAL_MAP_SIZE)
   const [selectedBoothId, setSelectedBoothId] = useState(null)
 
   const updateView = (nextView) => {
@@ -72,7 +77,7 @@ export function PinchZoomMap({
       const rect = viewportRef.current?.getBoundingClientRect()
       if (!rect) return
 
-      const constrained = constrainView(nextView, rect)
+      const constrained = constrainView(nextView, rect, mapSize)
       viewRef.current = constrained
       setView(constrained)
     })
@@ -117,8 +122,8 @@ export function PinchZoomMap({
     if (!booth || !rect) return
 
     const scale = FOCUS_SCALE
-    const mapX = (booth.map.x / 100) * MAP_WIDTH
-    const mapY = (booth.map.y / 100) * MAP_HEIGHT
+    const mapX = (booth.map.x / 100) * mapSize.width
+    const mapY = (booth.map.y / 100) * mapSize.height
     const focusedView = constrainView(
       {
         scale,
@@ -126,11 +131,12 @@ export function PinchZoomMap({
         y: rect.height / 2 - mapY * scale,
       },
       rect,
+      mapSize,
     )
 
     viewRef.current = focusedView
     setView(focusedView)
-  }, [booths, focusBoothId])
+  }, [booths, focusBoothId, mapSize])
 
   return (
     <div className={`pinch-map ${className}`}>
@@ -203,9 +209,6 @@ export function PinchZoomMap({
       >
         <div
           className="pinch-map-area"
-          style={{
-            transform: `translate3d(${view.x}px, ${view.y}px, 0) scale(${view.scale})`,
-          }}
           onClick={(event) => {
             if (!placementBoothId || movedDuringGesture.current) return
 
@@ -220,12 +223,29 @@ export function PinchZoomMap({
               viewRef.current.scale
 
             onPlaceBooth?.(placementBoothId, {
-              x: clamp((imageX / MAP_WIDTH) * 100, 0, 100),
-              y: clamp((imageY / MAP_HEIGHT) * 100, 0, 100),
+              x: clamp((imageX / mapSize.width) * 100, 0, 100),
+              y: clamp((imageY / mapSize.height) * 100, 0, 100),
             })
           }}
+          style={{
+            width: `${mapSize.width}px`,
+            height: `${mapSize.height}px`,
+            transform: `translate3d(${view.x}px, ${view.y}px, 0) scale(${view.scale})`,
+          }}
         >
-          <img src={MAP_SRC} alt="Expo floor map" />
+          <img
+            src={MAP_SRC}
+            alt="Expo floor map"
+            onLoad={(event) => {
+              const { naturalWidth, naturalHeight } = event.currentTarget
+              if (!naturalWidth || !naturalHeight) return
+
+              setMapSize({
+                width: BASE_MAP_WIDTH,
+                height: Math.round(BASE_MAP_WIDTH * (naturalHeight / naturalWidth)),
+              })
+            }}
+          />
           {booths.map((booth) => {
             const completed = completedIds.includes(booth.id)
             const selected = placementBoothId === booth.id
