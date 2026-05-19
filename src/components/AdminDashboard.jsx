@@ -39,6 +39,9 @@ export function AdminDashboard({ store }) {
   const [draft, setDraft] = useState(emptyBooth)
   const [placementBoothId, setPlacementBoothId] = useState('')
   const [query, setQuery] = useState('')
+  const [winner, setWinner] = useState(null)
+  const [wheelRotation, setWheelRotation] = useState(0)
+  const [isSpinning, setIsSpinning] = useState(false)
 
   const instructionsText = (
     store.settings?.instructions?.length
@@ -58,6 +61,32 @@ export function AdminDashboard({ store }) {
     )
   }, [query, store.booths])
 
+  const wheelGradient = useMemo(() => {
+    if (!store.entries.length) {
+      return 'conic-gradient(#f0f0f0 0deg 360deg)'
+    }
+
+    const colors = [
+      '#111111',
+      '#21a66b',
+      '#f8c23a',
+      '#245c6f',
+      '#ec6f2d',
+      '#6eb34f',
+      '#2b8fa3',
+      '#757575',
+    ]
+    const sliceAngle = 360 / store.entries.length
+
+    return `conic-gradient(${store.entries
+      .map((entry, index) => {
+        const start = index * sliceAngle
+        const end = (index + 1) * sliceAngle
+        return `${colors[index % colors.length]} ${start}deg ${end}deg`
+      })
+      .join(', ')})`
+  }, [store.entries])
+
   const updateDraft = (field, value) => {
     setDraft((current) => ({ ...current, [field]: value }))
   }
@@ -75,6 +104,28 @@ export function AdminDashboard({ store }) {
   const saveDraft = () => {
     store.saveBooth(draft)
     setDraft(emptyBooth)
+  }
+
+  const spinWinner = () => {
+    if (!store.entries.length || isSpinning) return
+
+    const winnerIndex = Math.floor(Math.random() * store.entries.length)
+    const sliceAngle = 360 / store.entries.length
+    const landingAngle = 360 - (winnerIndex * sliceAngle + sliceAngle / 2)
+    const selectedWinner = store.entries[winnerIndex]
+
+    setWinner(null)
+    setIsSpinning(true)
+    setWheelRotation((currentRotation) => {
+      const currentAngle = ((currentRotation % 360) + 360) % 360
+      const correction = (landingAngle - currentAngle + 360) % 360
+      return currentRotation + 1440 + correction
+    })
+
+    window.setTimeout(() => {
+      setWinner(selectedWinner)
+      setIsSpinning(false)
+    }, 3800)
   }
 
   if (!store.adminAuthenticated) {
@@ -145,8 +196,14 @@ export function AdminDashboard({ store }) {
           <h1>Admin</h1>
         </div>
         <nav aria-label="Admin sections">
-          {['Booths', 'Map', 'Settings', 'Signups', 'Raffle Entries'].map(
-            (section) => (
+          {[
+            'Booths',
+            'Map',
+            'Settings',
+            'Signups',
+            'Raffle Entries',
+            'Winner Picker',
+          ].map((section) => (
               <button
                 type="button"
                 key={section}
@@ -155,8 +212,7 @@ export function AdminDashboard({ store }) {
               >
                 {section}
               </button>
-            ),
-          )}
+            ))}
         </nav>
         <div className="admin-sidebar-actions">
           <a href="/" className="button-link">
@@ -535,6 +591,77 @@ export function AdminDashboard({ store }) {
                     ))}
                   </tbody>
                 </table>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {activeSection === 'Winner Picker' && (
+          <section className="admin-workspace winner-workspace">
+            <div className="desktop-card winner-card">
+              <div className="table-toolbar">
+                <div>
+                  <p className="eyebrow">Prize Wheel</p>
+                  <h3>Pick a Random Winner</h3>
+                </div>
+                <button
+                  type="button"
+                  className="primary"
+                  onClick={spinWinner}
+                  disabled={!store.entries.length || isSpinning}
+                >
+                  {isSpinning ? 'Spinning...' : 'Spin Wheel'}
+                </button>
+              </div>
+
+              <div className="winner-layout">
+                <div className="wheel-zone" aria-live="polite">
+                  <div className="wheel-pointer" />
+                  <div
+                    className="prize-wheel"
+                    style={{
+                      background: wheelGradient,
+                      transform: `rotate(${wheelRotation}deg)`,
+                    }}
+                  >
+                    <div className="wheel-center">
+                      <strong>{store.entries.length}</strong>
+                      <span>Entries</span>
+                    </div>
+                  </div>
+                </div>
+
+                <aside className="winner-panel">
+                  <div className="winner-result">
+                    <span>{winner ? 'Winner Selected' : 'Ready to Draw'}</span>
+                    <strong>{winner?.name ?? 'No winner yet'}</strong>
+                    {winner && (
+                      <>
+                        <p>{winner.company || winner.role}</p>
+                        <p>{winner.email}</p>
+                      </>
+                    )}
+                  </div>
+
+                  <div className="eligible-list">
+                    <h4>Eligible Raffle Entries</h4>
+                    {store.entries.length ? (
+                      <ul>
+                        {store.entries.map((entry) => (
+                          <li key={entry.id}>
+                            <span>{entry.name}</span>
+                            <small>{entry.company || entry.email}</small>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p>
+                        No raffle entries yet. Qualified attendees will appear
+                        here automatically.
+                      </p>
+                    )}
+                  </div>
+                </aside>
               </div>
             </div>
           </section>
