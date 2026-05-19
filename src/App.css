@@ -385,7 +385,7 @@ button:disabled {
   display: grid;
   justify-items: center;
   gap: 4px;
-  transform: translate(-50%, calc(-100% - 34px));
+  transform: translate(-50%, calc(-100% - 18px));
   pointer-events: none;
   filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.3));
 }

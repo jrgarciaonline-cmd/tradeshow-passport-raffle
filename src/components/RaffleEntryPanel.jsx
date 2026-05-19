@@ -3,7 +3,6 @@ export function RaffleEntryPanel({
   attendee,
   hasEntered,
   latestEntry,
-  onEnter,
 }) {
   return (
     <section className="raffle-panel">
@@ -13,14 +12,14 @@ export function RaffleEntryPanel({
             ? 'Raffle locked'
             : hasEntered
               ? 'Raffle entry received'
-              : 'Enter raffle drawing'}
+              : 'Entering raffle drawing'}
         </h2>
         <p>
           {disabled
             ? 'Complete the required number of booth scans to unlock the drawing.'
             : hasEntered
               ? 'You are entered using your sign up information.'
-              : 'Passport complete. Enter using your sign up information.'}
+              : 'Passport complete. Your entry is being submitted automatically.'}
         </p>
       </div>
 
@@ -33,14 +32,11 @@ export function RaffleEntryPanel({
         </div>
       )}
 
-      <button
-        type="button"
-        className="primary"
-        disabled={disabled || hasEntered || !attendee}
-        onClick={onEnter}
-      >
-        {hasEntered ? 'Entered' : 'Enter raffle drawing'}
-      </button>
+      {!disabled && (
+        <p className="status-note">
+          {hasEntered ? 'Entered automatically.' : 'Submitting entry...'}
+        </p>
+      )}
 
       {latestEntry && (
         <p className="status-note">

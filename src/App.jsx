@@ -80,6 +80,23 @@ function App() {
     return () => window.clearTimeout(timer)
   }, [scannedBoothId])
 
+  useEffect(() => {
+    if (
+      store.session?.type === 'attendee' &&
+      store.passportComplete &&
+      store.currentAttendee &&
+      !store.currentAttendeeEntry
+    ) {
+      store.submitEntry()
+    }
+  }, [
+    store.session?.type,
+    store.passportComplete,
+    store.currentAttendee,
+    store.currentAttendeeEntry,
+    store,
+  ])
+
   if (isAdminRoute) {
     return <AdminDashboard store={store} />
   }
@@ -174,7 +191,6 @@ function App() {
                 disabled={!store.passportComplete}
                 attendee={store.currentAttendee}
                 hasEntered={Boolean(store.currentAttendeeEntry)}
-                onEnter={store.submitEntry}
                 latestEntry={store.currentAttendeeEntry}
               />
             </>
