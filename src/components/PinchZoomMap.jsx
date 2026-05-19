@@ -55,6 +55,7 @@ export function PinchZoomMap({
   booths,
   completedIds,
   onPlaceBooth,
+  onScanBooth,
   placementBoothId = '',
   focusBoothId = '',
   className = '',
@@ -323,6 +324,13 @@ export function PinchZoomMap({
                       Visit Website
                     </a>
                   )}
+                  <button
+                    type="button"
+                    className="booth-popup-button"
+                    onClick={() => onScanBooth?.(booth.id)}
+                  >
+                    Scan QR Code
+                  </button>
                 </div>
               )
             })()}

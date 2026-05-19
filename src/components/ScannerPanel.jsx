@@ -173,6 +173,13 @@ export function ScannerPanel({ onScan }) {
             <span>✓</span>
             <strong>Scan Complete</strong>
           </div>
+        ) : !cameraActive ? (
+          <div className="scan-start-prompt">
+            <span aria-hidden="true">▣</span>
+            <strong>Start Camera</strong>
+            <small>Tap the button below to scan a booth QR code</small>
+            <div aria-hidden="true">↓</div>
+          </div>
         ) : (
           <div className="scan-corners" aria-hidden="true" />
         )}

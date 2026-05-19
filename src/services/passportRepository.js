@@ -78,6 +78,42 @@ function mergeSharedState(state, sharedState) {
   }
 }
 
+function mergeUniqueByIdentity(currentItems = [], nextItems = []) {
+  const itemsByKey = new Map()
+
+  currentItems.forEach((item) => {
+    itemsByKey.set(item.attendeeId || item.email || item.id, item)
+  })
+  nextItems.forEach((item) => {
+    itemsByKey.set(item.attendeeId || item.email || item.id, item)
+  })
+
+  return [...itemsByKey.values()]
+}
+
+function mergeSharedPatch(sharedState, patch) {
+  const currentSharedState = sharedState ?? {
+    booths: [],
+    entries: [],
+    attendees: [],
+    settings: initialState.settings,
+  }
+
+  return {
+    ...currentSharedState,
+    ...patch,
+    attendees: patch.attendees
+      ? mergeUniqueByIdentity(currentSharedState.attendees, patch.attendees)
+      : currentSharedState.attendees,
+    entries: patch.entries
+      ? mergeUniqueByIdentity(currentSharedState.entries, patch.entries)
+      : currentSharedState.entries,
+    settings: patch.settings
+      ? { ...currentSharedState.settings, ...patch.settings }
+      : currentSharedState.settings,
+  }
+}
+
 async function requestSupabase(path, options = {}) {
   if (!isSupabaseConfigured()) return null
 
@@ -131,6 +167,26 @@ export const passportRepository = {
         body: JSON.stringify({
           id: SHARED_ROW_ID,
           data: getSharedState(state),
+          updated_at: new Date().toISOString(),
+        }),
+      })
+    } catch (error) {
+      console.warn(error)
+    }
+  },
+  async saveSharedPatch(patch) {
+    try {
+      const sharedState = await this.loadShared()
+      const nextSharedState = mergeSharedPatch(sharedState, patch)
+
+      await requestSupabase(`${SUPABASE_TABLE}?on_conflict=id`, {
+        method: 'POST',
+        headers: {
+          Prefer: 'resolution=merge-duplicates,return=minimal',
+        },
+        body: JSON.stringify({
+          id: SHARED_ROW_ID,
+          data: nextSharedState,
           updated_at: new Date().toISOString(),
         }),
       })

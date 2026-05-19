@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import './App.css'
 import { boothCategories, defaultInstructions } from './data/mockData'
 import { usePassportStore } from './services/usePassportStore'
+import { AdminDashboard } from './components/AdminDashboard'
 import { AdminPanel } from './components/AdminPanel'
 import { AuthScreen } from './components/AuthScreen'
 import { BoothCard } from './components/BoothCard'
@@ -77,6 +78,10 @@ function App() {
 
     return () => window.clearTimeout(timer)
   }, [scannedBoothId])
+
+  if (window.location.pathname === '/admin') {
+    return <AdminDashboard store={store} />
+  }
 
   return (
     <main className="app-stage">
@@ -237,6 +242,10 @@ function App() {
               completedIds={store.completedIds}
               focusBoothId={focusedBoothId}
               onClearFocus={() => setFocusedBoothId('')}
+              onScanBooth={(boothId) => {
+                setFocusedBoothId(boothId)
+                setActiveTab('QR Scanner')
+              }}
             />
           )}
 

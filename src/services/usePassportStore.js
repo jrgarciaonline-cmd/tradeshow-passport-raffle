@@ -47,9 +47,13 @@ export function usePassportStore() {
     setState((current) => {
       const next = updater(current)
       passportRepository.save(next)
-      if (options.syncShared) {
+      if (options.sharedPatch) {
+        const patch =
+          typeof options.sharedPatch === 'function'
+            ? options.sharedPatch(next, current)
+            : options.sharedPatch
         sharedSavePending.current = true
-        passportRepository.saveShared(next).finally(() => {
+        passportRepository.saveSharedPatch(patch).finally(() => {
           sharedSavePending.current = false
         })
       }
@@ -69,10 +73,7 @@ export function usePassportStore() {
         if (cancelled) return current
         if (sharedSavePending.current) return current
 
-        if (!sharedState) {
-          passportRepository.saveShared(current)
-          return current
-        }
+        if (!sharedState) return current
 
         const next = passportRepository.mergeShared(current, sharedState)
         passportRepository.save(next)
@@ -124,7 +125,7 @@ export function usePassportStore() {
         attendee,
       ],
       session: { type: 'attendee', attendeeId: attendee.id },
-    }))
+    }), { sharedPatch: { attendees: [attendee] } })
 
     return { ok: true, message: `Welcome, ${attendee.name}.` }
   }
@@ -241,7 +242,11 @@ export function usePassportStore() {
           submittedAt: new Date().toISOString(),
         },
       ],
-    }), { syncShared: true })
+    }), {
+      sharedPatch: (next) => ({
+        entries: [next.entries.at(-1)],
+      }),
+    })
     return { ok: true, message: 'Raffle entry received.' }
   }
 
@@ -263,7 +268,11 @@ export function usePassportStore() {
           ? current.booths.map((item) => (item.id === id ? nextBooth : item))
           : [...current.booths, nextBooth],
       }
-    }, { syncShared: true })
+    }, {
+      sharedPatch: (next) => ({
+        booths: next.booths,
+      }),
+    })
   }
 
   const deleteBooth = (boothId) => {
@@ -271,7 +280,11 @@ export function usePassportStore() {
       ...current,
       booths: current.booths.filter((booth) => booth.id !== boothId),
       completedIds: current.completedIds.filter((id) => id !== boothId),
-    }), { syncShared: true })
+    }), {
+      sharedPatch: (next) => ({
+        booths: next.booths,
+      }),
+    })
   }
 
   const placeBoothOnMap = (boothId, map) => {
@@ -280,7 +293,11 @@ export function usePassportStore() {
       booths: current.booths.map((booth) =>
         booth.id === boothId ? { ...booth, map } : booth,
       ),
-    }), { syncShared: true })
+    }), {
+      sharedPatch: (next) => ({
+        booths: next.booths,
+      }),
+    })
   }
 
   const saveSettings = (settings) => {
@@ -291,7 +308,11 @@ export function usePassportStore() {
         ...settings,
         requiredScanCount: Math.max(1, Number(settings.requiredScanCount) || 1),
       },
-    }), { syncShared: true })
+    }), {
+      sharedPatch: (next) => ({
+        settings: next.settings,
+      }),
+    })
   }
 
   const exportEntriesCsv = () => {

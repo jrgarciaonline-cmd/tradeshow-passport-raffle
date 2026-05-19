@@ -1,6 +1,12 @@
 import { PinchZoomMap } from './PinchZoomMap'
 
-export function MapView({ booths, completedIds, focusBoothId, onClearFocus }) {
+export function MapView({
+  booths,
+  completedIds,
+  focusBoothId,
+  onClearFocus,
+  onScanBooth,
+}) {
   const focusedBooth = booths.find((booth) => booth.id === focusBoothId)
 
   return (
@@ -24,6 +30,7 @@ export function MapView({ booths, completedIds, focusBoothId, onClearFocus }) {
         booths={booths}
         completedIds={completedIds}
         focusBoothId={focusBoothId}
+        onScanBooth={onScanBooth}
         className="full-map-card"
       />
     </section>
