@@ -38,7 +38,25 @@ set name = excluded.name,
 
 Use the Supabase Auth email and password on the app admin login.
 
-## 5. Add more admins from the dashboard
+## 5. Enable admin invites
+
+In Vercel, add this server-side environment variable:
+
+```text
+SUPABASE_SERVICE_ROLE_KEY
+```
+
+Use the Supabase service role key from:
+
+```text
+Supabase -> Project Settings -> API -> service_role key
+```
+
+Never expose this key with a `VITE_` prefix.
+
+Redeploy after saving the variable.
+
+## 6. Add more admins from the dashboard
 
 After logging in as a `super_admin`, open:
 
@@ -46,8 +64,5 @@ After logging in as a `super_admin`, open:
 /admin -> Admin Users
 ```
 
-From there you can authorize additional admin emails.
-
-Important: the person still needs a Supabase Auth user account with that same
-email. The admin dashboard authorizes the email; Supabase Auth stores the
-password.
+From there you can invite additional admins. The app sends a Supabase Auth
+invite email and authorizes the email in `admin_users`.

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { defaultBooths } from '../data/mockData'
 import {
-  addSupabaseAdmin,
+  inviteSupabaseAdmin,
   listSupabaseAdmins,
   removeSupabaseAdmin,
   signInAdminWithSupabase,
@@ -252,7 +252,7 @@ export function usePassportStore() {
       return { ok: false, message: 'Admin session is not active.' }
     }
 
-    const result = await addSupabaseAdmin(state.adminSession.accessToken, adminUser)
+    const result = await inviteSupabaseAdmin(state.adminSession.accessToken, adminUser)
     if (result.ok) await refreshAdminUsers()
     return result
   }

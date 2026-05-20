@@ -872,7 +872,7 @@ export function AdminDashboard({ store }) {
             >
               <div>
                 <p className="eyebrow">Supabase Auth</p>
-                <h3>Authorize Admin Email</h3>
+                <h3>Invite Admin</h3>
               </div>
               <label className="form-field">
                 <span>Email</span>
@@ -916,12 +916,12 @@ export function AdminDashboard({ store }) {
                 </select>
               </label>
               <button type="submit" className="primary">
-                Authorize Admin
+                Send Invite
               </button>
               {adminUserMessage && <p className="admin-muted">{adminUserMessage}</p>}
               <p className="admin-muted">
-                This authorizes an email for admin access. The matching Supabase
-                Auth user still needs to exist in your Supabase project.
+                Sends a Supabase invite email and authorizes this email for admin
+                access.
               </p>
             </form>
 

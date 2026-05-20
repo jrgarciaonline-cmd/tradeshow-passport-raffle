@@ -107,6 +107,38 @@ export async function listSupabaseAdmins(accessToken) {
   )
 }
 
+export async function inviteSupabaseAdmin(accessToken, adminUser) {
+  const email = String(adminUser.email ?? '').trim().toLowerCase()
+  const name = String(adminUser.name ?? '').trim()
+  const role = adminUser.role === 'super_admin' ? 'super_admin' : 'admin'
+
+  if (!email || !email.includes('@')) {
+    return { ok: false, message: 'Enter a valid admin email.' }
+  }
+
+  const response = await fetch('/api/invite-admin', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ email, name, role }),
+  })
+  const result = await response.json().catch(() => ({
+    ok: false,
+    message: 'Unable to invite admin.',
+  }))
+
+  if (!response.ok || !result.ok) {
+    return {
+      ok: false,
+      message: result.message || 'Unable to invite admin.',
+    }
+  }
+
+  return result
+}
+
 export async function addSupabaseAdmin(accessToken, adminUser) {
   const email = String(adminUser.email ?? '').trim().toLowerCase()
   const name = String(adminUser.name ?? '').trim()
