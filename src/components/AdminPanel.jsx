@@ -44,7 +44,6 @@ export function AdminPanel({
   onSaveSettings,
   onExportCsv,
   onExportAttendeesCsv,
-  onResetDemo,
 }) {
   const formRef = useRef(null)
   const [draft, setDraft] = useState(emptyBooth)
@@ -85,9 +84,6 @@ export function AdminPanel({
           <a className="button-link" href="/admin">
             View Admin Webpage
           </a>
-          <button type="button" className="danger" onClick={onResetDemo}>
-            Reset demo
-          </button>
         </div>
       </div>
 

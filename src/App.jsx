@@ -371,7 +371,6 @@ function App() {
               onSaveSettings={store.saveSettings}
               onExportCsv={store.exportEntriesCsv}
               onExportAttendeesCsv={store.exportAttendeesCsv}
-              onResetDemo={store.resetDemo}
             />
           )}
         </div>

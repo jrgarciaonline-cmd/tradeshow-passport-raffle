@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react'
-import { defaultBooths } from '../data/mockData'
 import {
   inviteSupabaseAdmin,
   listSupabaseAdmins,
@@ -607,16 +606,6 @@ export function usePassportStore() {
     downloadCsv('app-signups.csv', [header.join(','), ...body].join('\n'))
   }
 
-  const resetDemo = () => {
-    const resetState = passportRepository.reset()
-    const nextState = {
-      ...resetState,
-      booths: defaultBooths,
-    }
-    setState(nextState)
-    passportRepository.saveShared(nextState)
-  }
-
   return {
     ...state,
     requiredScanCount,
@@ -647,6 +636,5 @@ export function usePassportStore() {
     saveSettings,
     exportEntriesCsv,
     exportAttendeesCsv,
-    resetDemo,
   }
 }
