@@ -495,8 +495,22 @@ export function AdminDashboard({ store }) {
                     {filteredBooths.map((booth) => (
                       <tr key={booth.id}>
                         <td>
-                          <strong>{booth.name}</strong>
-                          <span>{booth.category}</span>
+                          <div className="admin-manufacturer-cell">
+                            <div
+                              className="admin-manufacturer-logo"
+                              style={{ '--logo-bg': booth.color }}
+                            >
+                              {booth.logoDataUrl ? (
+                                <img src={booth.logoDataUrl} alt="" />
+                              ) : (
+                                <span>{booth.name.slice(0, 1)}</span>
+                              )}
+                            </div>
+                            <div>
+                              <strong>{booth.name}</strong>
+                              <span>{booth.category}</span>
+                            </div>
+                          </div>
                         </td>
                         <td>{booth.location}</td>
                         <td>{booth.qrCode}</td>

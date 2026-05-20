@@ -305,10 +305,24 @@ export function AdminPanel({
             <h3>Manufacturer booths</h3>
             {booths.map((booth) => (
               <article className="entry-card" key={booth.id}>
-                <strong>{booth.name}</strong>
-                <p className="muted">
-                  {booth.location} / {booth.qrCode}
-                </p>
+                <div className="admin-mobile-booth-heading">
+                  <div
+                    className="admin-manufacturer-logo"
+                    style={{ '--logo-bg': booth.color }}
+                  >
+                    {booth.logoDataUrl ? (
+                      <img src={booth.logoDataUrl} alt="" />
+                    ) : (
+                      <span>{booth.name.slice(0, 1)}</span>
+                    )}
+                  </div>
+                  <div>
+                    <strong>{booth.name}</strong>
+                    <p className="muted">
+                      {booth.location} / {booth.qrCode}
+                    </p>
+                  </div>
+                </div>
                 <div className="card-actions">
                   <button type="button" onClick={() => editBooth(booth)}>
                     Edit

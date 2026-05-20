@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import jsQR from 'jsqr'
 
-export function ScannerPanel({ onScan, onGoHome }) {
+export function ScannerPanel({ onScan, onGoHome, onGoMap }) {
   const videoRef = useRef(null)
   const canvasRef = useRef(document.createElement('canvas'))
   const streamRef = useRef(null)
@@ -9,6 +9,7 @@ export function ScannerPanel({ onScan, onGoHome }) {
   const [message, setMessage] = useState('')
   const [cameraActive, setCameraActive] = useState(false)
   const [scanSuccess, setScanSuccess] = useState(false)
+  const [duplicateScan, setDuplicateScan] = useState(false)
   const [scannedBooth, setScannedBooth] = useState(null)
 
   const stopCamera = useCallback(() => {
@@ -28,8 +29,15 @@ export function ScannerPanel({ onScan, onGoHome }) {
         setManualCode('')
         setScannedBooth(result.booth ?? null)
         setScanSuccess(true)
+        setDuplicateScan(false)
+      } else if (result.duplicate) {
+        setManualCode('')
+        setScannedBooth(result.booth ?? null)
+        setScanSuccess(false)
+        setDuplicateScan(true)
       } else {
         setScanSuccess(false)
+        setDuplicateScan(false)
       }
     },
     [onScan],
@@ -37,6 +45,7 @@ export function ScannerPanel({ onScan, onGoHome }) {
 
   const startCamera = async () => {
     setScanSuccess(false)
+    setDuplicateScan(false)
     setScannedBooth(null)
     const isSecure = window.isSecureContext
     const isLocal = ['localhost', '127.0.0.1'].includes(window.location.hostname)
@@ -176,11 +185,33 @@ export function ScannerPanel({ onScan, onGoHome }) {
       <div className="scan-frame">
         <video
           ref={videoRef}
-          className={`scanner-video ${scanSuccess ? 'is-hidden' : ''}`}
+          className={`scanner-video ${
+            scanSuccess || duplicateScan ? 'is-hidden' : ''
+          }`}
           muted
           playsInline
         />
-        {scanSuccess ? (
+        {duplicateScan ? (
+          <div className="scan-duplicate" aria-live="polite">
+            <div className="scan-duplicate-orbit" aria-hidden="true">
+              <span />
+              <span />
+              <span />
+            </div>
+            <div className="scan-success-logo duplicate">
+              {scannedBooth?.logoDataUrl ? (
+                <img src={scannedBooth.logoDataUrl} alt="" />
+              ) : (
+                <span>{scannedBooth?.name?.slice(0, 1) ?? '!'}</span>
+              )}
+            </div>
+            <strong>{scannedBooth?.name ?? 'This manufacturer'} has already been scanned</strong>
+            <small>Head to the map to find another manufacturer stop.</small>
+            <button type="button" onClick={onGoMap}>
+              Go to Map
+            </button>
+          </div>
+        ) : scanSuccess ? (
           <div className="scan-success" aria-live="polite">
             <div className="scan-success-logo">
               {scannedBooth?.logoDataUrl ? (

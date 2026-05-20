@@ -351,6 +351,7 @@ function App() {
             <ScannerPanel
               onScan={handleScan}
               onGoHome={() => setActiveTab('Home')}
+              onGoMap={() => setActiveTab('Map')}
             />
           )}
 
