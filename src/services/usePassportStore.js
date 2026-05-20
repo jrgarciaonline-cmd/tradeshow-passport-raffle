@@ -39,6 +39,10 @@ function getAdminAttendee() {
   }
 }
 
+function normalizeEntryChances(value) {
+  return Math.max(1, Math.min(99, Number(value) || 1))
+}
+
 export function usePassportStore() {
   const [state, setState] = useState(() => passportRepository.load())
   const sharedSavePending = useRef(false)
@@ -319,6 +323,7 @@ export function usePassportStore() {
           email: currentAttendee.email,
           phone: currentAttendee.phone,
           role: currentAttendee.role,
+          chances: 1,
           id: crypto.randomUUID(),
           submittedAt: new Date().toISOString(),
         },
@@ -329,6 +334,71 @@ export function usePassportStore() {
       }),
     })
     return { ok: true, message: 'Raffle entry received.' }
+  }
+
+  const addRaffleEntry = (profile) => {
+    const attendee = profile.attendeeId
+      ? state.attendees.find((item) => item.id === profile.attendeeId)
+      : null
+    const email = normalizeEmail(attendee?.email ?? profile.email ?? '')
+    const name = (attendee?.name ?? profile.name ?? '').trim()
+    const phone = (attendee?.phone ?? profile.phone ?? '').trim()
+    const role = (attendee?.role ?? profile.role ?? 'Manual Entry').trim()
+    const chances = normalizeEntryChances(profile.chances)
+
+    if (!name || !email || !phone || !role) {
+      return { ok: false, message: 'Please complete name, email, phone, and role.' }
+    }
+
+    const existingEntry = state.entries.find(
+      (entry) =>
+        (attendee?.id && entry.attendeeId === attendee.id) ||
+        entry.email === email,
+    )
+
+    if (existingEntry) {
+      updateEntryChances(existingEntry.id, chances)
+      return { ok: true, message: `${existingEntry.name} already existed. Chances updated.` }
+    }
+
+    updateState((current) => ({
+      ...current,
+      entries: [
+        ...current.entries,
+        {
+          attendeeId: attendee?.id ?? '',
+          name,
+          email,
+          phone,
+          role,
+          chances,
+          id: crypto.randomUUID(),
+          submittedAt: new Date().toISOString(),
+          manual: !attendee,
+        },
+      ],
+    }), {
+      sharedPatch: (next) => ({
+        entries: [next.entries.at(-1)],
+      }),
+    })
+
+    return { ok: true, message: `${name} added to the raffle.` }
+  }
+
+  const updateEntryChances = (entryId, chances) => {
+    updateState((current) => ({
+      ...current,
+      entries: current.entries.map((entry) =>
+        entry.id === entryId
+          ? { ...entry, chances: normalizeEntryChances(chances) }
+          : entry,
+      ),
+    }), {
+      sharedPatch: (next) => ({
+        entries: next.entries,
+      }),
+    })
   }
 
   const saveBooth = (booth) => {
@@ -401,9 +471,16 @@ export function usePassportStore() {
   }
 
   const exportEntriesCsv = () => {
-    const header = ['Name', 'Email', 'Phone', 'Role', 'Submitted At']
+    const header = ['Name', 'Email', 'Phone', 'Role', 'Wheel Chances', 'Submitted At']
     const body = state.entries.map((entry) =>
-      [entry.name, entry.email, entry.phone, entry.role, entry.submittedAt]
+      [
+        entry.name,
+        entry.email,
+        entry.phone,
+        entry.role,
+        entry.chances ?? 1,
+        entry.submittedAt,
+      ]
         .map(toCsvValue)
         .join(','),
     )
@@ -412,9 +489,16 @@ export function usePassportStore() {
   }
 
   const exportAttendeesCsv = () => {
-    const header = ['Name', 'Email', 'Phone', 'Role', 'Signed Up At']
+    const header = ['Name', 'Email', 'Phone', 'Role', 'Scans Completed', 'Signed Up At']
     const body = state.attendees.map((attendee) =>
-      [attendee.name, attendee.email, attendee.phone, attendee.role, attendee.createdAt]
+      [
+        attendee.name,
+        attendee.email,
+        attendee.phone,
+        attendee.role,
+        state.attendeeProgress[attendee.id]?.length ?? 0,
+        attendee.createdAt,
+      ]
         .map(toCsvValue)
         .join(','),
     )
@@ -448,6 +532,8 @@ export function usePassportStore() {
     checkInByCode,
     undoCheckIn,
     submitEntry,
+    addRaffleEntry,
+    updateEntryChances,
     saveBooth,
     deleteBooth,
     placeBoothOnMap,

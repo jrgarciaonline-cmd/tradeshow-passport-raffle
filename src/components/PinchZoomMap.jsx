@@ -309,7 +309,7 @@ export function PinchZoomMap({
                   '--y': `${locationBooth.map.y}%`,
                 }}
               >
-                <strong>You are here</strong>
+                <strong>Your last scanned location</strong>
                 <span />
               </div>
             )

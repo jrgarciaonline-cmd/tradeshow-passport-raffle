@@ -19,9 +19,13 @@ export function AdminPanel({
   booths,
   attendees,
   entries,
+  attendeeProgress,
+  requiredScanCount,
   onSaveBooth,
   onDeleteBooth,
   onPlaceBooth,
+  onAddRaffleEntry,
+  onUpdateEntryChances,
   settings,
   onSaveSettings,
   onExportCsv,
@@ -31,6 +35,7 @@ export function AdminPanel({
   const formRef = useRef(null)
   const [draft, setDraft] = useState(emptyBooth)
   const [placementBoothId, setPlacementBoothId] = useState('')
+  const [manualEntryMessage, setManualEntryMessage] = useState('')
   const instructionsText = (
     settings?.instructions?.length ? settings.instructions : defaultInstructions
   ).join('\n')
@@ -297,6 +302,9 @@ export function AdminPanel({
                   <span className="pill">{attendee.role}</span>
                   <span className="pill">{attendee.email}</span>
                   <span className="pill">{attendee.phone}</span>
+                  <span className="pill">
+                    {attendeeProgress[attendee.id]?.length ?? 0}/{requiredScanCount} scans
+                  </span>
                 </div>
                 <p className="muted">
                   {new Date(attendee.createdAt).toLocaleString()}
@@ -309,6 +317,61 @@ export function AdminPanel({
             <WinnerWheel entries={entries} />
           </div>
 
+          <form
+            className="manual-entry-form"
+            onSubmit={(event) => {
+              event.preventDefault()
+              const formData = new FormData(event.currentTarget)
+              const result = onAddRaffleEntry({
+                attendeeId: formData.get('attendeeId'),
+                name: formData.get('name'),
+                email: formData.get('email'),
+                phone: formData.get('phone'),
+                role: formData.get('role'),
+                chances: formData.get('chances'),
+              })
+              setManualEntryMessage(result.message)
+              if (result.ok) event.currentTarget.reset()
+            }}
+          >
+            <h3>Add raffle entry</h3>
+            <label className="form-field">
+              <span>Existing signup</span>
+              <select name="attendeeId">
+                <option value="">Manual entry</option>
+                {attendees.map((attendee) => (
+                  <option key={attendee.id} value={attendee.id}>
+                    {attendee.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="form-field">
+              <span>Name</span>
+              <input name="name" placeholder="Manual name" />
+            </label>
+            <label className="form-field">
+              <span>Email</span>
+              <input name="email" type="email" placeholder="Manual email" />
+            </label>
+            <label className="form-field">
+              <span>Phone</span>
+              <input name="phone" placeholder="Manual phone" />
+            </label>
+            <label className="form-field">
+              <span>Role</span>
+              <input name="role" placeholder="Manual role" />
+            </label>
+            <label className="form-field">
+              <span>Wheel entries</span>
+              <input name="chances" type="number" min="1" max="99" defaultValue="1" />
+            </label>
+            <button type="submit" className="primary">
+              Add entry
+            </button>
+            {manualEntryMessage && <p className="muted">{manualEntryMessage}</p>}
+          </form>
+
           <h3>Raffle entries ({entries.length})</h3>
           {entries.length === 0 ? (
             <p className="muted">No raffle entries yet.</p>
@@ -320,7 +383,20 @@ export function AdminPanel({
                   <span className="pill">{entry.role}</span>
                   <span className="pill">{entry.email}</span>
                   <span className="pill">{entry.phone}</span>
+                  <span className="pill">{entry.chances ?? 1} wheel entries</span>
                 </div>
+                <label className="form-field compact-field">
+                  <span>Wheel entries</span>
+                  <input
+                    type="number"
+                    min="1"
+                    max="99"
+                    value={entry.chances ?? 1}
+                    onChange={(event) =>
+                      onUpdateEntryChances(entry.id, event.target.value)
+                    }
+                  />
+                </label>
                 <p className="muted">
                   {new Date(entry.submittedAt).toLocaleString()}
                 </p>

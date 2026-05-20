@@ -15,30 +15,37 @@ export function WinnerWheel({ entries }) {
   const [winner, setWinner] = useState(null)
   const [wheelRotation, setWheelRotation] = useState(0)
   const [isSpinning, setIsSpinning] = useState(false)
+  const wheelEntries = useMemo(
+    () =>
+      entries.flatMap((entry) =>
+        Array.from({ length: Math.max(1, Number(entry.chances) || 1) }, () => entry),
+      ),
+    [entries],
+  )
 
   const wheelGradient = useMemo(() => {
-    if (!entries.length) {
+    if (!wheelEntries.length) {
       return 'conic-gradient(#f0f0f0 0deg 360deg)'
     }
 
-    const sliceAngle = 360 / entries.length
+    const sliceAngle = 360 / wheelEntries.length
 
-    return `conic-gradient(${entries
+    return `conic-gradient(${wheelEntries
       .map((entry, index) => {
         const start = index * sliceAngle
         const end = (index + 1) * sliceAngle
         return `${wheelColors[index % wheelColors.length]} ${start}deg ${end}deg`
       })
       .join(', ')})`
-  }, [entries])
+  }, [wheelEntries])
 
   const spinWheel = () => {
-    if (!entries.length || isSpinning) return
+    if (!wheelEntries.length || isSpinning) return
 
-    const winnerIndex = Math.floor(Math.random() * entries.length)
-    const sliceAngle = 360 / entries.length
+    const winnerIndex = Math.floor(Math.random() * wheelEntries.length)
+    const sliceAngle = 360 / wheelEntries.length
     const landingAngle = 360 - (winnerIndex * sliceAngle + sliceAngle / 2)
-    const selectedWinner = entries[winnerIndex]
+    const selectedWinner = wheelEntries[winnerIndex]
 
     setWinner(null)
     setIsSpinning(true)
@@ -80,7 +87,7 @@ export function WinnerWheel({ entries }) {
         >
           <span className="mobile-wheel-center">
             <strong>{entries.length}</strong>
-            <small>Entries</small>
+            <small>People</small>
           </span>
         </span>
       </button>
@@ -106,7 +113,7 @@ export function WinnerWheel({ entries }) {
           entries.map((entry) => (
             <div key={entry.id} className="mobile-entry-row">
               <span>{entry.name}</span>
-              <small>{entry.company || entry.role}</small>
+              <small>{entry.chances ?? 1}x / {entry.company || entry.role}</small>
             </div>
           ))
         ) : (

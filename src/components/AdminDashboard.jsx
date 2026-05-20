@@ -19,6 +19,15 @@ const emptyLogin = {
   password: '',
 }
 
+const emptyManualEntry = {
+  attendeeId: '',
+  name: '',
+  email: '',
+  phone: '',
+  role: '',
+  chances: 1,
+}
+
 function normalizeDate(value) {
   return value ? new Date(value).toLocaleString() : ''
 }
@@ -42,6 +51,8 @@ export function AdminDashboard({ store }) {
   const [winner, setWinner] = useState(null)
   const [wheelRotation, setWheelRotation] = useState(0)
   const [isSpinning, setIsSpinning] = useState(false)
+  const [manualEntry, setManualEntry] = useState(emptyManualEntry)
+  const [manualEntryMessage, setManualEntryMessage] = useState('')
 
   const instructionsText = (
     store.settings?.instructions?.length
@@ -61,8 +72,34 @@ export function AdminDashboard({ store }) {
     )
   }, [query, store.booths])
 
+  const wheelEntries = useMemo(
+    () =>
+      store.entries.flatMap((entry) =>
+        Array.from({ length: Math.max(1, Number(entry.chances) || 1) }, () => entry),
+      ),
+    [store.entries],
+  )
+
+  const attendeeProgressRows = useMemo(
+    () =>
+      store.attendees.map((attendee) => {
+        const completedIds = store.attendeeProgress[attendee.id] ?? []
+        const completedBooths = completedIds
+          .map((id) => store.booths.find((booth) => booth.id === id)?.name)
+          .filter(Boolean)
+
+        return {
+          attendee,
+          completedIds,
+          completedBooths,
+          complete: completedIds.length >= store.requiredScanCount,
+        }
+      }),
+    [store.attendees, store.attendeeProgress, store.booths, store.requiredScanCount],
+  )
+
   const wheelGradient = useMemo(() => {
-    if (!store.entries.length) {
+    if (!wheelEntries.length) {
       return 'conic-gradient(#f0f0f0 0deg 360deg)'
     }
 
@@ -76,16 +113,16 @@ export function AdminDashboard({ store }) {
       '#2b8fa3',
       '#757575',
     ]
-    const sliceAngle = 360 / store.entries.length
+    const sliceAngle = 360 / wheelEntries.length
 
-    return `conic-gradient(${store.entries
+    return `conic-gradient(${wheelEntries
       .map((entry, index) => {
         const start = index * sliceAngle
         const end = (index + 1) * sliceAngle
         return `${colors[index % colors.length]} ${start}deg ${end}deg`
       })
       .join(', ')})`
-  }, [store.entries])
+  }, [wheelEntries])
 
   const updateDraft = (field, value) => {
     setDraft((current) => ({ ...current, [field]: value }))
@@ -107,12 +144,12 @@ export function AdminDashboard({ store }) {
   }
 
   const spinWinner = () => {
-    if (!store.entries.length || isSpinning) return
+    if (!wheelEntries.length || isSpinning) return
 
-    const winnerIndex = Math.floor(Math.random() * store.entries.length)
-    const sliceAngle = 360 / store.entries.length
+    const winnerIndex = Math.floor(Math.random() * wheelEntries.length)
+    const sliceAngle = 360 / wheelEntries.length
     const landingAngle = 360 - (winnerIndex * sliceAngle + sliceAngle / 2)
-    const selectedWinner = store.entries[winnerIndex]
+    const selectedWinner = wheelEntries[winnerIndex]
 
     setWinner(null)
     setIsSpinning(true)
@@ -200,6 +237,7 @@ export function AdminDashboard({ store }) {
             'Booths',
             'Map',
             'Settings',
+            'Scan Progress',
             'Signups',
             'Raffle Entries',
             'Winner Picker',
@@ -255,7 +293,7 @@ export function AdminDashboard({ store }) {
           <StatCard label="Booths" value={store.booths.length} />
           <StatCard label="Required Scans" value={store.requiredScanCount} />
           <StatCard label="Signups" value={store.attendees.length} />
-          <StatCard label="Raffle Entries" value={store.entries.length} />
+          <StatCard label="Wheel Entries" value={wheelEntries.length} />
         </div>
 
         {activeSection === 'Booths' && (
@@ -535,6 +573,7 @@ export function AdminDashboard({ store }) {
                       <th>Email</th>
                       <th>Phone</th>
                       <th>Role</th>
+                      <th>Scans</th>
                       <th>Signed Up</th>
                     </tr>
                   </thead>
@@ -545,7 +584,67 @@ export function AdminDashboard({ store }) {
                         <td>{attendee.email}</td>
                         <td>{attendee.phone}</td>
                         <td>{attendee.role}</td>
+                        <td>
+                          {store.attendeeProgress[attendee.id]?.length ?? 0}/
+                          {store.requiredScanCount}
+                        </td>
                         <td>{normalizeDate(attendee.createdAt)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {activeSection === 'Scan Progress' && (
+          <section className="admin-workspace">
+            <div className="desktop-card">
+              <div className="table-toolbar">
+                <h3>Live Scan Progress</h3>
+                <span className="admin-muted">
+                  {attendeeProgressRows.filter((row) => row.complete).length} complete
+                </span>
+              </div>
+              <div className="admin-table-wrap">
+                <table className="admin-table">
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Progress</th>
+                      <th>Scanned Booths</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {attendeeProgressRows.map((row) => (
+                      <tr key={row.attendee.id}>
+                        <td>
+                          <strong>{row.attendee.name}</strong>
+                          <span>{row.attendee.email}</span>
+                        </td>
+                        <td>
+                          <div className="admin-progress-cell">
+                            <strong>
+                              {row.completedIds.length}/{store.requiredScanCount}
+                            </strong>
+                            <div className="admin-progress-track">
+                              <span
+                                style={{
+                                  width: `${Math.min(
+                                    100,
+                                    (row.completedIds.length /
+                                      store.requiredScanCount) *
+                                      100,
+                                  )}%`,
+                                }}
+                              />
+                            </div>
+                          </div>
+                        </td>
+                        <td>{row.completedBooths.join(', ') || 'No scans yet'}</td>
+                        <td>{row.complete ? 'Entered / qualified' : 'In progress'}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -568,6 +667,69 @@ export function AdminDashboard({ store }) {
                   Export Raffle CSV
                 </button>
               </div>
+              <form
+                className="manual-entry-inline"
+                onSubmit={(event) => {
+                  event.preventDefault()
+                  const result = store.addRaffleEntry(manualEntry)
+                  setManualEntryMessage(result.message)
+                  if (result.ok) setManualEntry(emptyManualEntry)
+                }}
+              >
+                <label className="form-field">
+                  <span>Existing signup</span>
+                  <select
+                    value={manualEntry.attendeeId}
+                    onChange={(event) =>
+                      setManualEntry((current) => ({
+                        ...current,
+                        attendeeId: event.target.value,
+                      }))
+                    }
+                  >
+                    <option value="">Manual entry</option>
+                    {store.attendees.map((attendee) => (
+                      <option key={attendee.id} value={attendee.id}>
+                        {attendee.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                {['name', 'email', 'phone', 'role'].map((field) => (
+                  <label className="form-field" key={field}>
+                    <span>{field}</span>
+                    <input
+                      type={field === 'email' ? 'email' : 'text'}
+                      value={manualEntry[field]}
+                      onChange={(event) =>
+                        setManualEntry((current) => ({
+                          ...current,
+                          [field]: event.target.value,
+                        }))
+                      }
+                    />
+                  </label>
+                ))}
+                <label className="form-field">
+                  <span>Wheel entries</span>
+                  <input
+                    type="number"
+                    min="1"
+                    max="99"
+                    value={manualEntry.chances}
+                    onChange={(event) =>
+                      setManualEntry((current) => ({
+                        ...current,
+                        chances: event.target.value,
+                      }))
+                    }
+                  />
+                </label>
+                <button type="submit" className="primary">
+                  Add Entry
+                </button>
+                {manualEntryMessage && <p className="admin-muted">{manualEntryMessage}</p>}
+              </form>
               <div className="admin-table-wrap">
                 <table className="admin-table">
                   <thead>
@@ -576,6 +738,7 @@ export function AdminDashboard({ store }) {
                       <th>Email</th>
                       <th>Phone</th>
                       <th>Role</th>
+                      <th>Wheel Entries</th>
                       <th>Entered</th>
                     </tr>
                   </thead>
@@ -586,6 +749,18 @@ export function AdminDashboard({ store }) {
                         <td>{entry.email}</td>
                         <td>{entry.phone}</td>
                         <td>{entry.role}</td>
+                        <td>
+                          <input
+                            className="table-number-input"
+                            type="number"
+                            min="1"
+                            max="99"
+                            value={entry.chances ?? 1}
+                            onChange={(event) =>
+                              store.updateEntryChances(entry.id, event.target.value)
+                            }
+                          />
+                        </td>
                         <td>{normalizeDate(entry.submittedAt)}</td>
                       </tr>
                     ))}
@@ -626,7 +801,7 @@ export function AdminDashboard({ store }) {
                   >
                     <div className="wheel-center">
                       <strong>{store.entries.length}</strong>
-                      <span>Entries</span>
+                      <span>People</span>
                     </div>
                   </div>
                 </div>
@@ -644,13 +819,13 @@ export function AdminDashboard({ store }) {
                   </div>
 
                   <div className="eligible-list">
-                    <h4>Eligible Raffle Entries</h4>
+                    <h4>Eligible Raffle Entries ({wheelEntries.length} wheel spots)</h4>
                     {store.entries.length ? (
                       <ul>
                         {store.entries.map((entry) => (
                           <li key={entry.id}>
                             <span>{entry.name}</span>
-                            <small>{entry.company || entry.email}</small>
+                            <small>{entry.chances ?? 1}x / {entry.company || entry.email}</small>
                           </li>
                         ))}
                       </ul>

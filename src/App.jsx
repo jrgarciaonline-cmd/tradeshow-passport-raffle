@@ -353,9 +353,13 @@ function App() {
               booths={store.booths}
               attendees={store.attendees}
               entries={store.entries}
+              attendeeProgress={store.attendeeProgress}
+              requiredScanCount={store.requiredScanCount}
               onSaveBooth={store.saveBooth}
               onDeleteBooth={store.deleteBooth}
               onPlaceBooth={store.placeBoothOnMap}
+              onAddRaffleEntry={store.addRaffleEntry}
+              onUpdateEntryChances={store.updateEntryChances}
               settings={store.settings}
               onSaveSettings={store.saveSettings}
               onExportCsv={store.exportEntriesCsv}

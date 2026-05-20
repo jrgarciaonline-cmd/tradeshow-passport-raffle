@@ -693,6 +693,11 @@ textarea {
   resize: vertical;
 }
 
+.compact-field input,
+.table-number-input {
+  max-width: 86px;
+}
+
 .challenge-list {
   margin-inline: -12px;
   border-top: 1px solid var(--line);
@@ -1290,6 +1295,15 @@ textarea {
   background: #f7f7f7;
 }
 
+.manual-entry-form {
+  display: grid;
+  gap: 9px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #fff;
+}
+
 .eyebrow {
   margin: 0;
   color: var(--app-blue);
@@ -1663,6 +1677,53 @@ button.danger {
   font-size: 0.85rem;
 }
 
+.admin-muted {
+  color: #62627c;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.manual-entry-inline {
+  display: grid;
+  grid-template-columns: minmax(170px, 1.2fr) repeat(4, minmax(120px, 1fr)) 92px auto;
+  gap: 10px;
+  align-items: end;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #f7f7f7;
+}
+
+.manual-entry-inline .admin-muted {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
+.table-number-input {
+  min-height: 30px;
+  padding: 4px 7px;
+}
+
+.admin-progress-cell {
+  display: grid;
+  gap: 6px;
+  min-width: 130px;
+}
+
+.admin-progress-track {
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e4e4e4;
+}
+
+.admin-progress-track span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #21a66b;
+}
+
 .map-admin-toolbar .form-field {
   min-width: 320px;
 }
@@ -1868,7 +1929,8 @@ button.danger {
 
   .admin-workspace.two-column,
   .admin-stat-grid,
-  .winner-layout {
+  .winner-layout,
+  .manual-entry-inline {
     grid-template-columns: 1fr;
   }
 
