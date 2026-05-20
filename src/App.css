@@ -13,6 +13,7 @@
 }
 
 .phone-shell {
+  position: relative;
   width: min(430px, 100%);
   height: min(820px, calc(100dvh - 36px));
   min-height: 0;
@@ -22,6 +23,58 @@
   border: 1px solid #d7d7d7;
   background: #f6f6f6;
   box-shadow: 18px 20px 34px rgba(0, 0, 0, 0.24);
+}
+
+.confetti-overlay {
+  position: absolute;
+  inset: 36px 0 56px;
+  z-index: 30;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.phone-shell.no-bottom-nav .confetti-overlay {
+  bottom: 0;
+}
+
+.confetti-piece {
+  position: absolute;
+  top: -18px;
+  left: var(--left);
+  width: 8px;
+  height: 14px;
+  border-radius: 2px;
+  background: var(--color);
+  opacity: 0;
+  transform: translate3d(0, -20px, 0) rotate(var(--rotation));
+  animation: confetti-fall var(--duration) var(--delay) ease-in forwards;
+}
+
+.confetti-piece:nth-child(3n) {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+}
+
+.confetti-piece:nth-child(4n) {
+  width: 6px;
+  height: 18px;
+}
+
+@keyframes confetti-fall {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, -24px, 0) rotate(var(--rotation));
+  }
+
+  12% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate3d(var(--drift), calc(100dvh - 60px), 0) rotate(720deg);
+  }
 }
 
 .phone-shell.no-bottom-nav {

@@ -6,6 +6,7 @@ import { AdminDashboard } from './components/AdminDashboard'
 import { AdminPanel } from './components/AdminPanel'
 import { AuthScreen } from './components/AuthScreen'
 import { BoothCard } from './components/BoothCard'
+import { ConfettiOverlay } from './components/ConfettiOverlay'
 import { MapView } from './components/MapView'
 import { PassportSummary } from './components/PassportSummary'
 import { RaffleEntryPanel } from './components/RaffleEntryPanel'
@@ -111,6 +112,15 @@ function App() {
         }`}
         aria-label="Trade show passport app"
       >
+        <ConfettiOverlay
+          key={`${activeTab}-${store.currentAttendeeEntry?.id ?? 'no-entry'}`}
+          active={
+            store.session?.type === 'attendee' &&
+            activeMode === 'attendee' &&
+            activeTab === 'Home' &&
+            Boolean(store.currentAttendeeEntry)
+          }
+        />
         <header className="app-bar">
           <button
             type="button"
