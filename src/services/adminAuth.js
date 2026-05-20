@@ -100,6 +100,23 @@ export async function signInAdminWithSupabase({ username, password }) {
   }
 }
 
+export async function refreshSupabaseSession(refreshToken) {
+  if (!refreshToken) {
+    throw new Error('Missing refresh token.')
+  }
+
+  const authResult = await requestSupabaseAuth('token?grant_type=refresh_token', {
+    method: 'POST',
+    body: JSON.stringify({ refresh_token: refreshToken }),
+  })
+
+  return {
+    accessToken: authResult.access_token,
+    refreshToken: authResult.refresh_token || refreshToken,
+    expiresAt: Date.now() + Number(authResult.expires_in || 3600) * 1000,
+  }
+}
+
 export async function listSupabaseAdmins(accessToken) {
   return requestSupabaseRest(
     'admin_users?select=email,name,role,created_at&order=created_at.desc',

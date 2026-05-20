@@ -3,6 +3,7 @@ import {
   inviteSupabaseAdmin,
   listSupabaseAdmins,
   removeSupabaseAdmin,
+  refreshSupabaseSession,
   signInAdminWithSupabase,
 } from './adminAuth'
 import { passportRepository } from './passportRepository'
@@ -246,13 +247,52 @@ export function usePassportStore() {
     }))
   }
 
-  const refreshAdminUsers = async () => {
+  const getActiveAdminSession = async () => {
     if (!state.adminSession?.accessToken) {
+      return null
+    }
+
+    const isExpired = state.adminSession.expiresAt
+      ? Date.now() >= state.adminSession.expiresAt - 30000
+      : false
+
+    if (!isExpired) {
+      return state.adminSession
+    }
+
+    if (!state.adminSession.refreshToken) {
+      return null
+    }
+
+    try {
+      const refreshedSession = await refreshSupabaseSession(
+        state.adminSession.refreshToken,
+      )
+      updateState((current) => ({
+        ...current,
+        adminSession: {
+          ...current.adminSession,
+          ...refreshedSession,
+        },
+      }))
+      return {
+        ...state.adminSession,
+        ...refreshedSession,
+      }
+    } catch (error) {
+      signOutAdmin()
+      return null
+    }
+  }
+
+  const refreshAdminUsers = async () => {
+    const activeSession = await getActiveAdminSession()
+    if (!activeSession?.accessToken) {
       return { ok: false, message: 'Admin session is not active.' }
     }
 
     try {
-      const adminUsers = await listSupabaseAdmins(state.adminSession.accessToken)
+      const adminUsers = await listSupabaseAdmins(activeSession.accessToken)
       updateState((current) => ({ ...current, adminUsers }))
       return { ok: true, message: 'Admin users refreshed.' }
     } catch {
@@ -261,21 +301,23 @@ export function usePassportStore() {
   }
 
   const addAdminUser = async (adminUser) => {
-    if (!state.adminSession?.accessToken) {
+    const activeSession = await getActiveAdminSession()
+    if (!activeSession?.accessToken) {
       return { ok: false, message: 'Admin session is not active.' }
     }
 
-    const result = await inviteSupabaseAdmin(state.adminSession.accessToken, adminUser)
+    const result = await inviteSupabaseAdmin(activeSession.accessToken, adminUser)
     if (result.ok) await refreshAdminUsers()
     return result
   }
 
   const removeAdminUser = async (email) => {
-    if (!state.adminSession?.accessToken) {
+    const activeSession = await getActiveAdminSession()
+    if (!activeSession?.accessToken) {
       return { ok: false, message: 'Admin session is not active.' }
     }
 
-    const result = await removeSupabaseAdmin(state.adminSession.accessToken, email)
+    const result = await removeSupabaseAdmin(activeSession.accessToken, email)
     if (result.ok) await refreshAdminUsers()
     return result
   }
