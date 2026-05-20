@@ -37,7 +37,7 @@ function App() {
     setCelebrationKey(`${keyPrefix}:${Date.now()}`)
     window.setTimeout(() => {
       setCelebrationKey('')
-    }, 4300)
+    }, 6200)
   }
 
   const instructions = store.settings?.instructions?.length
