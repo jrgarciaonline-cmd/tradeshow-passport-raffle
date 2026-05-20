@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import { adminCredentials, defaultBooths } from '../data/mockData'
+import { defaultBooths } from '../data/mockData'
+import { verifyAdminCredentials } from './adminAuth'
 import { passportRepository } from './passportRepository'
 
 function buildBoothId(name) {
@@ -28,11 +29,13 @@ function normalizeEmail(email) {
   return email.trim().toLowerCase()
 }
 
-function getAdminAttendee() {
+function getAdminAttendee(adminUser) {
   return {
     id: 'admin-user',
-    name: 'Land F/X Admin',
-    email: 'admin@landfx.local',
+    name: adminUser?.name || 'Land F/X Admin',
+    email: adminUser?.username
+      ? `${adminUser.username}@admin.local`
+      : 'admin@landfx.local',
     phone: '0000000000',
     role: 'Admin',
     createdAt: new Date().toISOString(),
@@ -181,14 +184,10 @@ export function usePassportStore() {
     return { ok: true, message: `Welcome back, ${attendee.name}.` }
   }
 
-  const signInAdmin = ({ username, password }) => {
-    const usernameMatches =
-      username.trim().toLowerCase() === adminCredentials.username.toLowerCase()
-    const passwordMatches = password === adminCredentials.password
+  const signInAdmin = async ({ username, password }) => {
+    const result = await verifyAdminCredentials({ username, password })
 
-    if (!usernameMatches || !passwordMatches) {
-      return { ok: false, message: 'Admin username or password is incorrect.' }
-    }
+    if (!result.ok) return result
 
     updateState((current) => {
       const attendeeId = current.session?.attendeeId ?? 'admin-user'
@@ -197,14 +196,14 @@ export function usePassportStore() {
         ...current,
         attendees: current.attendees.some((attendee) => attendee.id === 'admin-user')
           ? current.attendees
-          : [...current.attendees, getAdminAttendee()],
+          : [...current.attendees, getAdminAttendee(result.user)],
         session: current.session ?? { type: 'attendee', attendeeId },
         completedIds: current.attendeeProgress[attendeeId] ?? current.completedIds,
         adminAuthenticated: true,
       }
     })
 
-    return { ok: true, message: 'Admin signed in.' }
+    return result
   }
 
   const signOut = () => {

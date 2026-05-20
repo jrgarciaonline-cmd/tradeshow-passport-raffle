@@ -5,11 +5,6 @@ export const defaultInstructions = [
   'Scan the required number of unique manufacturer booths to unlock the raffle entry form.',
 ]
 
-export const adminCredentials = {
-  username: 'landfx-admin',
-  password: 'passport2026',
-}
-
 export const defaultBooths = [
   {
     id: 'hunter',

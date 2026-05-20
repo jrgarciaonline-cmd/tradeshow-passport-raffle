@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { adminCredentials, defaultInstructions } from '../data/mockData'
+import { defaultInstructions } from '../data/mockData'
 import { PinchZoomMap } from './PinchZoomMap'
 import { WinnerConfetti } from './WinnerConfetti'
 
@@ -46,6 +46,7 @@ export function AdminDashboard({ store }) {
   const [activeSection, setActiveSection] = useState('Booths')
   const [login, setLogin] = useState(emptyLogin)
   const [loginMessage, setLoginMessage] = useState('')
+  const [loginPending, setLoginPending] = useState(false)
   const [draft, setDraft] = useState(emptyBooth)
   const [placementBoothId, setPlacementBoothId] = useState('')
   const [query, setQuery] = useState('')
@@ -183,10 +184,12 @@ export function AdminDashboard({ store }) {
           </div>
           <form
             className="admin-login-form"
-            onSubmit={(event) => {
+            onSubmit={async (event) => {
               event.preventDefault()
-              const result = store.signInAdmin(login)
+              setLoginPending(true)
+              const result = await store.signInAdmin(login)
               setLoginMessage(result.message)
+              setLoginPending(false)
             }}
           >
             <label className="form-field">
@@ -217,11 +220,8 @@ export function AdminDashboard({ store }) {
                 }
               />
             </label>
-            <p className="demo-credentials">
-              Demo admin: {adminCredentials.username} / {adminCredentials.password}
-            </p>
-            <button type="submit" className="primary">
-              Open Dashboard
+            <button type="submit" className="primary" disabled={loginPending}>
+              {loginPending ? 'Checking...' : 'Open Dashboard'}
             </button>
           </form>
           {loginMessage && <p className="status-note">{loginMessage}</p>}

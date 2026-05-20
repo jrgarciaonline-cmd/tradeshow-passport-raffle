@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { adminCredentials } from '../data/mockData'
 
 const emptyRegistration = {
   name: '',
@@ -27,14 +26,16 @@ export function AuthScreen({ initialView = 'signup', onRegister, onSignIn, onAdm
   const [signIn, setSignIn] = useState(emptySignIn)
   const [admin, setAdmin] = useState(emptyAdmin)
   const [message, setMessage] = useState('')
+  const [submitting, setSubmitting] = useState(false)
 
   const updateRegistration = (field, value) => {
     setRegistration((current) => ({ ...current, [field]: value }))
   }
 
-  const submitResult = (result) => {
-    setMessage(result.message)
-    return result.ok
+  const submitResult = async (result) => {
+    const resolvedResult = await result
+    setMessage(resolvedResult.message)
+    return resolvedResult.ok
   }
 
   return (
@@ -85,9 +86,9 @@ export function AuthScreen({ initialView = 'signup', onRegister, onSignIn, onAdm
       {view === 'signup' && (
         <form
           className="auth-form"
-          onSubmit={(event) => {
+          onSubmit={async (event) => {
             event.preventDefault()
-            if (submitResult(onRegister(registration))) {
+            if (await submitResult(onRegister(registration))) {
               setRegistration(emptyRegistration)
             }
           }}
@@ -151,9 +152,9 @@ export function AuthScreen({ initialView = 'signup', onRegister, onSignIn, onAdm
       {view === 'signin' && (
         <form
           className="auth-form"
-          onSubmit={(event) => {
+          onSubmit={async (event) => {
             event.preventDefault()
-            submitResult(onSignIn(signIn))
+            await submitResult(onSignIn(signIn))
           }}
         >
           <label className="form-field">
@@ -187,9 +188,11 @@ export function AuthScreen({ initialView = 'signup', onRegister, onSignIn, onAdm
       {view === 'admin' && (
         <form
           className="auth-form"
-          onSubmit={(event) => {
+          onSubmit={async (event) => {
             event.preventDefault()
-            submitResult(onAdminSignIn(admin))
+            setSubmitting(true)
+            await submitResult(onAdminSignIn(admin))
+            setSubmitting(false)
           }}
         >
           <label className="form-field">
@@ -214,11 +217,8 @@ export function AuthScreen({ initialView = 'signup', onRegister, onSignIn, onAdm
               }
             />
           </label>
-          <p className="demo-credentials">
-            Demo admin: {adminCredentials.username} / {adminCredentials.password}
-          </p>
-          <button type="submit" className="primary">
-            Open Admin
+          <button type="submit" className="primary" disabled={submitting}>
+            {submitting ? 'Checking...' : 'Open Admin'}
           </button>
         </form>
       )}

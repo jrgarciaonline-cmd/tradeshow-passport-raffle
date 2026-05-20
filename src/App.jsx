@@ -205,8 +205,8 @@ function App() {
               initialView={authView}
               onRegister={store.registerAttendee}
               onSignIn={store.signInAttendee}
-              onAdminSignIn={(credentials) => {
-                const result = store.signInAdmin(credentials)
+              onAdminSignIn={async (credentials) => {
+                const result = await store.signInAdmin(credentials)
                 if (result.ok) setMode('admin')
                 return result
               }}
