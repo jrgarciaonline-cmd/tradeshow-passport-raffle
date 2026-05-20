@@ -993,6 +993,7 @@ button:disabled {
   border-radius: 0 8px 8px 0;
   padding: 3px 8px 3px 14px;
   background: var(--pin-color);
+  isolation: isolate;
 }
 
 .map-marker-banner::before {
@@ -1011,6 +1012,7 @@ button:disabled {
   max-width: 100%;
   max-height: 18px;
   object-fit: contain;
+  mix-blend-mode: multiply;
 }
 
 .map-marker-banner strong {
