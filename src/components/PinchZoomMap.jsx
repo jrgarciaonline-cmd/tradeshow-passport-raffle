@@ -47,6 +47,11 @@ function getFitScale(container, mapSize) {
   return Math.min(container.width / mapSize.width, container.height / mapSize.height, 1)
 }
 
+function formatBoothLocation(location) {
+  const match = String(location ?? '').match(/\d[\dA-Za-z-]*/)
+  return match?.[0] ?? location
+}
+
 function constrainView(view, container, mapSize) {
   const minScale = getFitScale(container, mapSize)
   const scale = clamp(view.scale, minScale, MAX_SCALE)
@@ -328,6 +333,7 @@ export function PinchZoomMap({
           {booths.map((booth) => {
             const completed = completedIds.includes(booth.id)
             const selected = placementBoothId === booth.id
+            const locationLabel = formatBoothLocation(booth.location)
 
             return (
               <button
@@ -336,7 +342,11 @@ export function PinchZoomMap({
                   selected ? 'selected' : ''
                 }`}
                 key={booth.id}
-                style={{ '--x': `${booth.map.x}%`, '--y': `${booth.map.y}%` }}
+                style={{
+                  '--x': `${booth.map.x}%`,
+                  '--y': `${booth.map.y}%`,
+                  '--pin-color': booth.color,
+                }}
                 title={`${booth.name} / ${booth.location}`}
                 aria-label={`${booth.name}, ${booth.location}`}
                 onClick={(e) => {
@@ -347,7 +357,17 @@ export function PinchZoomMap({
                   setSelectedBoothId(booth.id)
                 }}
               >
-                <span>{completed ? '✓' : ''}</span>
+                <span className="map-marker-pin">
+                  <span className="map-marker-location">{locationLabel}</span>
+                </span>
+                <span className="map-marker-banner">
+                  {booth.logoDataUrl ? (
+                    <img src={booth.logoDataUrl} alt="" />
+                  ) : (
+                    <strong>{booth.name}</strong>
+                  )}
+                </span>
+                {completed && <span className="map-marker-check">✓</span>}
               </button>
             )
           })}

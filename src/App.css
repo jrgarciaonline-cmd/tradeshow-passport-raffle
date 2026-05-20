@@ -934,58 +934,139 @@ button:disabled {
   position: absolute;
   left: var(--x);
   top: var(--y);
-  display: grid;
-  width: 22px;
-  height: 30px;
+  display: block;
+  width: 126px;
+  height: 42px;
   min-height: 0;
-  place-items: start center;
-  transform: translate(-50%, -100%);
+  transform: translate(-16px, -32px);
   border: 0;
   border-radius: 0;
   padding: 0;
-  color: #fff;
+  color: #111;
   background: transparent;
-  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.35));
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.28));
 }
 
-.pinch-map-pin span {
+.map-marker-pin {
+  position: absolute;
+  left: 0;
+  top: 0;
   display: grid;
-  position: relative;
-  width: 22px;
-  height: 22px;
+  width: 38px;
+  height: 38px;
   place-items: center;
   border-radius: 50%;
-  color: #fff;
-  background: #1e6a7a;
-  font-size: 0.62rem;
-  font-weight: 900;
+  background: var(--pin-color);
 }
 
-.pinch-map-pin span::after {
+.map-marker-pin::before {
   content: '';
   position: absolute;
-  left: 50%;
-  bottom: -7px;
-  width: 11px;
-  height: 11px;
-  background: inherit;
-  transform: translateX(-50%) rotate(45deg);
-  border-radius: 0 0 3px 0;
+  inset: -5px;
+  border-radius: 50% 50% 50% 0;
+  background: var(--pin-color);
+  transform: rotate(-45deg);
   z-index: -1;
 }
 
-.pinch-map-pin.complete {
-  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.35));
+.map-marker-location {
+  display: grid;
+  width: 26px;
+  height: 26px;
+  place-items: center;
+  border-radius: 50%;
+  color: #050505;
+  background: #fff;
+  font-size: 0.58rem;
+  font-weight: 900;
+  line-height: 1;
 }
 
-.pinch-map-pin.complete span {
+.map-marker-banner {
+  position: absolute;
+  left: 34px;
+  top: 7px;
+  display: grid;
+  width: 90px;
+  height: 25px;
+  place-items: center;
+  border-radius: 0 8px 8px 0;
+  padding: 3px 8px 3px 14px;
+  background: var(--pin-color);
+}
+
+.map-marker-banner::before {
+  content: '';
+  position: absolute;
+  left: -9px;
+  top: 0;
+  width: 18px;
+  height: 100%;
+  background: #fff;
+  clip-path: polygon(100% 0, 0 50%, 100% 100%);
+}
+
+.map-marker-banner img {
+  display: block;
+  max-width: 100%;
+  max-height: 18px;
+  object-fit: contain;
+}
+
+.map-marker-banner strong {
+  max-width: 100%;
+  overflow: hidden;
+  color: #fff;
+  font-size: 0.45rem;
+  font-weight: 900;
+  line-height: 1;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.map-marker-check {
+  position: absolute;
+  right: -7px;
+  top: -8px;
+  display: grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  border: 3px solid #fff;
+  border-radius: 50%;
   color: #fff;
   background: #12a84f;
+  box-shadow:
+    0 0 0 2px rgba(18, 168, 79, 0.32),
+    0 4px 9px rgba(0, 0, 0, 0.24);
+  font-size: 0.72rem;
+  font-weight: 900;
 }
 
-.pinch-map-pin.selected span {
+.pinch-map-pin.complete .map-marker-pin {
+  box-shadow: 0 0 0 3px rgba(18, 168, 79, 0.28);
+}
+
+.pinch-map-pin.complete .map-marker-location {
+  color: #087a35;
+  box-shadow: inset 0 0 0 2px rgba(18, 168, 79, 0.2);
+}
+
+.pinch-map-pin.complete .map-marker-banner {
+  box-shadow: inset 0 -3px 0 rgba(18, 168, 79, 0.62);
+}
+
+.pinch-map-pin.selected .map-marker-pin::before,
+.pinch-map-pin.selected .map-marker-pin,
+.pinch-map-pin.selected .map-marker-banner {
   background: #ff5a18;
-  box-shadow: 0 0 0 4px rgba(255, 90, 24, 0.28);
+}
+
+.pinch-map-pin.selected {
+  filter:
+    drop-shadow(0 0 0 rgba(255, 90, 24, 0.1))
+    drop-shadow(0 2px 5px rgba(0, 0, 0, 0.35));
 }
 
 .you-are-here-pin {
