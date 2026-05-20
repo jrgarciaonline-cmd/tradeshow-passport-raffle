@@ -1,6 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { defaultBooths } from '../data/mockData'
-import { verifyAdminCredentials } from './adminAuth'
+import {
+  addSupabaseAdmin,
+  listSupabaseAdmins,
+  removeSupabaseAdmin,
+  signInAdminWithSupabase,
+} from './adminAuth'
 import { passportRepository } from './passportRepository'
 
 function buildBoothId(name) {
@@ -33,8 +38,8 @@ function getAdminAttendee(adminUser) {
   return {
     id: 'admin-user',
     name: adminUser?.name || 'Land F/X Admin',
-    email: adminUser?.username
-      ? `${adminUser.username}@admin.local`
+    email: adminUser?.email
+      ? adminUser.email
       : 'admin@landfx.local',
     phone: '0000000000',
     role: 'Admin',
@@ -185,9 +190,10 @@ export function usePassportStore() {
   }
 
   const signInAdmin = async ({ username, password }) => {
-    const result = await verifyAdminCredentials({ username, password })
+    const result = await signInAdminWithSupabase({ username, password })
 
     if (!result.ok) return result
+    const adminUsers = await listSupabaseAdmins(result.session.accessToken).catch(() => [])
 
     updateState((current) => {
       const attendeeId = current.session?.attendeeId ?? 'admin-user'
@@ -200,6 +206,8 @@ export function usePassportStore() {
         session: current.session ?? { type: 'attendee', attendeeId },
         completedIds: current.attendeeProgress[attendeeId] ?? current.completedIds,
         adminAuthenticated: true,
+        adminSession: result.session,
+        adminUsers,
       }
     })
 
@@ -211,11 +219,52 @@ export function usePassportStore() {
       ...current,
       session: null,
       adminAuthenticated: false,
+      adminSession: null,
+      adminUsers: [],
     }))
   }
 
   const signOutAdmin = () => {
-    updateState((current) => ({ ...current, adminAuthenticated: false }))
+    updateState((current) => ({
+      ...current,
+      adminAuthenticated: false,
+      adminSession: null,
+      adminUsers: [],
+    }))
+  }
+
+  const refreshAdminUsers = async () => {
+    if (!state.adminSession?.accessToken) {
+      return { ok: false, message: 'Admin session is not active.' }
+    }
+
+    try {
+      const adminUsers = await listSupabaseAdmins(state.adminSession.accessToken)
+      updateState((current) => ({ ...current, adminUsers }))
+      return { ok: true, message: 'Admin users refreshed.' }
+    } catch {
+      return { ok: false, message: 'Unable to load admin users.' }
+    }
+  }
+
+  const addAdminUser = async (adminUser) => {
+    if (!state.adminSession?.accessToken) {
+      return { ok: false, message: 'Admin session is not active.' }
+    }
+
+    const result = await addSupabaseAdmin(state.adminSession.accessToken, adminUser)
+    if (result.ok) await refreshAdminUsers()
+    return result
+  }
+
+  const removeAdminUser = async (email) => {
+    if (!state.adminSession?.accessToken) {
+      return { ok: false, message: 'Admin session is not active.' }
+    }
+
+    const result = await removeSupabaseAdmin(state.adminSession.accessToken, email)
+    if (result.ok) await refreshAdminUsers()
+    return result
   }
 
   const checkInBooth = (boothId) => {
@@ -527,6 +576,9 @@ export function usePassportStore() {
     signInAdmin,
     signOut,
     signOutAdmin,
+    refreshAdminUsers,
+    addAdminUser,
+    removeAdminUser,
     checkInBooth,
     checkInByCode,
     undoCheckIn,

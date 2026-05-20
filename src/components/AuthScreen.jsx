@@ -196,10 +196,11 @@ export function AuthScreen({ initialView = 'signup', onRegister, onSignIn, onAdm
           }}
         >
           <label className="form-field">
-            <span>Admin Username</span>
+            <span>Admin Email</span>
             <input
               required
               autoCapitalize="none"
+              type="email"
               value={admin.username}
               onChange={(event) =>
                 setAdmin((current) => ({ ...current, username: event.target.value }))

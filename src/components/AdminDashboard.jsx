@@ -20,6 +20,12 @@ const emptyLogin = {
   password: '',
 }
 
+const emptyAdminUser = {
+  email: '',
+  name: '',
+  role: 'admin',
+}
+
 const emptyManualEntry = {
   attendeeId: '',
   name: '',
@@ -56,6 +62,8 @@ export function AdminDashboard({ store }) {
   const [manualEntry, setManualEntry] = useState(emptyManualEntry)
   const [manualEntryMessage, setManualEntryMessage] = useState('')
   const [showWinnerConfetti, setShowWinnerConfetti] = useState(false)
+  const [adminUserDraft, setAdminUserDraft] = useState(emptyAdminUser)
+  const [adminUserMessage, setAdminUserMessage] = useState('')
 
   const instructionsText = (
     store.settings?.instructions?.length
@@ -180,7 +188,7 @@ export function AdminDashboard({ store }) {
           <div>
             <p className="eyebrow">Admin Dashboard</p>
             <h1>Land F/X Passport Raffle</h1>
-            <p>Sign in to manage booths, map pins, settings, and exports.</p>
+            <p>Sign in with your Supabase admin account.</p>
           </div>
           <form
             className="admin-login-form"
@@ -193,10 +201,11 @@ export function AdminDashboard({ store }) {
             }}
           >
             <label className="form-field">
-              <span>Admin Username</span>
+              <span>Admin Email</span>
               <input
                 required
                 autoCapitalize="none"
+                type="email"
                 value={login.username}
                 onChange={(event) =>
                   setLogin((current) => ({
@@ -247,6 +256,7 @@ export function AdminDashboard({ store }) {
             'Signups',
             'Raffle Entries',
             'Winner Picker',
+            'Admin Users',
           ].map((section) => (
               <button
                 type="button"
@@ -844,6 +854,127 @@ export function AdminDashboard({ store }) {
                     )}
                   </div>
                 </aside>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {activeSection === 'Admin Users' && (
+          <section className="admin-workspace two-column">
+            <form
+              className="desktop-card admin-editor-form"
+              onSubmit={async (event) => {
+                event.preventDefault()
+                const result = await store.addAdminUser(adminUserDraft)
+                setAdminUserMessage(result.message)
+                if (result.ok) setAdminUserDraft(emptyAdminUser)
+              }}
+            >
+              <div>
+                <p className="eyebrow">Supabase Auth</p>
+                <h3>Authorize Admin Email</h3>
+              </div>
+              <label className="form-field">
+                <span>Email</span>
+                <input
+                  required
+                  type="email"
+                  value={adminUserDraft.email}
+                  onChange={(event) =>
+                    setAdminUserDraft((current) => ({
+                      ...current,
+                      email: event.target.value,
+                    }))
+                  }
+                />
+              </label>
+              <label className="form-field">
+                <span>Name</span>
+                <input
+                  value={adminUserDraft.name}
+                  onChange={(event) =>
+                    setAdminUserDraft((current) => ({
+                      ...current,
+                      name: event.target.value,
+                    }))
+                  }
+                />
+              </label>
+              <label className="form-field">
+                <span>Role</span>
+                <select
+                  value={adminUserDraft.role}
+                  onChange={(event) =>
+                    setAdminUserDraft((current) => ({
+                      ...current,
+                      role: event.target.value,
+                    }))
+                  }
+                >
+                  <option value="admin">Admin</option>
+                  <option value="super_admin">Super Admin</option>
+                </select>
+              </label>
+              <button type="submit" className="primary">
+                Authorize Admin
+              </button>
+              {adminUserMessage && <p className="admin-muted">{adminUserMessage}</p>}
+              <p className="admin-muted">
+                This authorizes an email for admin access. The matching Supabase
+                Auth user still needs to exist in your Supabase project.
+              </p>
+            </form>
+
+            <div className="desktop-card">
+              <div className="table-toolbar">
+                <h3>Authorized Admins</h3>
+                <button type="button" onClick={store.refreshAdminUsers}>
+                  Refresh
+                </button>
+              </div>
+              <div className="admin-table-wrap">
+                <table className="admin-table">
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Email</th>
+                      <th>Role</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {store.adminUsers.map((adminUser) => (
+                      <tr key={adminUser.email}>
+                        <td>{adminUser.name || 'Admin'}</td>
+                        <td>{adminUser.email}</td>
+                        <td>{adminUser.role}</td>
+                        <td>
+                          <button
+                            type="button"
+                            className="danger"
+                            onClick={async () => {
+                              if (
+                                window.confirm(
+                                  `Remove admin access for ${adminUser.email}?`,
+                                )
+                              ) {
+                                const result = await store.removeAdminUser(adminUser.email)
+                                setAdminUserMessage(result.message)
+                              }
+                            }}
+                          >
+                            Remove
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                    {!store.adminUsers.length && (
+                      <tr>
+                        <td colSpan="4">No authorized admins loaded.</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
               </div>
             </div>
           </section>

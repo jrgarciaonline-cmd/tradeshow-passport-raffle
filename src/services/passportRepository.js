@@ -15,6 +15,8 @@ const initialState = {
   attendees: [],
   session: null,
   adminAuthenticated: false,
+  adminSession: null,
+  adminUsers: [],
   settings: {
     requiredScanCount: 4,
     instructions: defaultInstructions,
