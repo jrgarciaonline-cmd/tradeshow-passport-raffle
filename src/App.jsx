@@ -356,6 +356,7 @@ function App() {
               booths={store.booths}
               attendees={store.attendees}
               entries={store.entries}
+              winners={store.winners}
               attendeeProgress={store.attendeeProgress}
               requiredScanCount={store.requiredScanCount}
               onSaveBooth={store.saveBooth}
@@ -363,6 +364,9 @@ function App() {
               onPlaceBooth={store.placeBoothOnMap}
               onAddRaffleEntry={store.addRaffleEntry}
               onUpdateEntryChances={store.updateEntryChances}
+              onDeleteRaffleEntry={store.deleteRaffleEntry}
+              onWinnerSelected={store.recordWinner}
+              onResetWinners={store.resetWinners}
               settings={store.settings}
               onSaveSettings={store.saveSettings}
               onExportCsv={store.exportEntriesCsv}

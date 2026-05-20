@@ -12,11 +12,12 @@ const wheelColors = [
   '#757575',
 ]
 
-export function WinnerWheel({ entries }) {
+export function WinnerWheel({ entries, onWinnerSelected }) {
   const [winner, setWinner] = useState(null)
   const [wheelRotation, setWheelRotation] = useState(0)
   const [isSpinning, setIsSpinning] = useState(false)
   const [showConfetti, setShowConfetti] = useState(false)
+  const [showEligibleEntries, setShowEligibleEntries] = useState(false)
   const wheelEntries = useMemo(
     () =>
       entries.flatMap((entry) =>
@@ -59,6 +60,7 @@ export function WinnerWheel({ entries }) {
 
     window.setTimeout(() => {
       setWinner(selectedWinner)
+      onWinnerSelected?.(selectedWinner)
       setIsSpinning(false)
       setShowConfetti(true)
       window.setTimeout(() => {
@@ -70,6 +72,14 @@ export function WinnerWheel({ entries }) {
   return (
     <section className="winner-screen">
       <WinnerConfetti active={showConfetti} />
+      {winner && showConfetti && (
+        <div className="winner-reveal-overlay" aria-live="polite">
+          <div className="winner-ribbon-banner">
+            <span>Winner Selected</span>
+            <strong>{winner.name}</strong>
+          </div>
+        </div>
+      )}
       <div className="winner-screen-header">
         <p className="eyebrow">Prize Wheel</p>
         <h2>Pick a Winner</h2>
@@ -111,21 +121,27 @@ export function WinnerWheel({ entries }) {
       <div className="mobile-winner-result" aria-live="polite">
         <span>{winner ? 'Winner Selected' : 'Ready to draw'}</span>
         <strong>{winner?.name ?? 'No winner yet'}</strong>
-        {winner && <p>{winner.company || winner.role}</p>}
       </div>
 
       <div className="mobile-eligible-list">
-        <h3>Eligible Entries</h3>
-        {entries.length ? (
+        <button
+          type="button"
+          className="eligible-toggle"
+          onClick={() => setShowEligibleEntries((current) => !current)}
+        >
+          Eligible Entries ({entries.length})
+          <span>{showEligibleEntries ? 'Hide' : 'Show'}</span>
+        </button>
+        {showEligibleEntries && entries.length ? (
           entries.map((entry) => (
             <div key={entry.id} className="mobile-entry-row">
               <span>{entry.name}</span>
-              <small>{entry.chances ?? 1}x / {entry.company || entry.role}</small>
+              <small>{entry.chances ?? 1}x</small>
             </div>
           ))
-        ) : (
+        ) : !entries.length ? (
           <p>No raffle entries yet.</p>
-        )}
+        ) : null}
       </div>
     </section>
   )

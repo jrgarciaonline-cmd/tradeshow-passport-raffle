@@ -51,6 +51,20 @@ function normalizeEntryChances(value) {
   return Math.max(1, Math.min(99, Number(value) || 1))
 }
 
+function buildWinner(entry) {
+  return {
+    id: crypto.randomUUID(),
+    entryId: entry.id,
+    attendeeId: entry.attendeeId || '',
+    name: entry.name,
+    email: entry.email,
+    phone: entry.phone,
+    role: entry.role,
+    chances: entry.chances ?? 1,
+    pickedAt: new Date().toISOString(),
+  }
+}
+
 export function usePassportStore() {
   const [state, setState] = useState(() => passportRepository.load())
   const sharedSavePending = useRef(false)
@@ -449,6 +463,45 @@ export function usePassportStore() {
     })
   }
 
+  const deleteRaffleEntry = (entryId) => {
+    updateState((current) => ({
+      ...current,
+      entries: current.entries.filter((entry) => entry.id !== entryId),
+    }), {
+      sharedPatch: (next) => ({
+        entries: next.entries,
+        entriesReplace: true,
+      }),
+    })
+  }
+
+  const recordWinner = (entry) => {
+    if (!entry?.id) return null
+
+    const winner = buildWinner(entry)
+    updateState((current) => ({
+      ...current,
+      winners: [winner, ...(current.winners ?? [])],
+    }), {
+      sharedPatch: {
+        winners: [winner],
+      },
+    })
+    return winner
+  }
+
+  const resetWinners = () => {
+    updateState((current) => ({
+      ...current,
+      winners: [],
+    }), {
+      sharedPatch: {
+        winners: [],
+        winnersReplace: true,
+      },
+    })
+  }
+
   const saveBooth = (booth) => {
     updateState((current) => {
       const id = booth.id || buildBoothId(booth.name) || crypto.randomUUID()
@@ -585,6 +638,9 @@ export function usePassportStore() {
     submitEntry,
     addRaffleEntry,
     updateEntryChances,
+    deleteRaffleEntry,
+    recordWinner,
+    resetWinners,
     saveBooth,
     deleteBooth,
     placeBoothOnMap,

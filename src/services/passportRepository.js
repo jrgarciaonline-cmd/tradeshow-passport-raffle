@@ -12,6 +12,7 @@ const initialState = {
   attendeeProgress: {},
   attendeeLocation: {},
   entries: [],
+  winners: [],
   attendees: [],
   session: null,
   adminAuthenticated: false,
@@ -57,6 +58,7 @@ function getSharedState(state) {
   return {
     booths: state.booths,
     entries: state.entries,
+    winners: state.winners,
     attendees: state.attendees,
     attendeeProgress: state.attendeeProgress,
     attendeeLocation: state.attendeeLocation,
@@ -89,6 +91,7 @@ function mergeSharedState(state, sharedState, options = {}) {
         ? sharedState.booths
         : state.booths,
     entries: Array.isArray(sharedState.entries) ? sharedState.entries : state.entries,
+    winners: Array.isArray(sharedState.winners) ? sharedState.winners : state.winners,
     attendees: Array.isArray(sharedState.attendees)
       ? sharedState.attendees
       : state.attendees,
@@ -123,6 +126,7 @@ function mergeSharedPatch(sharedState, patch) {
   const currentSharedState = sharedState ?? {
     booths: [],
     entries: [],
+    winners: [],
     attendees: [],
     attendeeProgress: {},
     attendeeLocation: {},
@@ -136,8 +140,15 @@ function mergeSharedPatch(sharedState, patch) {
       ? mergeUniqueByIdentity(currentSharedState.attendees, patch.attendees)
       : currentSharedState.attendees,
     entries: patch.entries
-      ? mergeUniqueByIdentity(currentSharedState.entries, patch.entries)
+      ? patch.entriesReplace
+        ? patch.entries
+        : mergeUniqueByIdentity(currentSharedState.entries, patch.entries)
       : currentSharedState.entries,
+    winners: patch.winners
+      ? patch.winnersReplace
+        ? patch.winners
+        : mergeUniqueByIdentity(currentSharedState.winners, patch.winners)
+      : currentSharedState.winners,
     attendeeProgress: patch.attendeeProgress
       ? {
           ...currentSharedState.attendeeProgress,

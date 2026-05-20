@@ -35,6 +35,14 @@ const emptyManualEntry = {
   chances: 1,
 }
 
+function confirmWinnerReset() {
+  return (
+    window.confirm('Reset picked winners? This clears the winners history.') &&
+    window.confirm('Are you absolutely sure? This cannot be undone.') &&
+    window.confirm('Final confirmation: permanently clear all picked winners?')
+  )
+}
+
 function normalizeDate(value) {
   return value ? new Date(value).toLocaleString() : ''
 }
@@ -172,6 +180,7 @@ export function AdminDashboard({ store }) {
 
     window.setTimeout(() => {
       setWinner(selectedWinner)
+      store.recordWinner(selectedWinner)
       setIsSpinning(false)
       setShowWinnerConfetti(true)
       window.setTimeout(() => {
@@ -256,6 +265,7 @@ export function AdminDashboard({ store }) {
             'Signups',
             'Raffle Entries',
             'Winner Picker',
+            'Winners',
             'Admin Users',
           ].map((section) => (
               <button
@@ -756,6 +766,7 @@ export function AdminDashboard({ store }) {
                       <th>Role</th>
                       <th>Wheel Entries</th>
                       <th>Entered</th>
+                      <th>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -778,6 +789,19 @@ export function AdminDashboard({ store }) {
                           />
                         </td>
                         <td>{normalizeDate(entry.submittedAt)}</td>
+                        <td>
+                          <button
+                            type="button"
+                            className="danger"
+                            onClick={() => {
+                              if (window.confirm(`Delete raffle entry for ${entry.name}?`)) {
+                                store.deleteRaffleEntry(entry.id)
+                              }
+                            }}
+                          >
+                            Delete
+                          </button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -790,6 +814,14 @@ export function AdminDashboard({ store }) {
         {activeSection === 'Winner Picker' && (
           <section className="admin-workspace winner-workspace">
             <WinnerConfetti active={showWinnerConfetti} />
+            {winner && showWinnerConfetti && (
+              <div className="winner-reveal-overlay" aria-live="polite">
+                <div className="winner-ribbon-banner">
+                  <span>Winner Selected</span>
+                  <strong>{winner.name}</strong>
+                </div>
+              </div>
+            )}
             <div className="desktop-card winner-card">
               <div className="table-toolbar">
                 <div>
@@ -830,7 +862,6 @@ export function AdminDashboard({ store }) {
                     {winner && (
                       <>
                         <p>{winner.company || winner.role}</p>
-                        <p>{winner.email}</p>
                       </>
                     )}
                   </div>
@@ -838,14 +869,17 @@ export function AdminDashboard({ store }) {
                   <div className="eligible-list">
                     <h4>Eligible Raffle Entries ({wheelEntries.length} wheel spots)</h4>
                     {store.entries.length ? (
-                      <ul>
-                        {store.entries.map((entry) => (
-                          <li key={entry.id}>
-                            <span>{entry.name}</span>
-                            <small>{entry.chances ?? 1}x / {entry.company || entry.email}</small>
-                          </li>
-                        ))}
-                      </ul>
+                      <details className="eligible-details">
+                        <summary>Show eligible names</summary>
+                        <ul>
+                          {store.entries.map((entry) => (
+                            <li key={entry.id}>
+                              <span>{entry.name}</span>
+                              <small>{entry.chances ?? 1}x</small>
+                            </li>
+                          ))}
+                        </ul>
+                      </details>
                     ) : (
                       <p>
                         No raffle entries yet. Qualified attendees will appear
@@ -854,6 +888,57 @@ export function AdminDashboard({ store }) {
                     )}
                   </div>
                 </aside>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {activeSection === 'Winners' && (
+          <section className="admin-workspace">
+            <div className="desktop-card">
+              <div className="table-toolbar">
+                <h3>Picked Winners</h3>
+                <button
+                  type="button"
+                  className="danger"
+                  disabled={!store.winners?.length}
+                  onClick={() => {
+                    if (confirmWinnerReset()) store.resetWinners()
+                  }}
+                >
+                  Reset Winners
+                </button>
+              </div>
+              <div className="admin-table-wrap">
+                <table className="admin-table">
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Email</th>
+                      <th>Phone</th>
+                      <th>Role</th>
+                      <th>Wheel Entries</th>
+                      <th>Picked</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(store.winners ?? []).map((pickedWinner) => (
+                      <tr key={pickedWinner.id}>
+                        <td>{pickedWinner.name}</td>
+                        <td>{pickedWinner.email}</td>
+                        <td>{pickedWinner.phone}</td>
+                        <td>{pickedWinner.role}</td>
+                        <td>{pickedWinner.chances ?? 1}</td>
+                        <td>{normalizeDate(pickedWinner.pickedAt)}</td>
+                      </tr>
+                    ))}
+                    {!store.winners?.length && (
+                      <tr>
+                        <td colSpan="6">No winners picked yet.</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
               </div>
             </div>
           </section>

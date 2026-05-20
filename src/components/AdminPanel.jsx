@@ -15,12 +15,21 @@ const emptyBooth = {
   color: '#007b70',
 }
 
-const adminSections = ['Settings', 'Booths', 'Map', 'Signups', 'Raffle', 'Winner']
+const adminSections = ['Settings', 'Booths', 'Map', 'Signups', 'Raffle', 'Winner', 'Picked']
+
+function confirmWinnerReset() {
+  return (
+    window.confirm('Reset picked winners? This clears the winners history.') &&
+    window.confirm('Are you absolutely sure? This cannot be undone.') &&
+    window.confirm('Final confirmation: permanently clear all picked winners?')
+  )
+}
 
 export function AdminPanel({
   booths,
   attendees,
   entries,
+  winners,
   attendeeProgress,
   requiredScanCount,
   onSaveBooth,
@@ -28,6 +37,9 @@ export function AdminPanel({
   onPlaceBooth,
   onAddRaffleEntry,
   onUpdateEntryChances,
+  onDeleteRaffleEntry,
+  onWinnerSelected,
+  onResetWinners,
   settings,
   onSaveSettings,
   onExportCsv,
@@ -350,7 +362,7 @@ export function AdminPanel({
             className="admin-mobile-wheel-card"
             hidden={activeAdminSection !== 'Winner'}
           >
-            <WinnerWheel entries={entries} />
+            <WinnerWheel entries={entries} onWinnerSelected={onWinnerSelected} />
           </div>
 
           <div
@@ -442,11 +454,58 @@ export function AdminPanel({
                       }
                     />
                   </label>
+                  <div className="card-actions">
+                    <button
+                      type="button"
+                      className="danger"
+                      onClick={() => {
+                        if (window.confirm(`Delete raffle entry for ${entry.name}?`)) {
+                          onDeleteRaffleEntry(entry.id)
+                        }
+                      }}
+                    >
+                      Delete entry
+                    </button>
+                  </div>
                   <p className="muted">
                     {new Date(entry.submittedAt).toLocaleString()}
                   </p>
                 </article>
               ))
+            )}
+          </div>
+
+          <div
+            className="admin-list-section"
+            hidden={activeAdminSection !== 'Picked'}
+          >
+            <div className="admin-section-heading">
+              <h3>Picked winners ({winners?.length ?? 0})</h3>
+              <button
+                type="button"
+                className="danger"
+                disabled={!winners?.length}
+                onClick={() => {
+                  if (confirmWinnerReset()) onResetWinners()
+                }}
+              >
+                Reset
+              </button>
+            </div>
+            {winners?.length ? (
+              winners.map((winner) => (
+                <article className="entry-card" key={winner.id}>
+                  <strong>{winner.name}</strong>
+                  <div className="entry-meta">
+                    <span className="pill">{winner.role}</span>
+                    <span className="pill">{winner.email}</span>
+                    <span className="pill">{winner.phone}</span>
+                  </div>
+                  <p className="muted">{new Date(winner.pickedAt).toLocaleString()}</p>
+                </article>
+              ))
+            ) : (
+              <p className="muted">No winners picked yet.</p>
             )}
           </div>
         </div>
