@@ -1012,7 +1012,6 @@ button:disabled {
   max-width: 100%;
   max-height: 18px;
   object-fit: contain;
-  mix-blend-mode: multiply;
 }
 
 .map-marker-banner strong {
