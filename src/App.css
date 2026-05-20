@@ -1384,15 +1384,79 @@ textarea {
   gap: 8px;
 }
 
+.admin-actions {
+  align-items: start;
+  justify-content: space-between;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.admin-actions h2 {
+  text-align: left;
+}
+
+.admin-quick-actions {
+  display: grid;
+  gap: 8px;
+  min-width: 150px;
+}
+
+.admin-quick-actions .button-link,
+.admin-quick-actions button {
+  justify-content: center;
+  font-size: 0.72rem;
+}
+
+.mobile-admin-tabs {
+  position: sticky;
+  top: 0;
+  z-index: 8;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(82px, 1fr);
+  gap: 6px;
+  margin-inline: -12px;
+  padding: 8px 12px;
+  overflow-x: auto;
+  border-block: 1px solid var(--line);
+  background: rgba(247, 247, 247, 0.96);
+  backdrop-filter: blur(10px);
+}
+
+.mobile-admin-tabs button {
+  min-height: 32px;
+  border-radius: 999px;
+  padding: 0 10px;
+  white-space: nowrap;
+  font-size: 0.7rem;
+}
+
+.mobile-admin-tabs button.active {
+  color: #fff;
+  border-color: #050505;
+  background: #050505;
+}
+
 .admin-grid,
 .entry-list {
   display: grid;
   gap: 10px;
 }
 
+.admin-grid > [hidden],
+.entry-list > [hidden] {
+  display: none;
+}
+
 .admin-map-placement {
   display: grid;
   gap: 9px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
 }
 
 .settings-form {
@@ -1422,10 +1486,31 @@ textarea {
   height: 360px;
 }
 
+.admin-list-section {
+  display: grid;
+  gap: 10px;
+}
+
+.admin-section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.admin-section-heading h3 {
+  margin: 0;
+}
+
+.admin-section-heading button {
+  min-height: 31px;
+  font-size: 0.72rem;
+}
+
 .entry-card {
   border: 1px solid var(--line);
-  border-radius: 5px;
-  padding: 10px;
+  border-radius: 8px;
+  padding: 11px;
   background: #fff;
   font-size: 0.78rem;
 }

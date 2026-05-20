@@ -3,10 +3,9 @@ import { useEffect, useRef, useState } from 'react'
 const MAP_SRC = '/maps/asla_map.PNG'
 const BASE_MAP_WIDTH = 1600
 const DEFAULT_MAP_RATIO = 2059 / 3000
-const MIN_SCALE = 1
 const MAX_SCALE = 3.2
 const FOCUS_SCALE = 2.35
-const INITIAL_VIEW = { scale: 1, x: 0, y: 0 }
+const INITIAL_VIEW = { scale: 0.25, x: 0, y: 0 }
 const INITIAL_MAP_SIZE = {
   width: BASE_MAP_WIDTH,
   height: Math.round(BASE_MAP_WIDTH * DEFAULT_MAP_RATIO),
@@ -30,22 +29,30 @@ function midpoint(first, second) {
 function getBounds(container, scale, mapSize) {
   const width = mapSize.width * scale
   const height = mapSize.height * scale
-  const minX = Math.min(0, container.width - width)
-  const minY = Math.min(0, container.height - height)
+  const minX = width <= container.width ? (container.width - width) / 2 : container.width - width
+  const minY = height <= container.height ? (container.height - height) / 2 : container.height - height
+  const maxX = width <= container.width ? minX : 0
+  const maxY = height <= container.height ? minY : 0
 
   return {
     minX,
     minY,
-    maxX: 0,
-    maxY: 0,
+    maxX,
+    maxY,
   }
 }
 
+function getFitScale(container, mapSize) {
+  return Math.min(container.width / mapSize.width, container.height / mapSize.height, 1)
+}
+
 function constrainView(view, container, mapSize) {
-  const bounds = getBounds(container, view.scale, mapSize)
+  const minScale = getFitScale(container, mapSize)
+  const scale = clamp(view.scale, minScale, MAX_SCALE)
+  const bounds = getBounds(container, scale, mapSize)
 
   return {
-    scale: view.scale,
+    scale,
     x: clamp(view.x, bounds.minX, bounds.maxX),
     y: clamp(view.y, bounds.minY, bounds.maxY),
   }
@@ -134,6 +141,40 @@ export function PinchZoomMap({
   }
 
   useEffect(() => {
+    const rect = viewportRef.current?.getBoundingClientRect()
+    if (!rect) return
+
+    const fittedView = constrainView(
+      {
+        scale: getFitScale(rect, mapSize),
+        x: 0,
+        y: 0,
+      },
+      rect,
+      mapSize,
+    )
+
+    viewRef.current = fittedView
+    setView(fittedView)
+  }, [mapSize])
+
+  useEffect(() => {
+    const viewport = viewportRef.current
+    if (!viewport) return undefined
+
+    const resizeObserver = new ResizeObserver(([entry]) => {
+      if (!entry) return
+      const rect = entry.contentRect
+      const nextView = constrainView(viewRef.current, rect, mapSize)
+      viewRef.current = nextView
+      setView(nextView)
+    })
+
+    resizeObserver.observe(viewport)
+    return () => resizeObserver.disconnect()
+  }, [mapSize])
+
+  useEffect(() => {
     if (!focusBoothId) {
       lastFocusedBoothId.current = ''
       return
@@ -216,9 +257,10 @@ export function PinchZoomMap({
 
           if (start.mode === 'pinch' && points.length === 2) {
             const currentMidpoint = midpoint(points[0], points[1])
+            const minScale = getFitScale(start.rect, mapSize)
             const nextScale = clamp(
               start.view.scale * (distance(points[0], points[1]) / start.distance),
-              MIN_SCALE,
+              minScale,
               MAX_SCALE,
             )
             const startAnchorX = start.midpoint.x - start.rect.left
