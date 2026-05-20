@@ -31,6 +31,14 @@ function App() {
   const [scannedBoothId, setScannedBoothId] = useState('')
   const [query, setQuery] = useState('')
   const [category, setCategory] = useState('All')
+  const [celebrationKey, setCelebrationKey] = useState('')
+
+  const playCelebration = (keyPrefix = 'manual') => {
+    setCelebrationKey(`${keyPrefix}:${Date.now()}`)
+    window.setTimeout(() => {
+      setCelebrationKey('')
+    }, 4300)
+  }
 
   const instructions = store.settings?.instructions?.length
     ? store.settings.instructions
@@ -98,6 +106,41 @@ function App() {
     store,
   ])
 
+  useEffect(() => {
+    const entryId = store.currentAttendeeEntry?.id
+    const attendeeId = store.currentAttendee?.id
+
+    if (
+      store.session?.type !== 'attendee' ||
+      activeMode !== 'attendee' ||
+      activeTab !== 'Home' ||
+      !entryId ||
+      !attendeeId
+    ) {
+      return undefined
+    }
+
+    const startTimer = window.setTimeout(() => {
+      const storageKey = `raffleCelebrationCount:${attendeeId}:${entryId}`
+      const currentCount = Number(window.localStorage.getItem(storageKey) || '0')
+
+      if (currentCount >= 2) return
+
+      window.localStorage.setItem(storageKey, String(currentCount + 1))
+      playCelebration(`${storageKey}:${currentCount + 1}`)
+    }, 0)
+
+    return () => {
+      window.clearTimeout(startTimer)
+    }
+  }, [
+    activeMode,
+    activeTab,
+    store.session?.type,
+    store.currentAttendee?.id,
+    store.currentAttendeeEntry?.id,
+  ])
+
   if (isAdminRoute) {
     return <AdminDashboard store={store} />
   }
@@ -113,13 +156,8 @@ function App() {
         aria-label="Trade show passport app"
       >
         <ConfettiOverlay
-          key={`${activeTab}-${store.currentAttendeeEntry?.id ?? 'no-entry'}`}
-          active={
-            store.session?.type === 'attendee' &&
-            activeMode === 'attendee' &&
-            activeTab === 'Home' &&
-            Boolean(store.currentAttendeeEntry)
-          }
+          key={celebrationKey || 'celebration-idle'}
+          active={Boolean(celebrationKey)}
         />
         <header className="app-bar">
           <button
@@ -203,6 +241,22 @@ function App() {
                 hasEntered={Boolean(store.currentAttendeeEntry)}
                 latestEntry={store.currentAttendeeEntry}
               />
+
+              {store.currentAttendeeEntry && (
+                <button
+                  type="button"
+                  className="celebration-replay-button"
+                  onClick={() =>
+                    playCelebration(
+                      `manual:${store.currentAttendeeEntry?.id ?? 'entry'}`,
+                    )
+                  }
+                  aria-label="Replay celebration"
+                  title="Replay celebration"
+                >
+                  ↻
+                </button>
+              )}
             </>
           )}
 

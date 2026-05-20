@@ -1,9 +1,9 @@
-const confettiPieces = Array.from({ length: 42 }, (_, index) => ({
+const confettiPieces = Array.from({ length: 86 }, (_, index) => ({
   id: index,
   left: `${(index * 37) % 100}%`,
-  delay: `${(index % 9) * 0.12}s`,
-  duration: `${2.4 + (index % 6) * 0.18}s`,
-  drift: `${((index % 7) - 3) * 12}px`,
+  delay: `${(index % 14) * 0.08}s`,
+  duration: `${2.6 + (index % 7) * 0.16}s`,
+  drift: `${((index % 9) - 4) * 13}px`,
   rotation: `${(index * 29) % 180}deg`,
   color: ['#21a66b', '#f8c23a', '#ec6f2d', '#245c6f', '#111111'][
     index % 5
@@ -15,6 +15,14 @@ export function ConfettiOverlay({ active }) {
 
   return (
     <div className="confetti-overlay" aria-hidden="true">
+      <img
+        className="raffle-complete-popup"
+        src="/home/RAFFLE_COMPLETE.png"
+        alt=""
+        onError={(event) => {
+          event.currentTarget.hidden = true
+        }}
+      />
       {confettiPieces.map((piece) => (
         <span
           key={piece.id}

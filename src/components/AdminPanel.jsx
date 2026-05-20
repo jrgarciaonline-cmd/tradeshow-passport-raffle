@@ -66,6 +66,9 @@ export function AdminPanel({
         <button type="button" onClick={onExportAttendeesCsv}>
           Export signups CSV
         </button>
+        <a className="button-link" href="/admin">
+          View Admin Webpage
+        </a>
         <button type="button" className="danger" onClick={onResetDemo}>
           Reset demo
         </button>
