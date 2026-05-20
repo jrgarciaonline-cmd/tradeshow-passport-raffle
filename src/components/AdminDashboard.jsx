@@ -36,12 +36,21 @@ const emptyManualEntry = {
   chances: 1,
 }
 
+const manufacturerCategories = ['Irrigation', 'Site', 'Lighting', 'Hardscape', 'Other']
+
 function confirmWinnerReset() {
   return (
     window.confirm('Reset picked winners? This clears the winners history.') &&
     window.confirm('Are you absolutely sure? This cannot be undone.') &&
     window.confirm('Final confirmation: permanently clear all picked winners?')
   )
+}
+
+function hasAlreadyWon(entry, winners) {
+  return winners.some((winner) => {
+    if (entry.attendeeId && winner.attendeeId) return entry.attendeeId === winner.attendeeId
+    return entry.email && winner.email && entry.email === winner.email
+  })
 }
 
 function normalizeDate(value) {
@@ -70,6 +79,7 @@ export function AdminDashboard({ store }) {
   const [isSpinning, setIsSpinning] = useState(false)
   const [manualEntry, setManualEntry] = useState(emptyManualEntry)
   const [manualEntryMessage, setManualEntryMessage] = useState('')
+  const [scanProgressMessage, setScanProgressMessage] = useState('')
   const [showWinnerConfetti, setShowWinnerConfetti] = useState(false)
   const [danceModeIndex, setDanceModeIndex] = useState(0)
   const [adminUserDraft, setAdminUserDraft] = useState(emptyAdminUser)
@@ -95,10 +105,20 @@ export function AdminDashboard({ store }) {
 
   const wheelEntries = useMemo(
     () =>
-      store.entries.flatMap((entry) =>
-        Array.from({ length: Math.max(1, Number(entry.chances) || 1) }, () => entry),
+      store.entries
+        .filter((entry) => !hasAlreadyWon(entry, store.winners ?? []))
+        .flatMap((entry) =>
+          Array.from({ length: Math.max(1, Number(entry.chances) || 1) }, () => entry),
+        ),
+    [store.entries, store.winners],
+  )
+
+  const eligibleRaffleEntries = useMemo(
+    () =>
+      store.entries.filter(
+        (entry) => !hasAlreadyWon(entry, store.winners ?? []),
       ),
-    [store.entries],
+    [store.entries, store.winners],
   )
 
   const attendeeProgressRows = useMemo(
@@ -114,9 +134,16 @@ export function AdminDashboard({ store }) {
           completedIds,
           completedBooths,
           complete: completedIds.length >= store.requiredScanCount,
+          entered: store.entries.some((entry) => entry.attendeeId === attendee.id),
         }
       }),
-    [store.attendees, store.attendeeProgress, store.booths, store.requiredScanCount],
+    [
+      store.attendees,
+      store.attendeeProgress,
+      store.booths,
+      store.entries,
+      store.requiredScanCount,
+    ],
   )
 
   const wheelGradient = useMemo(() => {
@@ -349,13 +376,19 @@ export function AdminDashboard({ store }) {
                 </label>
                 <label className="form-field">
                   <span>Category</span>
-                  <input
+                  <select
                     required
                     value={draft.category}
                     onChange={(event) =>
                       updateDraft('category', event.target.value)
                     }
-                  />
+                  >
+                    {manufacturerCategories.map((category) => (
+                      <option key={category} value={category}>
+                        {category}
+                      </option>
+                    ))}
+                  </select>
                 </label>
                 <label className="form-field">
                   <span>Location</span>
@@ -644,6 +677,7 @@ export function AdminDashboard({ store }) {
                       <th>Progress</th>
                       <th>Scanned Booths</th>
                       <th>Status</th>
+                      <th>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -674,11 +708,29 @@ export function AdminDashboard({ store }) {
                         </td>
                         <td>{row.completedBooths.join(', ') || 'No scans yet'}</td>
                         <td>{row.complete ? 'Entered / qualified' : 'In progress'}</td>
+                        <td>
+                          <button
+                            type="button"
+                            disabled={row.entered}
+                            onClick={() => {
+                              const result = store.addRaffleEntry({
+                                attendeeId: row.attendee.id,
+                                chances: 1,
+                              })
+                              setScanProgressMessage(result.message)
+                            }}
+                          >
+                            {row.entered ? 'Entered' : 'Enter Raffle'}
+                          </button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
+              {scanProgressMessage && (
+                <p className="admin-muted">{scanProgressMessage}</p>
+              )}
             </div>
           </section>
         )}
@@ -836,7 +888,7 @@ export function AdminDashboard({ store }) {
                   type="button"
                   className="primary"
                   onClick={spinWinner}
-                  disabled={!store.entries.length || isSpinning}
+                  disabled={!wheelEntries.length || isSpinning}
                 >
                   {isSpinning ? 'Spinning...' : 'Spin Wheel'}
                 </button>
@@ -853,7 +905,7 @@ export function AdminDashboard({ store }) {
                     }}
                   >
                     <div className="wheel-center">
-                      <strong>{store.entries.length}</strong>
+                      <strong>{eligibleRaffleEntries.length}</strong>
                       <span>People</span>
                     </div>
                   </div>
@@ -872,11 +924,11 @@ export function AdminDashboard({ store }) {
 
                   <div className="eligible-list">
                     <h4>Eligible Raffle Entries ({wheelEntries.length} wheel spots)</h4>
-                    {store.entries.length ? (
+                    {eligibleRaffleEntries.length ? (
                       <details className="eligible-details">
                         <summary>Show eligible names</summary>
                         <ul>
-                          {store.entries.map((entry) => (
+                          {eligibleRaffleEntries.map((entry) => (
                             <li key={entry.id}>
                               <span>{entry.name}</span>
                               <small>{entry.chances ?? 1}x</small>

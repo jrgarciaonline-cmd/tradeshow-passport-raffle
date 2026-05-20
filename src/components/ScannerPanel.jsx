@@ -9,6 +9,7 @@ export function ScannerPanel({ onScan, onGoHome }) {
   const [message, setMessage] = useState('')
   const [cameraActive, setCameraActive] = useState(false)
   const [scanSuccess, setScanSuccess] = useState(false)
+  const [scannedBooth, setScannedBooth] = useState(null)
 
   const stopCamera = useCallback(() => {
     streamRef.current?.getTracks().forEach((track) => track.stop())
@@ -25,7 +26,10 @@ export function ScannerPanel({ onScan, onGoHome }) {
       setMessage(result.message)
       if (result.ok) {
         setManualCode('')
+        setScannedBooth(result.booth ?? null)
         setScanSuccess(true)
+      } else {
+        setScanSuccess(false)
       }
     },
     [onScan],
@@ -33,6 +37,7 @@ export function ScannerPanel({ onScan, onGoHome }) {
 
   const startCamera = async () => {
     setScanSuccess(false)
+    setScannedBooth(null)
     const isSecure = window.isSecureContext
     const isLocal = ['localhost', '127.0.0.1'].includes(window.location.hostname)
 
@@ -161,6 +166,13 @@ export function ScannerPanel({ onScan, onGoHome }) {
       <div>
         <h2>Please scan the QR Code</h2>
       </div>
+      <button
+        type="button"
+        className="scanner-home-button"
+        onClick={onGoHome}
+      >
+        Go to Home to check progress
+      </button>
       <div className="scan-frame">
         <video
           ref={videoRef}
@@ -170,8 +182,15 @@ export function ScannerPanel({ onScan, onGoHome }) {
         />
         {scanSuccess ? (
           <div className="scan-success" aria-live="polite">
+            <div className="scan-success-logo">
+              {scannedBooth?.logoDataUrl ? (
+                <img src={scannedBooth.logoDataUrl} alt="" />
+              ) : (
+                <span>{scannedBooth?.name?.slice(0, 1) ?? '✓'}</span>
+              )}
+            </div>
             <span>✓</span>
-            <strong>Scan Complete</strong>
+            <strong>{scannedBooth?.name ?? 'Booth'} scanned</strong>
           </div>
         ) : !cameraActive ? (
           <div className="scan-start-prompt">
@@ -209,13 +228,6 @@ export function ScannerPanel({ onScan, onGoHome }) {
           </label>
           <button type="submit">Enter code</button>
         </form>
-        <button
-          type="button"
-          className="scanner-home-button"
-          onClick={onGoHome}
-        >
-          Go to Home to check progress
-        </button>
       </div>
       {message && <p className="status-note">{message}</p>}
     </section>

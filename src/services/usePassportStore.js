@@ -371,11 +371,22 @@ export function usePassportStore() {
       return { ok: false, message: 'No booth matches that QR code.' }
     }
 
+    if (state.completedIds.includes(match.id)) {
+      return {
+        ok: false,
+        duplicate: true,
+        message: `${match.name} has already been scanned.`,
+        id: match.id,
+        booth: match,
+      }
+    }
+
     checkInBooth(match.id)
     return {
       ok: true,
       message: `${match.name} checked in.`,
       id: match.id,
+      booth: match,
     }
   }
 

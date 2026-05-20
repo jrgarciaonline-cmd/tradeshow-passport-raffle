@@ -13,19 +13,30 @@ const wheelColors = [
   '#757575',
 ]
 
-export function WinnerWheel({ entries, onWinnerSelected }) {
+function hasAlreadyWon(entry, winners) {
+  return winners.some((winner) => {
+    if (entry.attendeeId && winner.attendeeId) return entry.attendeeId === winner.attendeeId
+    return entry.email && winner.email && entry.email === winner.email
+  })
+}
+
+export function WinnerWheel({ entries, winners = [], onWinnerSelected }) {
   const [winner, setWinner] = useState(null)
   const [wheelRotation, setWheelRotation] = useState(0)
   const [isSpinning, setIsSpinning] = useState(false)
   const [showConfetti, setShowConfetti] = useState(false)
   const [showEligibleEntries, setShowEligibleEntries] = useState(false)
   const [danceModeIndex, setDanceModeIndex] = useState(0)
+  const eligibleEntries = useMemo(
+    () => entries.filter((entry) => !hasAlreadyWon(entry, winners)),
+    [entries, winners],
+  )
   const wheelEntries = useMemo(
     () =>
-      entries.flatMap((entry) =>
+      eligibleEntries.flatMap((entry) =>
         Array.from({ length: Math.max(1, Number(entry.chances) || 1) }, () => entry),
       ),
-    [entries],
+    [eligibleEntries],
   )
 
   const wheelGradient = useMemo(() => {
@@ -94,7 +105,7 @@ export function WinnerWheel({ entries, onWinnerSelected }) {
         type="button"
         className="mobile-wheel-tap-area"
         onClick={spinWheel}
-        disabled={!entries.length || isSpinning}
+        disabled={!eligibleEntries.length || isSpinning}
         aria-label="Spin prize wheel"
       >
         <span className="mobile-wheel-pointer" aria-hidden="true" />
@@ -107,7 +118,7 @@ export function WinnerWheel({ entries, onWinnerSelected }) {
           aria-hidden="true"
         >
           <span className="mobile-wheel-center">
-            <strong>{entries.length}</strong>
+            <strong>{eligibleEntries.length}</strong>
             <small>People</small>
           </span>
         </span>
@@ -117,7 +128,7 @@ export function WinnerWheel({ entries, onWinnerSelected }) {
         type="button"
         className="primary spin-wheel-button"
         onClick={spinWheel}
-        disabled={!entries.length || isSpinning}
+        disabled={!eligibleEntries.length || isSpinning}
       >
         {isSpinning ? 'Spinning...' : 'Spin Wheel'}
       </button>
@@ -133,18 +144,18 @@ export function WinnerWheel({ entries, onWinnerSelected }) {
           className="eligible-toggle"
           onClick={() => setShowEligibleEntries((current) => !current)}
         >
-          Eligible Entries ({entries.length})
+          Eligible Entries ({eligibleEntries.length})
           <span>{showEligibleEntries ? 'Hide' : 'Show'}</span>
         </button>
-        {showEligibleEntries && entries.length ? (
-          entries.map((entry) => (
+        {showEligibleEntries && eligibleEntries.length ? (
+          eligibleEntries.map((entry) => (
             <div key={entry.id} className="mobile-entry-row">
               <span>{entry.name}</span>
               <small>{entry.chances ?? 1}x</small>
             </div>
           ))
-        ) : !entries.length ? (
-          <p>No raffle entries yet.</p>
+        ) : !eligibleEntries.length ? (
+          <p>No eligible raffle entries remain.</p>
         ) : null}
       </div>
     </section>

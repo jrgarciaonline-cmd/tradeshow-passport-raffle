@@ -4,7 +4,8 @@ const MAP_SRC = '/maps/asla_map.PNG'
 const BASE_MAP_WIDTH = 1600
 const DEFAULT_MAP_RATIO = 2059 / 3000
 const MAX_SCALE = 3.2
-const FOCUS_SCALE = 2.35
+const MIN_FOCUS_SCALE = 0.9
+const MAX_FOCUS_SCALE = 1.55
 const INITIAL_VIEW = { scale: 0.25, x: 0, y: 0 }
 const INITIAL_MAP_SIZE = {
   width: BASE_MAP_WIDTH,
@@ -65,6 +66,7 @@ export function PinchZoomMap({
   onScanBooth,
   placementBoothId = '',
   focusBoothId = '',
+  focusKey = 0,
   locationBoothId = '',
   className = '',
   title = '',
@@ -180,29 +182,39 @@ export function PinchZoomMap({
       return
     }
 
-    if (lastFocusedBoothId.current === focusBoothId) return
+    const focusRequestId = `${focusBoothId}:${focusKey}`
+    if (lastFocusedBoothId.current === focusRequestId) return
 
-    const booth = booths.find((item) => item.id === focusBoothId)
-    const rect = viewportRef.current?.getBoundingClientRect()
-    if (!booth || !rect) return
+    const frame = requestAnimationFrame(() => {
+      const booth = booths.find((item) => item.id === focusBoothId)
+      const rect = viewportRef.current?.getBoundingClientRect()
+      if (!booth || !rect) return
 
-    const scale = FOCUS_SCALE
-    const mapX = (booth.map.x / 100) * mapSize.width
-    const mapY = (booth.map.y / 100) * mapSize.height
-    const focusedView = constrainView(
-      {
-        scale,
-        x: rect.width / 2 - mapX * scale,
-        y: rect.height / 2 - mapY * scale,
-      },
-      rect,
-      mapSize,
-    )
+      const fitScale = getFitScale(rect, mapSize)
+      const scale = clamp(
+        Math.max(fitScale * 2.4, MIN_FOCUS_SCALE),
+        fitScale,
+        MAX_FOCUS_SCALE,
+      )
+      const mapX = (booth.map.x / 100) * mapSize.width
+      const mapY = (booth.map.y / 100) * mapSize.height
+      const focusedView = constrainView(
+        {
+          scale,
+          x: rect.width / 2 - mapX * scale,
+          y: rect.height / 2 - mapY * scale,
+        },
+        rect,
+        mapSize,
+      )
 
-    viewRef.current = focusedView
-    setView(focusedView)
-    lastFocusedBoothId.current = focusBoothId
-  }, [booths, focusBoothId, mapSize])
+      viewRef.current = focusedView
+      setView(focusedView)
+      lastFocusedBoothId.current = focusRequestId
+    })
+
+    return () => cancelAnimationFrame(frame)
+  }, [booths, focusBoothId, focusKey, mapSize])
 
   return (
     <div className={`pinch-map ${className}`}>
@@ -379,24 +391,33 @@ export function PinchZoomMap({
                   >
                     ✕
                   </button>
+                  <div className="booth-popup-logo">
+                    {booth.logoDataUrl ? (
+                      <img src={booth.logoDataUrl} alt="" />
+                    ) : (
+                      <span>{booth.name.slice(0, 1)}</span>
+                    )}
+                  </div>
                   <h3>{booth.name}</h3>
-                  {booth.websiteUrl && (
-                    <a
-                      href={booth.websiteUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                  <div className="booth-popup-actions">
+                    {booth.websiteUrl && (
+                      <a
+                        href={booth.websiteUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="booth-popup-button"
+                      >
+                        Visit Website
+                      </a>
+                    )}
+                    <button
+                      type="button"
                       className="booth-popup-button"
+                      onClick={() => onScanBooth?.(booth.id)}
                     >
-                      Visit Website
-                    </a>
-                  )}
-                  <button
-                    type="button"
-                    className="booth-popup-button"
-                    onClick={() => onScanBooth?.(booth.id)}
-                  >
-                    Scan QR Code
-                  </button>
+                      Scan QR Code
+                    </button>
+                  </div>
                 </div>
               )
             })()}

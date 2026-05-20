@@ -16,6 +16,7 @@ const emptyBooth = {
 }
 
 const adminSections = ['Settings', 'Booths', 'Map', 'Signups', 'Raffle', 'Winner', 'Picked']
+const manufacturerCategories = ['Irrigation', 'Site', 'Lighting', 'Hardscape', 'Other']
 
 function confirmWinnerReset() {
   return (
@@ -168,11 +169,17 @@ export function AdminPanel({
           </label>
           <label className="form-field">
             <span>Category</span>
-            <input
+            <select
               required
               value={draft.category}
               onChange={(event) => updateDraft('category', event.target.value)}
-            />
+            >
+              {manufacturerCategories.map((category) => (
+                <option key={category} value={category}>
+                  {category}
+                </option>
+              ))}
+            </select>
           </label>
           <label className="form-field">
             <span>Location</span>
@@ -358,7 +365,11 @@ export function AdminPanel({
             className="admin-mobile-wheel-card"
             hidden={activeAdminSection !== 'Winner'}
           >
-            <WinnerWheel entries={entries} onWinnerSelected={onWinnerSelected} />
+            <WinnerWheel
+              entries={entries}
+              winners={winners}
+              onWinnerSelected={onWinnerSelected}
+            />
           </div>
 
           <div

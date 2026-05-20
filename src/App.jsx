@@ -28,6 +28,7 @@ function App() {
   const [activeTab, setActiveTab] = useState('Home')
   const [challengeView, setChallengeView] = useState('Active')
   const [focusedBoothId, setFocusedBoothId] = useState('')
+  const [mapFocusKey, setMapFocusKey] = useState(0)
   const [scannedBoothId, setScannedBoothId] = useState('')
   const [query, setQuery] = useState('')
   const [category, setCategory] = useState('All')
@@ -306,6 +307,7 @@ function App() {
                     highlighted={scannedBoothId === booth.id}
                     onShowOnMap={(boothId) => {
                       setFocusedBoothId(boothId)
+                      setMapFocusKey((current) => current + 1)
                       setActiveTab('Map')
                     }}
                   />
@@ -322,6 +324,7 @@ function App() {
               booths={store.booths}
               completedIds={store.completedIds}
               focusBoothId={focusedBoothId}
+              focusKey={mapFocusKey}
               locationBoothId={store.currentLocationBoothId}
               onClearFocus={() => setFocusedBoothId('')}
               onScanBooth={(boothId) => {

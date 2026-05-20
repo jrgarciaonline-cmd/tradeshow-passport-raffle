@@ -4,6 +4,7 @@ export function MapView({
   booths,
   completedIds,
   focusBoothId,
+  focusKey,
   locationBoothId,
   onClearFocus,
   onScanBooth,
@@ -31,6 +32,7 @@ export function MapView({
         booths={booths}
         completedIds={completedIds}
         focusBoothId={focusBoothId}
+        focusKey={focusKey}
         locationBoothId={locationBoothId}
         onScanBooth={onScanBooth}
         className="full-map-card"
