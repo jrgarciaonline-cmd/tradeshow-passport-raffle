@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { WinnerConfetti } from './WinnerConfetti'
 
 const wheelColors = [
   '#111111',
@@ -15,6 +16,7 @@ export function WinnerWheel({ entries }) {
   const [winner, setWinner] = useState(null)
   const [wheelRotation, setWheelRotation] = useState(0)
   const [isSpinning, setIsSpinning] = useState(false)
+  const [showConfetti, setShowConfetti] = useState(false)
   const wheelEntries = useMemo(
     () =>
       entries.flatMap((entry) =>
@@ -58,11 +60,16 @@ export function WinnerWheel({ entries }) {
     window.setTimeout(() => {
       setWinner(selectedWinner)
       setIsSpinning(false)
+      setShowConfetti(true)
+      window.setTimeout(() => {
+        setShowConfetti(false)
+      }, 4700)
     }, 3600)
   }
 
   return (
     <section className="winner-screen">
+      <WinnerConfetti active={showConfetti} />
       <div className="winner-screen-header">
         <p className="eyebrow">Prize Wheel</p>
         <h2>Pick a Winner</h2>

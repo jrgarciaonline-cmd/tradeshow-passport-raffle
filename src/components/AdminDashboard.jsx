@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { adminCredentials, defaultInstructions } from '../data/mockData'
 import { PinchZoomMap } from './PinchZoomMap'
+import { WinnerConfetti } from './WinnerConfetti'
 
 const emptyBooth = {
   id: '',
@@ -53,6 +54,7 @@ export function AdminDashboard({ store }) {
   const [isSpinning, setIsSpinning] = useState(false)
   const [manualEntry, setManualEntry] = useState(emptyManualEntry)
   const [manualEntryMessage, setManualEntryMessage] = useState('')
+  const [showWinnerConfetti, setShowWinnerConfetti] = useState(false)
 
   const instructionsText = (
     store.settings?.instructions?.length
@@ -162,6 +164,10 @@ export function AdminDashboard({ store }) {
     window.setTimeout(() => {
       setWinner(selectedWinner)
       setIsSpinning(false)
+      setShowWinnerConfetti(true)
+      window.setTimeout(() => {
+        setShowWinnerConfetti(false)
+      }, 4700)
     }, 3800)
   }
 
@@ -773,6 +779,7 @@ export function AdminDashboard({ store }) {
 
         {activeSection === 'Winner Picker' && (
           <section className="admin-workspace winner-workspace">
+            <WinnerConfetti active={showWinnerConfetti} />
             <div className="desktop-card winner-card">
               <div className="table-toolbar">
                 <div>

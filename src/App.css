@@ -76,6 +76,43 @@
   height: 18px;
 }
 
+.winner-confetti-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 5000;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.winner-confetti-piece {
+  position: absolute;
+  top: -24px;
+  left: var(--left);
+  width: 9px;
+  height: 16px;
+  border-radius: 2px;
+  background: var(--color);
+  opacity: 0;
+  transform: translate3d(0, -26px, 0) rotate(var(--rotation));
+  animation: winner-confetti-fall var(--duration) var(--delay) ease-in forwards;
+}
+
+.winner-confetti-piece:nth-child(3n) {
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+}
+
+.winner-confetti-piece:nth-child(4n) {
+  width: 7px;
+  height: 22px;
+}
+
+.winner-confetti-piece:nth-child(5n) {
+  width: 16px;
+  height: 8px;
+}
+
 @keyframes confetti-fall {
   0% {
     opacity: 0;
@@ -89,6 +126,22 @@
   100% {
     opacity: 0;
     transform: translate3d(var(--drift), calc(100dvh - 60px), 0) rotate(720deg);
+  }
+}
+
+@keyframes winner-confetti-fall {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, -28px, 0) rotate(var(--rotation));
+  }
+
+  8% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate3d(var(--drift), calc(100dvh + 40px), 0) rotate(820deg);
   }
 }
 
