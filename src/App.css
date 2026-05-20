@@ -55,14 +55,45 @@
   animation: confetti-fall var(--duration) var(--delay) ease-in forwards;
 }
 
-.raffle-complete-popup {
+.raffle-complete-card {
   position: relative;
   z-index: 2;
-  width: min(370px, 96%);
-  max-height: 74%;
+  width: min(390px, 96%);
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  animation: celebration-pop 5.8s ease-in-out forwards;
+}
+
+.raffle-complete-popup {
+  width: 100%;
+  max-height: 66dvh;
   object-fit: contain;
   filter: drop-shadow(0 18px 26px rgba(0, 0, 0, 0.28));
-  animation: celebration-pop 5.8s ease-in-out forwards;
+}
+
+.bella-title-card {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  padding: 9px 22px 10px;
+  color: #fff;
+  background: rgba(5, 5, 5, 0.88);
+  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.28);
+  text-align: center;
+}
+
+.bella-title-card strong {
+  font-size: 1.28rem;
+  line-height: 1.1;
+}
+
+.bella-title-card span {
+  color: #f8c23a;
+  font-size: 0.88rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
 .confetti-piece:nth-child(3n) {
@@ -210,14 +241,25 @@
   text-shadow: 0 5px 18px rgba(0, 0, 0, 0.34);
 }
 
-.winner-dancer {
+.winner-dancer-stage {
   position: fixed;
-  left: 50%;
-  bottom: 28px;
+  inset: auto 0 0;
   z-index: 5002;
+  height: 188px;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.winner-dancer {
+  position: absolute;
+  bottom: 28px;
   width: 92px;
   height: 138px;
   transform-origin: 50% 100%;
+}
+
+.winner-dancer-stage.solo .winner-dancer {
+  left: 50%;
   animation: dancer-rise 4.6s ease-in-out forwards;
 }
 
@@ -284,6 +326,49 @@
 .winner-dancer-leg.right {
   right: 32px;
   animation: dancer-right-leg 520ms ease-in-out infinite alternate;
+}
+
+.winner-dancer-stage.moonwalk .winner-dancer {
+  left: -112px;
+  animation: dancer-moonwalk 4.6s ease-in-out forwards;
+}
+
+.winner-dancer-stage.moonwalk .winner-dancer-body {
+  background: linear-gradient(180deg, #f8c23a, #ec6f2d);
+}
+
+.winner-dancer-stage.moonwalk .winner-dancer-arm.left {
+  animation-name: moonwalk-left-arm;
+}
+
+.winner-dancer-stage.moonwalk .winner-dancer-arm.right {
+  animation-name: moonwalk-right-arm;
+}
+
+.winner-dancer-stage.moonwalk .winner-dancer-leg.left {
+  animation-name: moonwalk-left-leg;
+}
+
+.winner-dancer-stage.moonwalk .winner-dancer-leg.right {
+  animation-name: moonwalk-right-leg;
+}
+
+.winner-dancer-stage.group .winner-dancer {
+  left: var(--dancer-left);
+  animation: group-dancer-rise 4.6s var(--dancer-delay) ease-in-out forwards;
+  opacity: 0;
+}
+
+.winner-dancer-stage.group .winner-dancer:nth-child(2n) .winner-dancer-body {
+  background: linear-gradient(180deg, #f8c23a, #ec6f2d);
+}
+
+.winner-dancer-stage.group .winner-dancer:nth-child(3n) .winner-dancer-body {
+  background: linear-gradient(180deg, #245c6f, #2b8fa3);
+}
+
+.winner-dancer-stage.group .winner-dancer:nth-child(4n) .winner-dancer-body {
+  background: linear-gradient(180deg, #6eb34f, #21a66b);
 }
 
 @keyframes winner-reveal-backdrop {
@@ -362,6 +447,72 @@
   }
 }
 
+@keyframes dancer-moonwalk {
+  0% {
+    opacity: 0;
+    transform: translate(0, 96%) rotate(-7deg) scale(0.82);
+  }
+
+  12% {
+    opacity: 1;
+    transform: translate(18vw, 0) rotate(5deg) scale(1);
+  }
+
+  34% {
+    transform: translate(40vw, -5px) rotate(-5deg) scale(1);
+  }
+
+  58% {
+    opacity: 1;
+    transform: translate(62vw, 0) rotate(6deg) scale(1);
+  }
+
+  78% {
+    opacity: 1;
+    transform: translate(80vw, -4px) rotate(-4deg) scale(1);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate(calc(100vw + 120px), 70%) rotate(4deg) scale(0.86);
+  }
+}
+
+@keyframes group-dancer-rise {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 118%) rotate(-4deg) scale(0.58);
+  }
+
+  16% {
+    opacity: 1;
+    transform: translate(-50%, 0) rotate(5deg) scale(0.7);
+  }
+
+  30% {
+    transform: translate(-50%, -12px) rotate(-7deg) scale(0.7);
+  }
+
+  48% {
+    transform: translate(-50%, 0) rotate(7deg) scale(0.7);
+  }
+
+  70% {
+    opacity: 1;
+    transform: translate(-50%, -10px) rotate(-6deg) scale(0.7);
+  }
+
+  86% {
+    opacity: 1;
+    transform: translate(-50%, 0) rotate(5deg) scale(0.7);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate(-50%, 112%) rotate(0deg) scale(0.58);
+  }
+}
+
 @keyframes dancer-left-arm {
   from {
     transform: rotate(72deg);
@@ -399,6 +550,46 @@
 
   to {
     transform: rotate(26deg);
+  }
+}
+
+@keyframes moonwalk-left-arm {
+  from {
+    transform: rotate(118deg);
+  }
+
+  to {
+    transform: rotate(52deg);
+  }
+}
+
+@keyframes moonwalk-right-arm {
+  from {
+    transform: rotate(-42deg);
+  }
+
+  to {
+    transform: rotate(-112deg);
+  }
+}
+
+@keyframes moonwalk-left-leg {
+  from {
+    transform: rotate(-34deg);
+  }
+
+  to {
+    transform: rotate(18deg);
+  }
+}
+
+@keyframes moonwalk-right-leg {
+  from {
+    transform: rotate(28deg);
+  }
+
+  to {
+    transform: rotate(-22deg);
   }
 }
 

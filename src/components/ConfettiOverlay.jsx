@@ -15,14 +15,20 @@ export function ConfettiOverlay({ active }) {
 
   return (
     <div className="confetti-overlay" aria-hidden="true">
-      <img
-        className="raffle-complete-popup"
-        src="/home/RAFFLE_COMPLETE.png"
-        alt=""
-        onError={(event) => {
-          event.currentTarget.hidden = true
-        }}
-      />
+      <div className="raffle-complete-card">
+        <img
+          className="raffle-complete-popup"
+          src="/home/RAFFLE_COMPLETE.png"
+          alt=""
+          onError={(event) => {
+            event.currentTarget.hidden = true
+          }}
+        />
+        <div className="bella-title-card">
+          <strong>Bella Farmer</strong>
+          <span>Lead Barchitect</span>
+        </div>
+      </div>
       {confettiPieces.map((piece) => (
         <span
           key={piece.id}

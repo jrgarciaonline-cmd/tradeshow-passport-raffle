@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { defaultInstructions } from '../data/mockData'
 import { PinchZoomMap } from './PinchZoomMap'
+import { WinnerDancerShow } from './WinnerDancerShow'
 import { WinnerConfetti } from './WinnerConfetti'
 
 const emptyBooth = {
@@ -70,6 +71,7 @@ export function AdminDashboard({ store }) {
   const [manualEntry, setManualEntry] = useState(emptyManualEntry)
   const [manualEntryMessage, setManualEntryMessage] = useState('')
   const [showWinnerConfetti, setShowWinnerConfetti] = useState(false)
+  const [danceModeIndex, setDanceModeIndex] = useState(0)
   const [adminUserDraft, setAdminUserDraft] = useState(emptyAdminUser)
   const [adminUserMessage, setAdminUserMessage] = useState('')
 
@@ -182,6 +184,7 @@ export function AdminDashboard({ store }) {
       setWinner(selectedWinner)
       store.recordWinner(selectedWinner)
       setIsSpinning(false)
+      setDanceModeIndex((currentIndex) => (currentIndex + 1) % 3)
       setShowWinnerConfetti(true)
       window.setTimeout(() => {
         setShowWinnerConfetti(false)
@@ -820,14 +823,7 @@ export function AdminDashboard({ store }) {
                   <span>Winner Selected</span>
                   <strong>{winner.name}</strong>
                 </div>
-                <div className="winner-dancer" aria-hidden="true">
-                  <span className="winner-dancer-head" />
-                  <span className="winner-dancer-body" />
-                  <span className="winner-dancer-arm left" />
-                  <span className="winner-dancer-arm right" />
-                  <span className="winner-dancer-leg left" />
-                  <span className="winner-dancer-leg right" />
-                </div>
+                <WinnerDancerShow modeIndex={danceModeIndex} />
               </div>
             )}
             <div className="desktop-card winner-card">

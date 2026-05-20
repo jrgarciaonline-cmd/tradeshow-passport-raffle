@@ -279,7 +279,7 @@ export function usePassportStore() {
         ...state.adminSession,
         ...refreshedSession,
       }
-    } catch (error) {
+    } catch {
       signOutAdmin()
       return null
     }

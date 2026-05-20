@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { WinnerDancerShow } from './WinnerDancerShow'
 import { WinnerConfetti } from './WinnerConfetti'
 
 const wheelColors = [
@@ -18,6 +19,7 @@ export function WinnerWheel({ entries, onWinnerSelected }) {
   const [isSpinning, setIsSpinning] = useState(false)
   const [showConfetti, setShowConfetti] = useState(false)
   const [showEligibleEntries, setShowEligibleEntries] = useState(false)
+  const [danceModeIndex, setDanceModeIndex] = useState(0)
   const wheelEntries = useMemo(
     () =>
       entries.flatMap((entry) =>
@@ -62,6 +64,7 @@ export function WinnerWheel({ entries, onWinnerSelected }) {
       setWinner(selectedWinner)
       onWinnerSelected?.(selectedWinner)
       setIsSpinning(false)
+      setDanceModeIndex((currentIndex) => (currentIndex + 1) % 3)
       setShowConfetti(true)
       window.setTimeout(() => {
         setShowConfetti(false)
@@ -78,14 +81,7 @@ export function WinnerWheel({ entries, onWinnerSelected }) {
             <span>Winner Selected</span>
             <strong>{winner.name}</strong>
           </div>
-          <div className="winner-dancer" aria-hidden="true">
-            <span className="winner-dancer-head" />
-            <span className="winner-dancer-body" />
-            <span className="winner-dancer-arm left" />
-            <span className="winner-dancer-arm right" />
-            <span className="winner-dancer-leg left" />
-            <span className="winner-dancer-leg right" />
-          </div>
+          <WinnerDancerShow modeIndex={danceModeIndex} />
         </div>
       )}
       <div className="winner-screen-header">
