@@ -78,6 +78,14 @@ export function WinnerWheel({ entries, onWinnerSelected }) {
             <span>Winner Selected</span>
             <strong>{winner.name}</strong>
           </div>
+          <div className="winner-dancer" aria-hidden="true">
+            <span className="winner-dancer-head" />
+            <span className="winner-dancer-body" />
+            <span className="winner-dancer-arm left" />
+            <span className="winner-dancer-arm right" />
+            <span className="winner-dancer-leg left" />
+            <span className="winner-dancer-leg right" />
+          </div>
         </div>
       )}
       <div className="winner-screen-header">
