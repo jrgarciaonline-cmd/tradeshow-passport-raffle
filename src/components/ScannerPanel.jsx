@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import jsQR from 'jsqr'
 
-export function ScannerPanel({ onScan }) {
+export function ScannerPanel({ onScan, onGoHome }) {
   const videoRef = useRef(null)
   const canvasRef = useRef(document.createElement('canvas'))
   const streamRef = useRef(null)
@@ -209,6 +209,13 @@ export function ScannerPanel({ onScan }) {
           </label>
           <button type="submit">Enter code</button>
         </form>
+        <button
+          type="button"
+          className="scanner-home-button"
+          onClick={onGoHome}
+        >
+          Go to Home to check progress
+        </button>
       </div>
       {message && <p className="status-note">{message}</p>}
     </section>

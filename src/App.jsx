@@ -345,7 +345,10 @@ function App() {
           {store.session &&
             activeMode === 'attendee' &&
             activeTab === 'QR Scanner' && (
-            <ScannerPanel onScan={handleScan} />
+            <ScannerPanel
+              onScan={handleScan}
+              onGoHome={() => setActiveTab('Home')}
+            />
           )}
 
           {store.adminAuthenticated && activeMode === 'admin' && (

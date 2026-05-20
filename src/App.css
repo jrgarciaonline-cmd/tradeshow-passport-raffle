@@ -1030,6 +1030,14 @@ textarea {
   font-size: 1rem;
 }
 
+.scanner-home-button {
+  min-height: 34px;
+  border-color: #d8d8d8;
+  color: #222;
+  background: #f3f3f3;
+  font-size: 0.74rem;
+}
+
 .scanner-controls,
 .manual-scan,
 .raffle-form,
