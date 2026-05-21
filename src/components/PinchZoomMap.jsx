@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { MapMarkerLogo } from './MapMarkerLogo'
 
 const MAP_SRC = '/maps/asla_map.PNG'
 const BASE_MAP_WIDTH = 1600
@@ -362,7 +363,7 @@ export function PinchZoomMap({
                 </span>
                 <span className="map-marker-banner">
                   {booth.logoDataUrl ? (
-                    <img src={booth.logoDataUrl} alt="" />
+                    <MapMarkerLogo src={booth.logoDataUrl} alt="" />
                   ) : (
                     <strong>{booth.name}</strong>
                   )}
