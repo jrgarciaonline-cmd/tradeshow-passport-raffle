@@ -188,7 +188,7 @@ export function PinchZoomMap({
       return
     }
 
-    const focusRequestId = `${focusBoothId}:${focusKey}`
+    const focusRequestId = `${focusBoothId}:${focusKey}:${mapSize.width}x${mapSize.height}`
     if (lastFocusedBoothId.current === focusRequestId) return
 
     const frame = requestAnimationFrame(() => {

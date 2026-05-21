@@ -73,9 +73,10 @@ function App() {
 
   const handleScan = (code) => {
     const result = store.checkInByCode(code)
-    if (result.ok && result.id) {
+    if (result.id) {
       setScannedBoothId(result.id)
       setFocusedBoothId(result.id)
+      setMapFocusKey((current) => current + 1)
     }
     return result
   }

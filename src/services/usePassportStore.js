@@ -362,6 +362,32 @@ export function usePassportStore() {
     })
   }
 
+  const updateAttendeeLocation = (boothId) => {
+    updateState((current) => {
+      const attendeeId = current.session?.attendeeId
+
+      return {
+        ...current,
+        attendeeLocation:
+          current.session?.type === 'attendee'
+            ? {
+                ...current.attendeeLocation,
+                [attendeeId]: boothId,
+              }
+            : current.attendeeLocation,
+      }
+    }, {
+      sharedPatch: (next) =>
+        next.session?.type === 'attendee'
+          ? {
+              attendeeLocation: {
+                [next.session.attendeeId]: boothId,
+              },
+            }
+          : null,
+    })
+  }
+
   const checkInByCode = (code) => {
     const match = state.booths.find(
       (booth) => booth.qrCode.toLowerCase() === code.trim().toLowerCase(),
@@ -372,6 +398,7 @@ export function usePassportStore() {
     }
 
     if (state.completedIds.includes(match.id)) {
+      updateAttendeeLocation(match.id)
       return {
         ok: false,
         duplicate: true,

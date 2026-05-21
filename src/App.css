@@ -957,6 +957,7 @@ button:disabled {
   place-items: center;
   border-radius: 50%;
   background: var(--pin-color);
+  z-index: 2;
 }
 
 .map-marker-pin::before {
@@ -971,15 +972,16 @@ button:disabled {
 
 .map-marker-location {
   display: grid;
-  width: 26px;
-  height: 26px;
+  width: 30px;
+  height: 30px;
   place-items: center;
   border-radius: 50%;
   color: #050505;
   background: #fff;
-  font-size: 0.58rem;
+  font-size: 0.52rem;
   font-weight: 900;
   line-height: 1;
+  letter-spacing: -0.03em;
 }
 
 .map-marker-banner {
@@ -994,6 +996,7 @@ button:disabled {
   padding: 3px 8px 3px 14px;
   background: var(--pin-color);
   isolation: isolate;
+  z-index: 1;
 }
 
 .map-marker-banner::before {
