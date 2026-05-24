@@ -56,13 +56,16 @@ function getAdminRedirectUrl(request) {
 }
 
 async function sendRecoveryEmail({ email, redirectTo }) {
-  return requestSupabase('/auth/v1/recover', SUPABASE_ANON_KEY, {
+  return requestSupabase(
+    `/auth/v1/recover?redirect_to=${encodeURIComponent(redirectTo)}`,
+    SUPABASE_ANON_KEY,
+    {
     method: 'POST',
     body: JSON.stringify({
       email,
-      redirect_to: redirectTo,
     }),
-  })
+    },
+  )
 }
 
 export default async function handler(request, response) {

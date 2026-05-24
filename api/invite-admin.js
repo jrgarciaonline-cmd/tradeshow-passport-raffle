@@ -66,14 +66,36 @@ function getAdminRedirectUrl(request) {
 }
 
 async function inviteAuthUser({ email, name, role, redirectTo }) {
-  return requestSupabase('/auth/v1/invite', SUPABASE_SERVICE_ROLE_KEY, {
+  return requestSupabase(
+    `/auth/v1/invite?redirect_to=${encodeURIComponent(redirectTo)}`,
+    SUPABASE_SERVICE_ROLE_KEY,
+    {
     method: 'POST',
     body: JSON.stringify({
       email,
       data: { name, role },
-      redirect_to: redirectTo,
     }),
-  })
+    },
+  )
+}
+
+async function sendRecoveryEmail({ email, redirectTo }) {
+  return requestSupabase(
+    `/auth/v1/recover?redirect_to=${encodeURIComponent(redirectTo)}`,
+    SUPABASE_ANON_KEY,
+    {
+    method: 'POST',
+    body: JSON.stringify({
+      email,
+    }),
+    },
+  )
+}
+
+function isExistingUserError(error) {
+  return /email_exists|already been registered|already registered/i.test(
+    error?.message ?? '',
+  )
 }
 
 export default async function handler(request, response) {
@@ -123,13 +145,26 @@ export default async function handler(request, response) {
       return
     }
 
+    const redirectTo = getAdminRedirectUrl(request)
     await upsertAdminUser({ email, name, role })
-    await inviteAuthUser({
-      email,
-      name,
-      role,
-      redirectTo: getAdminRedirectUrl(request),
-    })
+
+    try {
+      await inviteAuthUser({
+        email,
+        name,
+        role,
+        redirectTo,
+      })
+    } catch (inviteError) {
+      if (!isExistingUserError(inviteError)) throw inviteError
+
+      await sendRecoveryEmail({ email, redirectTo })
+      sendJson(response, 200, {
+        ok: true,
+        message: `${email} already has an account. Password setup/reset email sent instead.`,
+      })
+      return
+    }
 
     sendJson(response, 200, {
       ok: true,
