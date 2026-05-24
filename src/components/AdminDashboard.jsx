@@ -1241,22 +1241,48 @@ export function AdminDashboard({ store }) {
                         <td>{adminUser.email}</td>
                         <td>{adminUser.role}</td>
                         <td>
-                          <button
-                            type="button"
-                            className="danger"
-                            onClick={async () => {
-                              if (
-                                window.confirm(
-                                  `Remove admin access for ${adminUser.email}?`,
-                                )
-                              ) {
-                                const result = await store.removeAdminUser(adminUser.email)
+                          <div className="table-actions">
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                const result = await store.addAdminUser({
+                                  email: adminUser.email,
+                                  name: adminUser.name,
+                                  role: adminUser.role,
+                                })
                                 setAdminUserMessage(result.message)
-                              }
-                            }}
-                          >
-                            Remove
-                          </button>
+                              }}
+                            >
+                              Resend Invite
+                            </button>
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                const result = await store.resetAdminPassword(
+                                  adminUser.email,
+                                )
+                                setAdminUserMessage(result.message)
+                              }}
+                            >
+                              Send Reset
+                            </button>
+                            <button
+                              type="button"
+                              className="danger"
+                              onClick={async () => {
+                                if (
+                                  window.confirm(
+                                    `Remove admin access for ${adminUser.email}?`,
+                                  )
+                                ) {
+                                  const result = await store.removeAdminUser(adminUser.email)
+                                  setAdminUserMessage(result.message)
+                                }
+                              }}
+                            >
+                              Remove
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}

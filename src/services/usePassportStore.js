@@ -4,6 +4,7 @@ import {
   listSupabaseAdmins,
   removeSupabaseAdmin,
   refreshSupabaseSession,
+  sendSupabaseAdminPasswordReset,
   signInAdminWithSupabase,
 } from './adminAuth'
 import { passportRepository } from './passportRepository'
@@ -320,6 +321,15 @@ export function usePassportStore() {
     const result = await removeSupabaseAdmin(activeSession.accessToken, email)
     if (result.ok) await refreshAdminUsers()
     return result
+  }
+
+  const resetAdminPassword = async (email) => {
+    const activeSession = await getActiveAdminSession()
+    if (!activeSession?.accessToken) {
+      return { ok: false, message: 'Admin session is not active.' }
+    }
+
+    return sendSupabaseAdminPasswordReset(activeSession.accessToken, email)
   }
 
   const checkInBooth = (boothId) => {
@@ -701,6 +711,7 @@ export function usePassportStore() {
     refreshAdminUsers,
     addAdminUser,
     removeAdminUser,
+    resetAdminPassword,
     checkInBooth,
     checkInByCode,
     undoCheckIn,

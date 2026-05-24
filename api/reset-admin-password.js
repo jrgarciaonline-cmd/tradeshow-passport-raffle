@@ -48,16 +48,6 @@ async function getAdminUser(email) {
   return rows?.[0] ?? null
 }
 
-async function upsertAdminUser({ email, name, role }) {
-  await requestSupabase('/rest/v1/admin_users?on_conflict=email', SUPABASE_SERVICE_ROLE_KEY, {
-    method: 'POST',
-    headers: {
-      Prefer: 'resolution=merge-duplicates,return=minimal',
-    },
-    body: JSON.stringify({ email, name, role }),
-  })
-}
-
 function getAdminRedirectUrl(request) {
   if (ADMIN_INVITE_REDIRECT_URL) return ADMIN_INVITE_REDIRECT_URL
 
@@ -65,12 +55,11 @@ function getAdminRedirectUrl(request) {
   return `${fallbackOrigin}/admin`
 }
 
-async function inviteAuthUser({ email, name, role, redirectTo }) {
-  return requestSupabase('/auth/v1/invite', SUPABASE_SERVICE_ROLE_KEY, {
+async function sendRecoveryEmail({ email, redirectTo }) {
+  return requestSupabase('/auth/v1/recover', SUPABASE_ANON_KEY, {
     method: 'POST',
     body: JSON.stringify({
       email,
-      data: { name, role },
       redirect_to: redirectTo,
     }),
   })
@@ -86,7 +75,7 @@ export default async function handler(request, response) {
   if (!SUPABASE_URL || !SUPABASE_ANON_KEY || !SUPABASE_SERVICE_ROLE_KEY) {
     sendJson(response, 500, {
       ok: false,
-      message: 'Admin invite API is missing Supabase environment variables.',
+      message: 'Admin password reset API is missing Supabase environment variables.',
     })
     return
   }
@@ -100,8 +89,6 @@ export default async function handler(request, response) {
   }
 
   const email = String(request.body?.email ?? '').trim().toLowerCase()
-  const name = String(request.body?.name ?? '').trim()
-  const role = request.body?.role === 'super_admin' ? 'super_admin' : 'admin'
 
   if (!email || !email.includes('@')) {
     sendJson(response, 400, { ok: false, message: 'Enter a valid admin email.' })
@@ -118,28 +105,34 @@ export default async function handler(request, response) {
     if (requestingAdmin?.role !== 'super_admin') {
       sendJson(response, 403, {
         ok: false,
-        message: 'Only a super admin can invite admins.',
+        message: 'Only a super admin can send password reset links.',
       })
       return
     }
 
-    await upsertAdminUser({ email, name, role })
-    await inviteAuthUser({
+    const targetAdmin = await getAdminUser(email)
+    if (!targetAdmin) {
+      sendJson(response, 404, {
+        ok: false,
+        message: 'That email is not authorized as an admin.',
+      })
+      return
+    }
+
+    await sendRecoveryEmail({
       email,
-      name,
-      role,
       redirectTo: getAdminRedirectUrl(request),
     })
 
     sendJson(response, 200, {
       ok: true,
-      message: `${email} was invited and authorized as ${role}.`,
+      message: `Password reset email sent to ${email}.`,
     })
   } catch (error) {
     console.warn(error)
     sendJson(response, 500, {
       ok: false,
-      message: error.message || 'Unable to invite admin.',
+      message: error.message || 'Unable to send password reset email.',
     })
   }
 }

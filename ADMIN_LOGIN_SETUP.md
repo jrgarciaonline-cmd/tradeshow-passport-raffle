@@ -54,6 +54,19 @@ Supabase -> Project Settings -> API -> service_role key
 
 Never expose this key with a `VITE_` prefix.
 
+Also add this server-side environment variable so invite links always point to
+production, even if someone sends an invite while testing locally:
+
+```text
+ADMIN_INVITE_REDIRECT_URL
+```
+
+Use:
+
+```text
+https://tradeshow-passport-raffle.vercel.app/admin
+```
+
 Redeploy after saving the variable.
 
 ## 6. Configure Supabase invite redirects
@@ -90,3 +103,8 @@ After logging in as a `super_admin`, open:
 
 From there you can invite additional admins. The app sends a Supabase Auth
 invite email and authorizes the email in `admin_users`.
+
+The same Admin Users table also includes **Send Reset**, which sends a Supabase
+password reset email to an authorized admin. Password reset links use
+`ADMIN_INVITE_REDIRECT_URL`, so keep that environment variable pointed at the
+production `/admin` URL.

@@ -193,6 +193,36 @@ export async function inviteSupabaseAdmin(accessToken, adminUser) {
   return result
 }
 
+export async function sendSupabaseAdminPasswordReset(accessToken, email) {
+  const normalizedEmail = String(email ?? '').trim().toLowerCase()
+
+  if (!normalizedEmail || !normalizedEmail.includes('@')) {
+    return { ok: false, message: 'Enter a valid admin email.' }
+  }
+
+  const response = await fetch('/api/reset-admin-password', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ email: normalizedEmail }),
+  })
+  const result = await response.json().catch(() => ({
+    ok: false,
+    message: 'Unable to send password reset email.',
+  }))
+
+  if (!response.ok || !result.ok) {
+    return {
+      ok: false,
+      message: result.message || 'Unable to send password reset email.',
+    }
+  }
+
+  return result
+}
+
 export async function addSupabaseAdmin(accessToken, adminUser) {
   const email = String(adminUser.email ?? '').trim().toLowerCase()
   const name = String(adminUser.name ?? '').trim()
