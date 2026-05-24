@@ -56,7 +56,31 @@ Never expose this key with a `VITE_` prefix.
 
 Redeploy after saving the variable.
 
-## 6. Add more admins from the dashboard
+## 6. Configure Supabase invite redirects
+
+In Supabase, open:
+
+```text
+Authentication -> URL Configuration
+```
+
+Set **Site URL** to your production app URL:
+
+```text
+https://tradeshow-passport-raffle.vercel.app
+```
+
+Add this to **Redirect URLs**:
+
+```text
+https://tradeshow-passport-raffle.vercel.app/admin
+```
+
+If you invite admins from preview deployments, also add the exact preview
+`/admin` URL. Supabase invite links will fail if the redirect URL is not
+allowlisted.
+
+## 7. Add more admins from the dashboard
 
 After logging in as a `super_admin`, open:
 

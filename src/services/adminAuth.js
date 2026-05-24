@@ -117,6 +117,43 @@ export async function refreshSupabaseSession(refreshToken) {
   }
 }
 
+export async function getSupabaseUser(accessToken) {
+  const response = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+    method: 'GET',
+    headers: {
+      apikey: SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    },
+  })
+
+  if (!response.ok) {
+    const detail = await response.text()
+    throw new Error(detail || 'Unable to load Supabase user.')
+  }
+
+  return response.json()
+}
+
+export async function updateSupabasePassword(accessToken, password) {
+  const response = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+    method: 'PUT',
+    headers: {
+      apikey: SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ password }),
+  })
+
+  if (!response.ok) {
+    const detail = await response.text()
+    throw new Error(detail || 'Unable to set admin password.')
+  }
+
+  return response.json()
+}
+
 export async function listSupabaseAdmins(accessToken) {
   return requestSupabaseRest(
     'admin_users?select=email,name,role,created_at&order=created_at.desc',

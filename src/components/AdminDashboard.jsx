@@ -1,5 +1,9 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { defaultInstructions } from '../data/mockData'
+import {
+  getSupabaseUser,
+  updateSupabasePassword,
+} from '../services/adminAuth'
 import { PinchZoomMap } from './PinchZoomMap'
 import { WinnerDancerShow } from './WinnerDancerShow'
 import { WinnerConfetti } from './WinnerConfetti'
@@ -66,6 +70,18 @@ function StatCard({ label, value }) {
   )
 }
 
+function getInviteAccessToken() {
+  const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''))
+  const searchParams = new URLSearchParams(window.location.search)
+  const hashType = hashParams.get('type')
+  const searchType = searchParams.get('type')
+  const type = hashType || searchType
+  const accessToken = hashParams.get('access_token') || searchParams.get('access_token')
+
+  if (!accessToken || !['invite', 'recovery'].includes(type)) return ''
+  return accessToken
+}
+
 export function AdminDashboard({ store }) {
   const [activeSection, setActiveSection] = useState('Booths')
   const [login, setLogin] = useState(emptyLogin)
@@ -84,6 +100,13 @@ export function AdminDashboard({ store }) {
   const [danceModeIndex, setDanceModeIndex] = useState(0)
   const [adminUserDraft, setAdminUserDraft] = useState(emptyAdminUser)
   const [adminUserMessage, setAdminUserMessage] = useState('')
+  const [inviteSession, setInviteSession] = useState(null)
+  const [invitePassword, setInvitePassword] = useState('')
+  const [inviteConfirmPassword, setInviteConfirmPassword] = useState('')
+  const [inviteMessage, setInviteMessage] = useState(() =>
+    getInviteAccessToken() ? 'Loading your admin invitation...' : '',
+  )
+  const [invitePending, setInvitePending] = useState(false)
 
   const instructionsText = (
     store.settings?.instructions?.length
@@ -145,6 +168,34 @@ export function AdminDashboard({ store }) {
       store.requiredScanCount,
     ],
   )
+
+  useEffect(() => {
+    const accessToken = getInviteAccessToken()
+    if (!accessToken) return undefined
+
+    let cancelled = false
+
+    getSupabaseUser(accessToken)
+      .then((user) => {
+        if (cancelled) return
+        const email = user?.email ?? ''
+        setInviteSession({ accessToken, email })
+        setLogin((current) => ({ ...current, username: email }))
+        setInviteMessage('Create a password to finish your admin setup.')
+      })
+      .catch((error) => {
+        console.warn(error)
+        if (!cancelled) {
+          setInviteMessage(
+            'This admin invitation link is invalid or expired. Ask a super admin to resend it.',
+          )
+        }
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   const wheelGradient = useMemo(() => {
     if (!wheelEntries.length) {
@@ -227,51 +278,137 @@ export function AdminDashboard({ store }) {
           <div>
             <p className="eyebrow">Admin Dashboard</p>
             <h1>Land F/X Passport Raffle</h1>
-            <p>Sign in with your Supabase admin account.</p>
+            <p>
+              {inviteSession
+                ? 'Finish setting up your invited admin account.'
+                : 'Sign in with your Supabase admin account.'}
+            </p>
           </div>
-          <form
-            className="admin-login-form"
-            onSubmit={async (event) => {
-              event.preventDefault()
-              setLoginPending(true)
-              const result = await store.signInAdmin(login)
-              setLoginMessage(result.message)
-              setLoginPending(false)
-            }}
-          >
-            <label className="form-field">
-              <span>Admin Email</span>
-              <input
-                required
-                autoCapitalize="none"
-                type="email"
-                value={login.username}
-                onChange={(event) =>
-                  setLogin((current) => ({
-                    ...current,
-                    username: event.target.value,
-                  }))
+          {inviteSession ? (
+            <form
+              className="admin-login-form"
+              onSubmit={async (event) => {
+                event.preventDefault()
+
+                if (invitePassword.length < 8) {
+                  setInviteMessage('Password must be at least 8 characters.')
+                  return
                 }
-              />
-            </label>
-            <label className="form-field">
-              <span>Admin Password</span>
-              <input
-                required
-                type="password"
-                value={login.password}
-                onChange={(event) =>
-                  setLogin((current) => ({
-                    ...current,
-                    password: event.target.value,
-                  }))
+
+                if (invitePassword !== inviteConfirmPassword) {
+                  setInviteMessage('Passwords do not match.')
+                  return
                 }
-              />
-            </label>
-            <button type="submit" className="primary" disabled={loginPending}>
-              {loginPending ? 'Checking...' : 'Open Dashboard'}
-            </button>
-          </form>
+
+                setInvitePending(true)
+                try {
+                  await updateSupabasePassword(
+                    inviteSession.accessToken,
+                    invitePassword,
+                  )
+                  window.history.replaceState(null, '', '/admin')
+                  const result = await store.signInAdmin({
+                    username: inviteSession.email,
+                    password: invitePassword,
+                  })
+                  setInviteMessage(result.message)
+                  if (!result.ok) {
+                    setLogin((current) => ({
+                      ...current,
+                      username: inviteSession.email,
+                      password: '',
+                    }))
+                    setInviteSession(null)
+                  }
+                } catch (error) {
+                  console.warn(error)
+                  setInviteMessage(
+                    'Unable to set this admin password. The invite may be expired.',
+                  )
+                } finally {
+                  setInvitePending(false)
+                }
+              }}
+            >
+              <label className="form-field">
+                <span>Admin Email</span>
+                <input
+                  disabled
+                  autoCapitalize="none"
+                  type="email"
+                  value={inviteSession.email}
+                />
+              </label>
+              <label className="form-field">
+                <span>Create Password</span>
+                <input
+                  required
+                  type="password"
+                  value={invitePassword}
+                  onChange={(event) => setInvitePassword(event.target.value)}
+                />
+              </label>
+              <label className="form-field">
+                <span>Confirm Password</span>
+                <input
+                  required
+                  type="password"
+                  value={inviteConfirmPassword}
+                  onChange={(event) =>
+                    setInviteConfirmPassword(event.target.value)
+                  }
+                />
+              </label>
+              <button type="submit" className="primary" disabled={invitePending}>
+                {invitePending ? 'Saving...' : 'Create Password'}
+              </button>
+            </form>
+          ) : (
+            <form
+              className="admin-login-form"
+              onSubmit={async (event) => {
+                event.preventDefault()
+                setLoginPending(true)
+                const result = await store.signInAdmin(login)
+                setLoginMessage(result.message)
+                setLoginPending(false)
+              }}
+            >
+              <label className="form-field">
+                <span>Admin Email</span>
+                <input
+                  required
+                  autoCapitalize="none"
+                  type="email"
+                  value={login.username}
+                  onChange={(event) =>
+                    setLogin((current) => ({
+                      ...current,
+                      username: event.target.value,
+                    }))
+                  }
+                />
+              </label>
+              <label className="form-field">
+                <span>Admin Password</span>
+                <input
+                  required
+                  type="password"
+                  value={login.password}
+                  onChange={(event) =>
+                    setLogin((current) => ({
+                      ...current,
+                      password: event.target.value,
+                    }))
+                  }
+                />
+              </label>
+              <button type="submit" className="primary" disabled={loginPending}>
+                {loginPending ? 'Checking...' : 'Open Dashboard'}
+              </button>
+            </form>
+          )}
+          {inviteMessage && <p className="status-note">{inviteMessage}</p>}
           {loginMessage && <p className="status-note">{loginMessage}</p>}
         </section>
       </main>
