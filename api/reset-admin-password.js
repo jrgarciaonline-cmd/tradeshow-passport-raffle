@@ -9,6 +9,16 @@ function sendJson(response, status, body) {
   response.status(status).json(body)
 }
 
+function parseSupabaseResponse(text) {
+  if (!text) return null
+
+  try {
+    return JSON.parse(text)
+  } catch {
+    return { message: text }
+  }
+}
+
 async function requestSupabase(path, token, options = {}) {
   const response = await fetch(`${SUPABASE_URL}${path}`, {
     ...options,
@@ -21,7 +31,7 @@ async function requestSupabase(path, token, options = {}) {
   })
 
   const text = await response.text()
-  const data = text ? JSON.parse(text) : null
+  const data = parseSupabaseResponse(text)
 
   if (!response.ok) {
     throw new Error(data?.message || data?.error_description || text || response.statusText)
