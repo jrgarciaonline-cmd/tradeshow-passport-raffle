@@ -1245,11 +1245,9 @@ export function AdminDashboard({ store }) {
                             <button
                               type="button"
                               onClick={async () => {
-                                const result = await store.addAdminUser({
-                                  email: adminUser.email,
-                                  name: adminUser.name,
-                                  role: adminUser.role,
-                                })
+                                const result = await store.resetAdminPassword(
+                                  adminUser.email,
+                                )
                                 setAdminUserMessage(result.message)
                               }}
                             >

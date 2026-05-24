@@ -4,6 +4,7 @@ const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL
 const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
 const ADMIN_INVITE_REDIRECT_URL = process.env.ADMIN_INVITE_REDIRECT_URL
+const SUPABASE_REQUEST_TIMEOUT_MS = 8000
 
 function sendJson(response, status, body) {
   response.status(status).json(body)
@@ -20,24 +21,41 @@ function parseSupabaseResponse(text) {
 }
 
 async function requestSupabase(path, token, options = {}) {
-  const response = await fetch(`${SUPABASE_URL}${path}`, {
-    ...options,
-    headers: {
-      apikey: token,
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-  })
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), SUPABASE_REQUEST_TIMEOUT_MS)
 
-  const text = await response.text()
-  const data = parseSupabaseResponse(text)
+  try {
+    const response = await fetch(`${SUPABASE_URL}${path}`, {
+      ...options,
+      signal: controller.signal,
+      headers: {
+        apikey: token,
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    })
 
-  if (!response.ok) {
-    throw new Error(data?.message || data?.error_description || text || response.statusText)
+    const text = await response.text()
+    const data = parseSupabaseResponse(text)
+
+    if (!response.ok) {
+      throw new Error(data?.message || data?.error_description || text || response.statusText)
+    }
+
+    return data
+  } catch (error) {
+    if (error.name === 'AbortError') {
+      throw new Error(
+        'Supabase email service timed out. Try again shortly or configure custom SMTP in Supabase Auth.',
+        { cause: error },
+      )
+    }
+
+    throw error
+  } finally {
+    clearTimeout(timeout)
   }
-
-  return data
 }
 
 async function getRequestingUser(accessToken) {
@@ -70,10 +88,10 @@ async function sendRecoveryEmail({ email, redirectTo }) {
     `/auth/v1/recover?redirect_to=${encodeURIComponent(redirectTo)}`,
     SUPABASE_ANON_KEY,
     {
-    method: 'POST',
-    body: JSON.stringify({
-      email,
-    }),
+      method: 'POST',
+      body: JSON.stringify({
+        email,
+      }),
     },
   )
 }
