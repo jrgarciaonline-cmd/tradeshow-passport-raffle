@@ -3,29 +3,31 @@ import { PinchZoomMap } from './PinchZoomMap'
 export function MapView({
   booths,
   completedIds,
+  selectedBoothId,
   focusBoothId,
   focusKey,
   locationBoothId,
   mapSrc,
+  onFocusHandled,
   onClearFocus,
   onScanBooth,
 }) {
-  const focusedBooth = booths.find((booth) => booth.id === focusBoothId)
+  const selectedBooth = booths.find((booth) => booth.id === selectedBoothId)
 
   return (
     <section className="map-panel">
       <div className="map-heading">
         <div className="map-title-row">
           <h2>ASLA Expo Floor</h2>
-          {focusedBooth && (
+          {selectedBooth && (
             <button type="button" onClick={onClearFocus}>
               Clear Selection
             </button>
           )}
         </div>
-        {focusedBooth && (
+        {selectedBooth && (
           <p className="map-focus-note">
-            Showing {focusedBooth.name} / {focusedBooth.location}
+            Showing {selectedBooth.name} / {selectedBooth.location}
           </p>
         )}
       </div>
@@ -36,6 +38,7 @@ export function MapView({
         focusKey={focusKey}
         locationBoothId={locationBoothId}
         onScanBooth={onScanBooth}
+        onFocusHandled={onFocusHandled}
         mapSrc={mapSrc}
         className="full-map-card"
       />

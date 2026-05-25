@@ -17,7 +17,16 @@ const emptyBooth = {
 
 const adminSections = ['Events', 'Settings', 'Booths', 'Map', 'Signups', 'Raffle', 'Winner', 'Picked']
 const manufacturerCategories = ['Irrigation', 'Site', 'Lighting', 'Hardscape', 'Other']
-const emptyEventDraft = { id: '', name: '', status: 'active', createdAt: '' }
+const emptyEventDraft = { id: '', name: '', status: 'hidden', createdAt: '' }
+
+function readImageFile(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.addEventListener('load', () => resolve(reader.result))
+    reader.addEventListener('error', () => reject(reader.error))
+    reader.readAsDataURL(file)
+  })
+}
 
 function confirmWinnerReset() {
   return (
@@ -40,6 +49,7 @@ export function AdminPanel({
   onSelectEvent,
   onSaveEvent,
   onArchiveEvent,
+  onUnarchiveEvent,
   onSaveBooth,
   onDeleteBooth,
   onPlaceBooth,
@@ -81,6 +91,12 @@ export function AdminPanel({
       updateDraft('logoDataUrl', reader.result)
     })
     reader.readAsDataURL(file)
+  }
+  const uploadSettingsImage = async (field, file) => {
+    if (!file) return
+
+    const imageDataUrl = await readImageFile(file)
+    onSaveSettings({ [field]: imageDataUrl })
   }
 
   return (
@@ -149,7 +165,8 @@ export function AdminPanel({
                   }))
                 }
               >
-                <option value="active">Active</option>
+                <option value="hidden">Hidden / Setup</option>
+                <option value="active">Live / Show in app</option>
                 <option value="archived">Archived</option>
               </select>
             </label>
@@ -183,16 +200,27 @@ export function AdminPanel({
                 <button type="button" onClick={() => setEventDraft(event)}>
                   Edit
                 </button>
-                <button
-                  type="button"
-                  disabled={event.status === 'archived'}
-                  onClick={async () => {
-                    const result = await onArchiveEvent(event.id)
-                    setEventMessage(result.message)
-                  }}
-                >
-                  Archive
-                </button>
+                {event.status === 'archived' ? (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const result = await onUnarchiveEvent(event.id)
+                      setEventMessage(result.message)
+                    }}
+                  >
+                    Unarchive
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const result = await onArchiveEvent(event.id)
+                      setEventMessage(result.message)
+                    }}
+                  >
+                    Archive
+                  </button>
+                )}
               </div>
             </article>
           ))}
@@ -234,6 +262,28 @@ export function AdminPanel({
               defaultValue={instructionsText}
               placeholder="Enter each instruction on a new line..."
             />
+          </label>
+          <label className="form-field full asset-upload-field">
+            <span>Home screen image</span>
+            <input
+              type="file"
+              accept="image/png,image/jpeg,image/jpg"
+              onChange={(event) =>
+                uploadSettingsImage('homeImageSrc', event.target.files?.[0])
+              }
+            />
+            <small>Recommended: 1200 x 700 px PNG/JPG.</small>
+          </label>
+          <label className="form-field full asset-upload-field">
+            <span>Raffle completed image</span>
+            <input
+              type="file"
+              accept="image/png,image/jpeg,image/jpg"
+              onChange={(event) =>
+                uploadSettingsImage('raffleCompleteImageSrc', event.target.files?.[0])
+              }
+            />
+            <small>Recommended: 1200 x 800 px transparent PNG/JPG.</small>
           </label>
           <button type="submit" className="primary">
             Save settings
@@ -294,7 +344,7 @@ export function AdminPanel({
             />
           </label>
           <label className="form-field full">
-            <span>Manufacturer Web Page</span>
+            <span>Booth Web Page</span>
             <input
               value={draft.websiteUrl}
               placeholder="https://example.com"
@@ -303,7 +353,7 @@ export function AdminPanel({
           </label>
           <label className="form-field full">
             <span>
-              Manufacturer Logo
+              Booth Logo
               {draft.logoDataUrl ? ' - logo attached' : ''}
             </span>
             <input
@@ -368,7 +418,7 @@ export function AdminPanel({
           >
             <h3>Map placement</h3>
             <label className="form-field">
-              <span>Manufacturer</span>
+              <span>Expo Booth</span>
               <select
                 value={placementBoothId}
                 onChange={(event) => setPlacementBoothId(event.target.value)}
@@ -382,7 +432,7 @@ export function AdminPanel({
               </select>
             </label>
             <p className="muted">
-              Select a manufacturer, then tap the map where its booth belongs.
+              Select an expo booth, then tap the map where its booth belongs.
             </p>
             <PinchZoomMap
               booths={booths}
@@ -399,7 +449,7 @@ export function AdminPanel({
             className="admin-list-section"
             hidden={activeAdminSection !== 'Booths'}
           >
-            <h3>Manufacturer booths</h3>
+            <h3>Expo booths</h3>
             {booths.map((booth) => (
               <article className="entry-card" key={booth.id}>
                 <div className="admin-mobile-booth-heading">

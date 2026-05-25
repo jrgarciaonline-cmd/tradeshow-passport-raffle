@@ -108,7 +108,7 @@ export function usePassportStore() {
 
       const baseState = {
         ...current,
-        ...passportRepository.getInitialEventState(),
+        ...passportRepository.getEventBaseState(eventId),
         activeEventId: eventId,
         session: options.clearSession ? null : current.session,
       }
@@ -209,7 +209,7 @@ export function usePassportStore() {
     activeEventIdRef.current = nextEventId
     updateState((current) => ({
       ...current,
-      ...passportRepository.getInitialEventState(),
+      ...passportRepository.getEventBaseState(nextEventId),
       activeEventId: nextEventId,
       session: null,
     }))
@@ -225,7 +225,9 @@ export function usePassportStore() {
     const nextEvent = {
       id,
       name,
-      status: eventDraft.status === 'archived' ? 'archived' : 'active',
+      status: ['active', 'hidden', 'archived'].includes(eventDraft.status)
+        ? eventDraft.status
+        : 'hidden',
       createdAt: eventDraft.createdAt || new Date().toISOString(),
     }
     let savedEvents = state.events
@@ -260,6 +262,13 @@ export function usePassportStore() {
     if (!event) return { ok: false, message: 'Event not found.' }
 
     return saveEvent({ ...event, status: 'archived' })
+  }
+
+  const unarchiveEvent = async (eventId) => {
+    const event = state.events.find((item) => item.id === eventId)
+    if (!event) return { ok: false, message: 'Event not found.' }
+
+    return saveEvent({ ...event, status: 'hidden' })
   }
 
   const registerAttendee = (profile) => {
@@ -763,7 +772,12 @@ export function usePassportStore() {
       settings: {
         ...current.settings,
         ...settings,
-        requiredScanCount: Math.max(1, Number(settings.requiredScanCount) || 1),
+        requiredScanCount: Math.max(
+          1,
+          Number(
+            settings.requiredScanCount ?? current.settings?.requiredScanCount ?? 1,
+          ) || 1,
+        ),
       },
     }), {
       sharedPatch: (next) => ({
@@ -822,6 +836,7 @@ export function usePassportStore() {
     selectEvent,
     saveEvent,
     archiveEvent,
+    unarchiveEvent,
     registerAttendee,
     signInAttendee,
     signInAdmin,

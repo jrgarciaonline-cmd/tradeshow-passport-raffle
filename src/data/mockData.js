@@ -1,8 +1,8 @@
 export const defaultInstructions = [
-  'The Passport Raffle is one challenge: visit each participating manufacturer booth.',
+  'The Passport Raffle is one challenge: visit each participating expo booth.',
   'At each booth, scan the passport QR code or enter the code manually if the camera is not available.',
-  'Each manufacturer booth you visit is marked complete on your passport.',
-  'Scan the required number of unique manufacturer booths to unlock the raffle entry form.',
+  'Each expo booth you visit is marked complete on your passport.',
+  'Scan the required number of unique expo booths to unlock the raffle entry form.',
 ]
 
 export const defaultBooths = [
@@ -71,7 +71,7 @@ export const defaultBooths = [
     name: 'Toro',
     category: 'Equipment',
     location: 'Booth 326',
-    description: 'Visit Toro for another manufacturer passport stamp.',
+    description: 'Visit Toro for another passport stamp.',
     websiteUrl: 'https://www.toro.com',
     logoDataUrl: '',
     qrCode: 'PASSPORT-TORO-326',

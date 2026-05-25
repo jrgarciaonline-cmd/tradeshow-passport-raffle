@@ -2,6 +2,7 @@ export function PassportSummary({
   attendeeName,
   completedIds,
   requiredScanCount,
+  homeImageSrc,
   onShowInstructions,
 }) {
   const completedCount = completedIds.length
@@ -38,7 +39,8 @@ export function PassportSummary({
 
       <div className="home-image-frame">
         <img
-          src="/home/HOME_IMAGE.png"
+          key={homeImageSrc || '/home/HOME_IMAGE.png'}
+          src={homeImageSrc || '/home/HOME_IMAGE.png'}
           alt=""
           onError={(event) => {
             event.currentTarget.hidden = true

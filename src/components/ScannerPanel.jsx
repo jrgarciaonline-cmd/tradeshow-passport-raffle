@@ -11,6 +11,7 @@ export function ScannerPanel({ onScan, onGoHome, onGoMap }) {
   const [scanSuccess, setScanSuccess] = useState(false)
   const [duplicateScan, setDuplicateScan] = useState(false)
   const [scannedBooth, setScannedBooth] = useState(null)
+  const [manualOpen, setManualOpen] = useState(false)
 
   const stopCamera = useCallback(() => {
     streamRef.current?.getTracks().forEach((track) => track.stop())
@@ -205,8 +206,8 @@ export function ScannerPanel({ onScan, onGoHome, onGoMap }) {
                 <span>{scannedBooth?.name?.slice(0, 1) ?? '!'}</span>
               )}
             </div>
-            <strong>{scannedBooth?.name ?? 'This manufacturer'} has already been scanned</strong>
-            <small>Head to the map to find another manufacturer stop.</small>
+            <strong>{scannedBooth?.name ?? 'This expo booth'} has already been scanned</strong>
+            <small>Head to the map to find another booth stop.</small>
             <button type="button" onClick={onGoMap}>
               Go to Map
             </button>
@@ -240,25 +241,36 @@ export function ScannerPanel({ onScan, onGoHome, onGoMap }) {
           className="primary"
           onClick={cameraActive ? stopCamera : startCamera}
         >
-          {cameraActive ? 'Stop camera' : 'Start camera'}
+          {cameraActive ? 'Stop Camera' : 'Start Camera'}
         </button>
-        <form
-          className="manual-scan"
-          onSubmit={(event) => {
-            event.preventDefault()
-            submitCode(manualCode)
-          }}
+        <button
+          type="button"
+          className="manual-scan-toggle"
+          aria-expanded={manualOpen}
+          onClick={() => setManualOpen((current) => !current)}
         >
-          <label className="form-field">
-            <span>Manual QR code</span>
-            <input
-              value={manualCode}
-              onChange={(event) => setManualCode(event.target.value)}
-              placeholder="Enter manual scan code"
-            />
-          </label>
-          <button type="submit">Enter code</button>
-        </form>
+          <span>Manual QR Code</span>
+          <small>{manualOpen ? 'Hide entry' : 'Tap to enter a code'}</small>
+        </button>
+        {manualOpen && (
+          <form
+            className="manual-scan"
+            onSubmit={(event) => {
+              event.preventDefault()
+              submitCode(manualCode)
+            }}
+          >
+            <label className="form-field">
+              <span>Manual QR code</span>
+              <input
+                value={manualCode}
+                onChange={(event) => setManualCode(event.target.value)}
+                placeholder="Enter manual scan code"
+              />
+            </label>
+            <button type="submit">Enter Code</button>
+          </form>
+        )}
       </div>
       {message && <p className="status-note">{message}</p>}
     </section>

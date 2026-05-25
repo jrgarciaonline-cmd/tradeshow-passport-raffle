@@ -26,11 +26,11 @@ export function BoothCard({ booth, completed, highlighted, onShowOnMap }) {
               target="_blank"
               rel="noreferrer"
             >
-              Visit Manufacturer Web Page
+              Visit Booth Web Page
             </a>
           ) : (
             <button type="button" disabled>
-              Visit Manufacturer Web Page
+              Visit Booth Web Page
             </button>
           )}
           <button

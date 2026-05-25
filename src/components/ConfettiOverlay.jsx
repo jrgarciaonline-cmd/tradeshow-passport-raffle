@@ -10,7 +10,7 @@ const confettiPieces = Array.from({ length: 86 }, (_, index) => ({
   ],
 }))
 
-export function ConfettiOverlay({ active }) {
+export function ConfettiOverlay({ active, raffleCompleteImageSrc }) {
   if (!active) return null
 
   return (
@@ -18,7 +18,8 @@ export function ConfettiOverlay({ active }) {
       <div className="raffle-complete-card">
         <img
           className="raffle-complete-popup"
-          src="/home/RAFFLE_COMPLETE.png"
+          key={raffleCompleteImageSrc || '/home/RAFFLE_COMPLETE.png'}
+          src={raffleCompleteImageSrc || '/home/RAFFLE_COMPLETE.png'}
           alt=""
           onError={(event) => {
             event.currentTarget.hidden = true

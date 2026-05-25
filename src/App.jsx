@@ -27,8 +27,10 @@ function App() {
   const [authView, setAuthView] = useState('signup')
   const [activeTab, setActiveTab] = useState('Home')
   const [challengeView, setChallengeView] = useState('Active')
-  const [focusedBoothId, setFocusedBoothId] = useState('')
+  const [selectedMapBoothId, setSelectedMapBoothId] = useState('')
+  const [mapFocusBoothId, setMapFocusBoothId] = useState('')
   const [mapFocusKey, setMapFocusKey] = useState(0)
+  const [consumedMapFocusKey, setConsumedMapFocusKey] = useState(0)
   const [scannedBoothId, setScannedBoothId] = useState('')
   const [query, setQuery] = useState('')
   const [category, setCategory] = useState('All')
@@ -72,19 +74,23 @@ function App() {
   const activeMode = store.adminAuthenticated && mode === 'admin' ? 'admin' : 'attendee'
   const pendingSyncCount = store.syncStatus?.pendingCount ?? 0
   const isOffline = store.syncStatus?.online === false
-  const syncMessage = isOffline
-    ? pendingSyncCount
-      ? `${pendingSyncCount} saved update${pendingSyncCount === 1 ? '' : 's'} will sync when online`
-      : 'Offline mode'
-    : pendingSyncCount
-      ? `Syncing ${pendingSyncCount} saved update${pendingSyncCount === 1 ? '' : 's'}`
-      : ''
+  const canShowSyncStatus = Boolean(store.session || store.adminAuthenticated)
+  const syncMessage = canShowSyncStatus
+    ? isOffline
+      ? pendingSyncCount
+        ? `${pendingSyncCount} saved update${pendingSyncCount === 1 ? '' : 's'} will sync when online`
+        : 'Offline mode'
+      : pendingSyncCount
+        ? `Syncing ${pendingSyncCount} saved update${pendingSyncCount === 1 ? '' : 's'}`
+        : ''
+    : ''
 
   const handleScan = (code) => {
     const result = store.checkInByCode(code)
     if (result.id) {
       setScannedBoothId(result.id)
-      setFocusedBoothId(result.id)
+      setSelectedMapBoothId(result.id)
+      setMapFocusBoothId(result.id)
       setMapFocusKey((current) => current + 1)
     }
     return result
@@ -169,6 +175,7 @@ function App() {
         <ConfettiOverlay
           key={celebrationKey || 'celebration-idle'}
           active={Boolean(celebrationKey)}
+          raffleCompleteImageSrc={store.settings?.raffleCompleteImageSrc}
         />
         <header className="app-bar">
           <button
@@ -241,6 +248,7 @@ function App() {
                 attendeeName={store.currentAttendee?.name}
                 completedIds={store.completedIds}
                 requiredScanCount={store.requiredScanCount}
+                homeImageSrc={store.settings?.homeImageSrc}
                 onShowInstructions={() => setActiveTab('Instructions')}
               />
 
@@ -303,7 +311,7 @@ function App() {
                   <input
                     value={query}
                     onChange={(event) => setQuery(event.target.value)}
-                    placeholder="Manufacturer or booth"
+                    placeholder="Expo booth or booth number"
                   />
                 </label>
                 <label className="select-field">
@@ -327,14 +335,15 @@ function App() {
                     completed={store.completedIds.includes(booth.id)}
                     highlighted={scannedBoothId === booth.id}
                     onShowOnMap={(boothId) => {
-                      setFocusedBoothId(boothId)
+                      setSelectedMapBoothId(boothId)
+                      setMapFocusBoothId(boothId)
                       setMapFocusKey((current) => current + 1)
                       setActiveTab('Map')
                     }}
                   />
                 ))}
                 {!visibleBooths.length && (
-                  <p className="empty-state">No manufacturers match this view.</p>
+                  <p className="empty-state">No expo booths match this view.</p>
                 )}
               </div>
             </section>
@@ -344,13 +353,21 @@ function App() {
             <MapView
               booths={store.booths}
               completedIds={store.completedIds}
-              focusBoothId={focusedBoothId}
+              selectedBoothId={selectedMapBoothId}
+              focusBoothId={
+                mapFocusKey !== consumedMapFocusKey ? mapFocusBoothId : ''
+              }
               focusKey={mapFocusKey}
               locationBoothId={store.currentLocationBoothId}
               mapSrc={store.settings?.mapSrc}
-              onClearFocus={() => setFocusedBoothId('')}
+              onFocusHandled={() => setConsumedMapFocusKey(mapFocusKey)}
+              onClearFocus={() => {
+                setSelectedMapBoothId('')
+                setMapFocusBoothId('')
+                setConsumedMapFocusKey(mapFocusKey)
+              }}
               onScanBooth={(boothId) => {
-                setFocusedBoothId(boothId)
+                setSelectedMapBoothId(boothId)
                 setActiveTab('QR Scanner')
               }}
             />
@@ -391,6 +408,7 @@ function App() {
               onSelectEvent={store.selectEvent}
               onSaveEvent={store.saveEvent}
               onArchiveEvent={store.archiveEvent}
+              onUnarchiveEvent={store.unarchiveEvent}
               onSaveBooth={store.saveBooth}
               onDeleteBooth={store.deleteBooth}
               onPlaceBooth={store.placeBoothOnMap}

@@ -43,7 +43,7 @@ const emptyManualEntry = {
 const emptyEventDraft = {
   id: '',
   name: '',
-  status: 'active',
+  status: 'hidden',
   createdAt: '',
 }
 
@@ -87,6 +87,15 @@ function getInviteAccessToken() {
 
   if (!accessToken || !['invite', 'recovery'].includes(type)) return ''
   return accessToken
+}
+
+function readImageFile(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.addEventListener('load', () => resolve(reader.result))
+    reader.addEventListener('error', () => reject(reader.error))
+    reader.readAsDataURL(file)
+  })
 }
 
 export function AdminDashboard({ store }) {
@@ -249,6 +258,13 @@ export function AdminDashboard({ store }) {
       updateDraft('logoDataUrl', reader.result)
     })
     reader.readAsDataURL(file)
+  }
+
+  const uploadSettingsImage = async (field, file) => {
+    if (!file) return
+
+    const imageDataUrl = await readImageFile(file)
+    store.saveSettings({ [field]: imageDataUrl })
   }
 
   const saveDraft = () => {
@@ -550,7 +566,8 @@ export function AdminDashboard({ store }) {
                     }))
                   }
                 >
-                  <option value="active">Active</option>
+                  <option value="hidden">Hidden / Setup</option>
+                  <option value="active">Live / Show in app</option>
                   <option value="archived">Archived</option>
                 </select>
               </label>
@@ -616,16 +633,27 @@ export function AdminDashboard({ store }) {
                             >
                               Edit
                             </button>
-                            <button
-                              type="button"
-                              disabled={event.status === 'archived'}
-                              onClick={async () => {
-                                const result = await store.archiveEvent(event.id)
-                                setEventMessage(result.message)
-                              }}
-                            >
-                              Archive
-                            </button>
+                            {event.status === 'archived' ? (
+                              <button
+                                type="button"
+                                onClick={async () => {
+                                  const result = await store.unarchiveEvent(event.id)
+                                  setEventMessage(result.message)
+                                }}
+                              >
+                                Unarchive
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={async () => {
+                                  const result = await store.archiveEvent(event.id)
+                                  setEventMessage(result.message)
+                                }}
+                              >
+                                Archive
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -648,7 +676,7 @@ export function AdminDashboard({ store }) {
             >
               <div>
                 <p className="eyebrow">{draft.id ? 'Editing' : 'New Booth'}</p>
-                <h3>{draft.id ? draft.name : 'Add Manufacturer Booth'}</h3>
+                <h3>{draft.id ? draft.name : 'Add Expo Booth'}</h3>
               </div>
               <div className="admin-form-grid">
                 <label className="form-field">
@@ -694,7 +722,7 @@ export function AdminDashboard({ store }) {
                   />
                 </label>
                 <label className="form-field full">
-                  <span>Manufacturer Web Page</span>
+                  <span>Booth Web Page</span>
                   <input
                     value={draft.websiteUrl}
                     placeholder="https://example.com"
@@ -759,7 +787,7 @@ export function AdminDashboard({ store }) {
 
             <div className="desktop-card">
               <div className="table-toolbar">
-                <h3>Manufacturer Booths</h3>
+                <h3>Expo Booths</h3>
                 <input
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
@@ -770,7 +798,7 @@ export function AdminDashboard({ store }) {
                 <table className="admin-table">
                   <thead>
                     <tr>
-                      <th>Manufacturer</th>
+                      <th>Expo Booth</th>
                       <th>Booth</th>
                       <th>QR Code</th>
                       <th>Actions</th>
@@ -836,11 +864,11 @@ export function AdminDashboard({ store }) {
                 <div>
                   <h3>Map Placement</h3>
                   <p>
-                    Select a manufacturer, then click the expo map to save its pin.
+                    Select an expo booth, then click the map to save its pin.
                   </p>
                 </div>
                 <label className="form-field">
-                  <span>Manufacturer</span>
+                  <span>Expo Booth</span>
                   <select
                     value={placementBoothId}
                     onChange={(event) => setPlacementBoothId(event.target.value)}
@@ -906,6 +934,28 @@ export function AdminDashboard({ store }) {
                   rows="9"
                   defaultValue={instructionsText}
                 />
+              </label>
+              <label className="form-field asset-upload-field">
+                <span>Home screen image</span>
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/jpg"
+                  onChange={(event) =>
+                    uploadSettingsImage('homeImageSrc', event.target.files?.[0])
+                  }
+                />
+                <small>Recommended: 1200 x 700 px PNG/JPG.</small>
+              </label>
+              <label className="form-field asset-upload-field">
+                <span>Raffle completed image</span>
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/jpg"
+                  onChange={(event) =>
+                    uploadSettingsImage('raffleCompleteImageSrc', event.target.files?.[0])
+                  }
+                />
+                <small>Recommended: 1200 x 800 px transparent PNG/JPG.</small>
               </label>
               <button type="submit" className="primary">
                 Save Settings

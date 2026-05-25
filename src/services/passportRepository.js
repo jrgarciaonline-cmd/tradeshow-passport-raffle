@@ -41,7 +41,7 @@ function getPlaceholderEventState() {
     booths: [
       {
         id: 'test-booth',
-        name: 'Test Manufacturer',
+        name: 'Test Expo Booth',
         category: 'Other',
         location: 'Booth 100',
         description: 'Placeholder booth for setting up a new passport raffle event.',
@@ -66,6 +66,10 @@ function getPlaceholderEventState() {
   }
 }
 
+function getEventBaseState(eventId = DEFAULT_EVENT_ID) {
+  return eventId === DEFAULT_EVENT_ID ? getInitialEventState() : getPlaceholderEventState()
+}
+
 const initialState = {
   ...getInitialEventState(),
   events: [defaultEvent],
@@ -79,11 +83,13 @@ const initialState = {
 function normalizeEvents(events) {
   if (!Array.isArray(events) || !events.length) return [defaultEvent]
 
+  const allowedStatuses = new Set(['active', 'hidden', 'archived'])
+
   return events.map((event) => ({
     ...event,
     id: event.id || crypto.randomUUID(),
     name: event.name || 'Untitled Event',
-    status: event.status === 'archived' ? 'archived' : 'active',
+    status: allowedStatuses.has(event.status) ? event.status : 'active',
     createdAt: event.createdAt || new Date().toISOString(),
   }))
 }
@@ -161,6 +167,29 @@ function queueSharedPatch(patch, eventId) {
 
   writeOfflineQueue([...queue, queuedPatch])
   return queuedPatch
+}
+
+function shouldQueueSupabaseError(error) {
+  if (!getOnlineStatus()) return true
+  if (!error?.status) return true
+  return error.status >= 500
+}
+
+function hasLiveEventData(eventData) {
+  return Boolean(
+    eventData?.entries?.length ||
+      eventData?.attendees?.length ||
+      eventData?.winners?.length ||
+      Object.keys(eventData?.attendeeProgress ?? {}).length,
+  )
+}
+
+function looksLikeDefaultEventClone(eventData) {
+  const defaultBoothIds = new Set(defaultBooths.map((booth) => booth.id))
+  const boothIds = eventData?.booths?.map((booth) => booth.id) ?? []
+  const defaultMatches = boothIds.filter((id) => defaultBoothIds.has(id))
+
+  return defaultMatches.length >= Math.min(3, defaultBooths.length)
 }
 
 function isSupabaseConfigured() {
@@ -301,7 +330,9 @@ async function requestSupabase(path, options = {}) {
 
   if (!response.ok) {
     const detail = await response.text()
-    throw new Error(`Supabase request failed: ${response.status} ${detail}`)
+    const error = new Error(`Supabase request failed: ${response.status} ${detail}`)
+    error.status = response.status
+    throw error
   }
 
   if (response.status === 204) return null
@@ -319,20 +350,16 @@ async function loadRemoteShared(eventId = DEFAULT_EVENT_ID) {
       `${SUPABASE_TABLE}?id=eq.${SHARED_ROW_ID}&select=data&limit=1`,
     )
     const legacyData = legacyRows?.[0]?.data ?? null
-    const eventHasLiveData =
-      eventData?.entries?.length ||
-      eventData?.attendees?.length ||
-      eventData?.winners?.length ||
-      Object.keys(eventData?.attendeeProgress ?? {}).length
-    const legacyHasLiveData =
-      legacyData?.entries?.length ||
-      legacyData?.attendees?.length ||
-      legacyData?.winners?.length ||
-      Object.keys(legacyData?.attendeeProgress ?? {}).length
+    const eventHasLiveData = hasLiveEventData(eventData)
+    const legacyHasLiveData = hasLiveEventData(legacyData)
 
     if (!eventHasLiveData && legacyHasLiveData) return legacyData
     if (eventData) return eventData
     return legacyData
+  }
+
+  if (eventData && !hasLiveEventData(eventData) && looksLikeDefaultEventClone(eventData)) {
+    return getPlaceholderEventState()
   }
 
   if (eventData) return eventData
@@ -352,6 +379,7 @@ export const passportRepository = {
   },
   getInitialEventState,
   getPlaceholderEventState,
+  getEventBaseState,
   getActiveEventId,
   async loadEventIndex() {
     try {
@@ -425,8 +453,11 @@ export const passportRepository = {
       return { ok: true, queued: false }
     } catch (error) {
       console.warn(error)
-      queueSharedPatch(patch, eventId)
-      return { ok: false, queued: true }
+      if (shouldQueueSupabaseError(error)) {
+        queueSharedPatch(patch, eventId)
+        return { ok: false, queued: true }
+      }
+      return { ok: false, queued: false }
     }
   },
   getOfflineQueueStatus,
@@ -455,7 +486,9 @@ export const passportRepository = {
         })
       } catch (error) {
         console.warn(error)
-        remaining.push(queuedPatch)
+        if (shouldQueueSupabaseError(error)) {
+          remaining.push(queuedPatch)
+        }
       }
     }
 

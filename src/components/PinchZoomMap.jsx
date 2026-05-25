@@ -73,6 +73,7 @@ export function PinchZoomMap({
   placementBoothId = '',
   focusBoothId = '',
   focusKey = 0,
+  onFocusHandled,
   locationBoothId = '',
   className = '',
   title = '',
@@ -86,6 +87,7 @@ export function PinchZoomMap({
   const movedDuringGesture = useRef(false)
   const pointerStart = useRef(null)
   const lastFocusedBoothId = useRef('')
+  const focusBoothIdRef = useRef(focusBoothId)
   const [view, setView] = useState(INITIAL_VIEW)
   const [mapSize, setMapSize] = useState(INITIAL_MAP_SIZE)
   const [selectedBoothId, setSelectedBoothId] = useState(null)
@@ -150,6 +152,12 @@ export function PinchZoomMap({
   }
 
   useEffect(() => {
+    focusBoothIdRef.current = focusBoothId
+  }, [focusBoothId])
+
+  useEffect(() => {
+    if (focusBoothIdRef.current) return
+
     const rect = viewportRef.current?.getBoundingClientRect()
     if (!rect) return
 
@@ -218,10 +226,11 @@ export function PinchZoomMap({
       viewRef.current = focusedView
       setView(focusedView)
       lastFocusedBoothId.current = focusRequestId
+      onFocusHandled?.()
     })
 
     return () => cancelAnimationFrame(frame)
-  }, [booths, focusBoothId, focusKey, mapSize])
+  }, [booths, focusBoothId, focusKey, mapSize, onFocusHandled])
 
   return (
     <div className={`pinch-map ${className}`}>
