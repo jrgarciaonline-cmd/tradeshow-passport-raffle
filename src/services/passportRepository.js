@@ -217,6 +217,7 @@ function getSharedRowId(eventId = DEFAULT_EVENT_ID) {
 function mergeSharedState(state, sharedState, options = {}) {
   if (!sharedState) return state
   const preserveLocalSections = options.preserveLocalSections ?? {}
+  const baseSettings = getEventBaseState(options.eventId ?? state.activeEventId).settings
   const attendeeProgress = {
     ...state.attendeeProgress,
     ...sharedState.attendeeProgress,
@@ -256,7 +257,7 @@ function mergeSharedState(state, sharedState, options = {}) {
           mapSrc: sharedState.settings?.mapSrc || state.settings.mapSrc,
           boothCategories: Array.isArray(sharedState.settings?.boothCategories)
             ? sharedState.settings.boothCategories
-            : state.settings.boothCategories,
+            : baseSettings.boothCategories,
         },
   }
 }

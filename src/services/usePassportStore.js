@@ -113,7 +113,7 @@ export function usePassportStore() {
         session: options.clearSession ? null : current.session,
       }
       const next = eventState
-        ? passportRepository.mergeShared(baseState, eventState)
+        ? passportRepository.mergeShared(baseState, eventState, { eventId })
         : baseState
 
       passportRepository.save(next)
@@ -148,6 +148,7 @@ export function usePassportStore() {
 
         const now = Date.now()
         const next = passportRepository.mergeShared(current, sharedState, {
+          eventId,
           preserveLocalSections: {
             booths: (preserveLocalUntil.current.booths ?? 0) > now,
             settings: (preserveLocalUntil.current.settings ?? 0) > now,

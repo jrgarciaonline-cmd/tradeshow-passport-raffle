@@ -73,8 +73,8 @@ export function AuthScreen({
       <button
         type="button"
         className="auth-logo-button"
-        onClick={noAvailableEvents ? handleLogoTap : undefined}
-        aria-label={noAvailableEvents ? 'Land F/X logo' : undefined}
+        onClick={handleLogoTap}
+        aria-label="Land F/X logo"
       >
         <img
           className="auth-logo"
@@ -100,11 +100,11 @@ export function AuthScreen({
         </div>
       )}
 
-      {activeEvents.length > 1 && (
+      {activeEvents.length > 0 && (
         <label className="form-field event-select-field">
           <span>Event</span>
           <select
-            value={activeEvent?.id ?? ''}
+            value={activeEvent?.id ?? activeEvents[0]?.id ?? ''}
             onChange={(event) => onSelectEvent?.(event.target.value)}
           >
             {activeEvents.map((event) => (
