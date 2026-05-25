@@ -117,9 +117,9 @@ export function AdminPanel({
         >
           <form
             className="manual-entry-form"
-            onSubmit={(event) => {
+            onSubmit={async (event) => {
               event.preventDefault()
-              const result = onSaveEvent(eventDraft)
+              const result = await onSaveEvent(eventDraft)
               setEventMessage(result.message)
               if (result.ok) setEventDraft(emptyEventDraft)
             }}
@@ -173,8 +173,8 @@ export function AdminPanel({
                 <button
                   type="button"
                   disabled={event.id === activeEventId}
-                  onClick={() => {
-                    const result = onSelectEvent(event.id)
+                  onClick={async () => {
+                    const result = await onSelectEvent(event.id)
                     setEventMessage(result.message)
                   }}
                 >
@@ -186,8 +186,8 @@ export function AdminPanel({
                 <button
                   type="button"
                   disabled={event.status === 'archived'}
-                  onClick={() => {
-                    const result = onArchiveEvent(event.id)
+                  onClick={async () => {
+                    const result = await onArchiveEvent(event.id)
                     setEventMessage(result.message)
                   }}
                 >
@@ -389,6 +389,7 @@ export function AdminPanel({
               completedIds={[]}
               onPlaceBooth={onPlaceBooth}
               placementBoothId={placementBoothId}
+              mapSrc={settings?.mapSrc}
               className="admin-placement-map"
               title="Place booth pins"
             />
@@ -476,6 +477,7 @@ export function AdminPanel({
             hidden={activeAdminSection !== 'Winner'}
           >
             <WinnerWheel
+              key={activeEventId}
               entries={entries}
               winners={winners}
               onWinnerSelected={onWinnerSelected}

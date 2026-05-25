@@ -200,7 +200,7 @@ export function usePassportStore() {
   const activeEvent = state.events.find((event) => event.id === state.activeEventId)
   const activeEvents = state.events.filter((event) => event.status === 'active')
 
-  const selectEvent = (eventId) => {
+  const selectEvent = async (eventId) => {
     const nextEventId = state.events.find((event) => event.id === eventId)?.id
     if (!nextEventId || nextEventId === state.activeEventId) {
       return { ok: true, message: 'Event already selected.' }
@@ -213,11 +213,11 @@ export function usePassportStore() {
       activeEventId: nextEventId,
       session: null,
     }))
-    loadEventState(nextEventId, { clearSession: true })
+    await loadEventState(nextEventId, { clearSession: true })
     return { ok: true, message: 'Event selected.' }
   }
 
-  const saveEvent = (eventDraft) => {
+  const saveEvent = async (eventDraft) => {
     const name = String(eventDraft.name ?? '').trim()
     if (!name) return { ok: false, message: 'Enter an event name.' }
 
@@ -228,23 +228,26 @@ export function usePassportStore() {
       status: eventDraft.status === 'archived' ? 'archived' : 'active',
       createdAt: eventDraft.createdAt || new Date().toISOString(),
     }
+    let savedEvents = state.events
 
     updateState((current) => {
       const exists = current.events.some((event) => event.id === id)
       const events = exists
         ? current.events.map((event) => (event.id === id ? { ...event, ...nextEvent } : event))
         : [...current.events, nextEvent]
+      savedEvents = events
 
-      passportRepository.saveEventIndex(events)
       return {
         ...current,
         events,
       }
     })
 
+    await passportRepository.saveEventIndex(savedEvents)
+
     if (!eventDraft.id) {
-      passportRepository.saveShared({
-        ...passportRepository.getInitialEventState(),
+      await passportRepository.saveShared({
+        ...passportRepository.getPlaceholderEventState(),
         activeEventId: id,
       })
     }
@@ -252,7 +255,7 @@ export function usePassportStore() {
     return { ok: true, message: `${name} saved.` }
   }
 
-  const archiveEvent = (eventId) => {
+  const archiveEvent = async (eventId) => {
     const event = state.events.find((item) => item.id === eventId)
     if (!event) return { ok: false, message: 'Event not found.' }
 

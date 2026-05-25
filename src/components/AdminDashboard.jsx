@@ -97,7 +97,10 @@ export function AdminDashboard({ store }) {
   const [draft, setDraft] = useState(emptyBooth)
   const [placementBoothId, setPlacementBoothId] = useState('')
   const [query, setQuery] = useState('')
-  const [winner, setWinner] = useState(null)
+  const [winnerSelection, setWinnerSelection] = useState({
+    eventId: '',
+    entry: null,
+  })
   const [wheelRotation, setWheelRotation] = useState(0)
   const [isSpinning, setIsSpinning] = useState(false)
   const [manualEntry, setManualEntry] = useState(emptyManualEntry)
@@ -122,6 +125,8 @@ export function AdminDashboard({ store }) {
       ? store.settings.instructions
       : defaultInstructions
   ).join('\n')
+  const winner =
+    winnerSelection.eventId === store.activeEventId ? winnerSelection.entry : null
 
   const filteredBooths = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase()
@@ -258,8 +263,9 @@ export function AdminDashboard({ store }) {
     const sliceAngle = 360 / wheelEntries.length
     const landingAngle = 360 - (winnerIndex * sliceAngle + sliceAngle / 2)
     const selectedWinner = wheelEntries[winnerIndex]
+    const drawEventId = store.activeEventId
 
-    setWinner(null)
+    setWinnerSelection({ eventId: drawEventId, entry: null })
     setIsSpinning(true)
     setWheelRotation((currentRotation) => {
       const currentAngle = ((currentRotation % 360) + 360) % 360
@@ -268,7 +274,7 @@ export function AdminDashboard({ store }) {
     })
 
     window.setTimeout(() => {
-      setWinner(selectedWinner)
+      setWinnerSelection({ eventId: drawEventId, entry: selectedWinner })
       store.recordWinner(selectedWinner)
       setIsSpinning(false)
       setDanceModeIndex((currentIndex) => (currentIndex + 1) % 3)
@@ -506,9 +512,9 @@ export function AdminDashboard({ store }) {
           <section className="admin-workspace two-column">
             <form
               className="desktop-card admin-editor-form"
-              onSubmit={(event) => {
+              onSubmit={async (event) => {
                 event.preventDefault()
-                const result = store.saveEvent(eventDraft)
+                const result = await store.saveEvent(eventDraft)
                 setEventMessage(result.message)
                 if (result.ok) setEventDraft(emptyEventDraft)
               }}
@@ -597,8 +603,8 @@ export function AdminDashboard({ store }) {
                             <button
                               type="button"
                               disabled={event.id === store.activeEventId}
-                              onClick={() => {
-                                const result = store.selectEvent(event.id)
+                              onClick={async () => {
+                                const result = await store.selectEvent(event.id)
                                 setEventMessage(result.message)
                               }}
                             >
@@ -613,8 +619,8 @@ export function AdminDashboard({ store }) {
                             <button
                               type="button"
                               disabled={event.status === 'archived'}
-                              onClick={() => {
-                                const result = store.archiveEvent(event.id)
+                              onClick={async () => {
+                                const result = await store.archiveEvent(event.id)
                                 setEventMessage(result.message)
                               }}
                             >
@@ -853,6 +859,7 @@ export function AdminDashboard({ store }) {
                 completedIds={[]}
                 onPlaceBooth={store.placeBoothOnMap}
                 placementBoothId={placementBoothId}
+                mapSrc={store.settings?.mapSrc}
                 className="desktop-placement-map"
                 title="Place booth pins"
               />

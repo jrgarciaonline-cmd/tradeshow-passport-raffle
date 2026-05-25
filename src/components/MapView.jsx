@@ -6,6 +6,7 @@ export function MapView({
   focusBoothId,
   focusKey,
   locationBoothId,
+  mapSrc,
   onClearFocus,
   onScanBooth,
 }) {
@@ -35,6 +36,7 @@ export function MapView({
         focusKey={focusKey}
         locationBoothId={locationBoothId}
         onScanBooth={onScanBooth}
+        mapSrc={mapSrc}
         className="full-map-card"
       />
     </section>

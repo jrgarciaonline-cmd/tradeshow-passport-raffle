@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { MapMarkerLogo } from './MapMarkerLogo'
 
-const MAP_SRC = '/maps/asla_map.PNG'
+const DEFAULT_MAP_SRC = '/maps/asla_map.PNG'
 const BASE_MAP_WIDTH = 1600
 const DEFAULT_MAP_RATIO = 2059 / 3000
 const MAX_SCALE = 3.2
@@ -76,6 +76,7 @@ export function PinchZoomMap({
   locationBoothId = '',
   className = '',
   title = '',
+  mapSrc = DEFAULT_MAP_SRC,
 }) {
   const viewportRef = useRef(null)
   const pointers = useRef(new Map())
@@ -319,7 +320,7 @@ export function PinchZoomMap({
           }}
         >
           <img
-            src={MAP_SRC}
+            src={mapSrc}
             alt="Expo floor map"
             onLoad={(event) => {
               const { naturalWidth, naturalHeight } = event.currentTarget

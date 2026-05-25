@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1000" viewBox="0 0 1600 1000" role="img" aria-labelledby="title desc">
+  <title id="title">Placeholder expo floor map</title>
+  <desc id="desc">A simple placeholder floor map for a new passport raffle event.</desc>
+  <rect width="1600" height="1000" fill="#f8f8f8"/>
+  <rect x="90" y="80" width="1420" height="840" rx="18" fill="#ffffff" stroke="#1f2937" stroke-width="6"/>
+  <path d="M180 190h1240M180 350h1240M180 510h1240M180 670h1240M180 830h1240M350 190v640M590 190v640M830 190v640M1070 190v640M1310 190v640" stroke="#d1d5db" stroke-width="4"/>
+  <rect x="215" y="225" width="110" height="90" fill="#e5e7eb" stroke="#9ca3af" stroke-width="3"/>
+  <rect x="455" y="225" width="110" height="90" fill="#e5e7eb" stroke="#9ca3af" stroke-width="3"/>
+  <rect x="695" y="225" width="110" height="90" fill="#e5e7eb" stroke="#9ca3af" stroke-width="3"/>
+  <rect x="935" y="225" width="110" height="90" fill="#e5e7eb" stroke="#9ca3af" stroke-width="3"/>
+  <rect x="1175" y="225" width="110" height="90" fill="#e5e7eb" stroke="#9ca3af" stroke-width="3"/>
+  <rect x="215" y="545" width="110" height="90" fill="#e5e7eb" stroke="#9ca3af" stroke-width="3"/>
+  <rect x="455" y="545" width="110" height="90" fill="#e5e7eb" stroke="#9ca3af" stroke-width="3"/>
+  <rect x="695" y="545" width="110" height="90" fill="#e5e7eb" stroke="#9ca3af" stroke-width="3"/>
+  <rect x="935" y="545" width="110" height="90" fill="#e5e7eb" stroke="#9ca3af" stroke-width="3"/>
+  <rect x="1175" y="545" width="110" height="90" fill="#e5e7eb" stroke="#9ca3af" stroke-width="3"/>
+  <rect x="640" y="405" width="320" height="150" rx="16" fill="#f0fdf4" stroke="#22c55e" stroke-width="5"/>
+  <text x="800" y="462" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="34" font-weight="700" fill="#111827">Placeholder Map</text>
+  <text x="800" y="512" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="24" fill="#4b5563">Upload the event floor plan later</text>
+  <text x="270" y="280" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="24" fill="#374151">100</text>
+  <text x="510" y="280" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="24" fill="#374151">200</text>
+  <text x="750" y="280" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="24" fill="#374151">300</text>
+  <text x="990" y="280" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="24" fill="#374151">400</text>
+  <text x="1230" y="280" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="24" fill="#374151">500</text>
+</svg>

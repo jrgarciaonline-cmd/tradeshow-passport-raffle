@@ -8,6 +8,8 @@ const SHARED_ROW_ID = 'shared'
 const EVENTS_ROW_ID = 'events'
 const DEFAULT_EVENT_ID = 'landfx-passport-raffle'
 const OFFLINE_QUEUE_KEY = 'tradeshow-passport-offline-queue-v1'
+const DEFAULT_MAP_SRC = '/maps/asla_map.PNG'
+const PLACEHOLDER_MAP_SRC = '/maps/placeholder_map.svg'
 
 const defaultEvent = {
   id: DEFAULT_EVENT_ID,
@@ -28,6 +30,38 @@ function getInitialEventState() {
     settings: {
       requiredScanCount: 4,
       instructions: defaultInstructions,
+      mapSrc: DEFAULT_MAP_SRC,
+    },
+  }
+}
+
+function getPlaceholderEventState() {
+  return {
+    ...getInitialEventState(),
+    booths: [
+      {
+        id: 'test-booth',
+        name: 'Test Manufacturer',
+        category: 'Other',
+        location: 'Booth 100',
+        description: 'Placeholder booth for setting up a new passport raffle event.',
+        websiteUrl: '',
+        logoDataUrl: '',
+        qrCode: 'TEST-BOOTH-100',
+        color: '#6b7280',
+        map: { x: 50, y: 50 },
+      },
+    ],
+    completedIds: [],
+    attendeeProgress: {},
+    attendeeLocation: {},
+    entries: [],
+    winners: [],
+    attendees: [],
+    settings: {
+      requiredScanCount: 1,
+      instructions: defaultInstructions,
+      mapSrc: PLACEHOLDER_MAP_SRC,
     },
   }
 }
@@ -188,6 +222,7 @@ function mergeSharedState(state, sharedState, options = {}) {
           instructions: sharedState.settings?.instructions?.length
             ? sharedState.settings.instructions
             : state.settings.instructions,
+          mapSrc: sharedState.settings?.mapSrc || state.settings.mapSrc,
         },
   }
 }
@@ -277,15 +312,30 @@ async function loadRemoteShared(eventId = DEFAULT_EVENT_ID) {
   const rows = await requestSupabase(
     `${SUPABASE_TABLE}?id=eq.${getSharedRowId(eventId)}&select=data&limit=1`,
   )
-  if (rows?.[0]?.data) return rows[0].data
+  const eventData = rows?.[0]?.data ?? null
 
   if (eventId === DEFAULT_EVENT_ID) {
     const legacyRows = await requestSupabase(
       `${SUPABASE_TABLE}?id=eq.${SHARED_ROW_ID}&select=data&limit=1`,
     )
-    return legacyRows?.[0]?.data ?? null
+    const legacyData = legacyRows?.[0]?.data ?? null
+    const eventHasLiveData =
+      eventData?.entries?.length ||
+      eventData?.attendees?.length ||
+      eventData?.winners?.length ||
+      Object.keys(eventData?.attendeeProgress ?? {}).length
+    const legacyHasLiveData =
+      legacyData?.entries?.length ||
+      legacyData?.attendees?.length ||
+      legacyData?.winners?.length ||
+      Object.keys(legacyData?.attendeeProgress ?? {}).length
+
+    if (!eventHasLiveData && legacyHasLiveData) return legacyData
+    if (eventData) return eventData
+    return legacyData
   }
 
+  if (eventData) return eventData
   return null
 }
 
@@ -301,6 +351,7 @@ export const passportRepository = {
     return mergeSharedState(state, sharedState, options)
   },
   getInitialEventState,
+  getPlaceholderEventState,
   getActiveEventId,
   async loadEventIndex() {
     try {

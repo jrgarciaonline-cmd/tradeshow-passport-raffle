@@ -347,6 +347,7 @@ function App() {
               focusBoothId={focusedBoothId}
               focusKey={mapFocusKey}
               locationBoothId={store.currentLocationBoothId}
+              mapSrc={store.settings?.mapSrc}
               onClearFocus={() => setFocusedBoothId('')}
               onScanBooth={(boothId) => {
                 setFocusedBoothId(boothId)
