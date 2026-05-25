@@ -268,6 +268,7 @@ function App() {
               onRegister={store.registerAttendee}
               onSignIn={store.signInAttendee}
               onSelectEvent={store.selectEvent}
+              termsText={store.settings?.termsText}
               onAdminSignIn={async (credentials) => {
                 const result = await store.signInAdmin(credentials)
                 if (result.ok) setMode('admin')

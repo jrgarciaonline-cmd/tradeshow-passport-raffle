@@ -73,6 +73,7 @@ export function AdminPanel({
     settings?.instructions?.length ? settings.instructions : defaultInstructions
   ).join('\n')
   const categoryText = (settings?.boothCategories ?? []).join('\n')
+  const termsText = settings?.termsText ?? ''
   const boothCategoryOptions = useMemo(() => {
     const categorySet = new Set([
       ...(settings?.boothCategories ?? []),
@@ -281,6 +282,7 @@ export function AdminPanel({
               requiredScanCount: formData.get('requiredScanCount'),
               instructions,
               boothCategories,
+              termsText: String(formData.get('termsText') ?? '').trim(),
             })
           }}
         >
@@ -313,6 +315,15 @@ export function AdminPanel({
               placeholder="Irrigation&#10;Lighting&#10;Hardscape"
             />
           </label>
+          <label className="form-field full">
+            <span>Terms of service</span>
+            <textarea
+              name="termsText"
+              rows="5"
+              defaultValue={termsText}
+              placeholder="Enter the terms attendees must accept before signing up..."
+            />
+          </label>
           <label className="form-field full asset-upload-field">
             <span>Home screen image</span>
             <input
@@ -334,6 +345,20 @@ export function AdminPanel({
               }
             />
             <small>Recommended: 1200 x 800 px transparent PNG/JPG.</small>
+          </label>
+          <label className="form-field full asset-upload-field">
+            <span>Expo map image</span>
+            <input
+              type="file"
+              accept="image/png,image/jpeg,image/jpg"
+              onChange={(event) =>
+                uploadSettingsImage('mapSrc', event.target.files?.[0])
+              }
+            />
+            <small>
+              Recommended: 3000 x 2000 px or larger PNG/JPG. Keep the same crop
+              if replacing later so saved booth pins stay aligned.
+            </small>
           </label>
           <button type="submit" className="primary">
             Save settings

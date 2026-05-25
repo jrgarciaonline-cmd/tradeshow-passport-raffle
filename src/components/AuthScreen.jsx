@@ -6,6 +6,7 @@ const emptyRegistration = {
   phone: '',
   role: 'Landscape Architect',
   otherRole: '',
+  acceptedTerms: false,
 }
 
 const emptySignIn = {
@@ -28,6 +29,7 @@ export function AuthScreen({
   onSignIn,
   onAdminSignIn,
   onSelectEvent,
+  termsText = '',
 }) {
   const [view, setView] = useState(initialView)
   const [registration, setRegistration] = useState(emptyRegistration)
@@ -216,7 +218,28 @@ export function AuthScreen({
               />
             </label>
           )}
-          <button type="submit" className="primary">
+          <div className="signup-terms">
+            <div className="signup-terms-copy">
+              {termsText ||
+                'By creating a passport, I agree to participate in this raffle and allow my submitted information to be used for raffle administration and event follow-up.'}
+            </div>
+            <label className="signup-terms-check">
+              <input
+                required
+                type="checkbox"
+                checked={registration.acceptedTerms}
+                onChange={(event) =>
+                  updateRegistration('acceptedTerms', event.target.checked)
+                }
+              />
+              <span>I accept the terms of service.</span>
+            </label>
+          </div>
+          <button
+            type="submit"
+            className="primary"
+            disabled={!registration.acceptedTerms}
+          >
             Create Passport
           </button>
         </form>

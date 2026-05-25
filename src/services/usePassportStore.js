@@ -281,13 +281,19 @@ export function usePassportStore() {
       return { ok: false, message: 'Please complete every required field.' }
     }
 
+    if (!profile.acceptedTerms) {
+      return { ok: false, message: 'Please accept the terms of service to continue.' }
+    }
+
+    const acceptedTermsAt = new Date().toISOString()
     const attendee = {
       id: crypto.randomUUID(),
       name: profile.name.trim(),
       email,
       phone: profile.phone.trim(),
       role,
-      createdAt: new Date().toISOString(),
+      acceptedTermsAt,
+      createdAt: acceptedTermsAt,
     }
 
     updateState((current) => ({
@@ -807,7 +813,15 @@ export function usePassportStore() {
   }
 
   const exportAttendeesCsv = () => {
-    const header = ['Name', 'Email', 'Phone', 'Role', 'Scans Completed', 'Signed Up At']
+    const header = [
+      'Name',
+      'Email',
+      'Phone',
+      'Role',
+      'Scans Completed',
+      'Signed Up At',
+      'Terms Accepted At',
+    ]
     const body = state.attendees.map((attendee) =>
       [
         attendee.name,
@@ -816,6 +830,7 @@ export function usePassportStore() {
         attendee.role,
         state.attendeeProgress[attendee.id]?.length ?? 0,
         attendee.createdAt,
+        attendee.acceptedTermsAt,
       ]
         .map(toCsvValue)
         .join(','),

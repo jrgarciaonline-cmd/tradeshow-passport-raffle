@@ -912,11 +912,30 @@ button:disabled {
   justify-content: space-between;
 }
 
+.pinch-map-header:has(.map-zoom-controls) {
+  justify-content: space-between;
+}
+
 .pinch-map-header span {
   color: #5f6294;
   font-size: 0.62rem;
   font-weight: 800;
   text-transform: uppercase;
+}
+
+.map-zoom-controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.map-zoom-controls button {
+  min-width: 30px;
+  min-height: 28px;
+  padding: 0 8px;
+  border-radius: 4px;
+  font-size: 0.68rem;
+  line-height: 1;
 }
 
 .pinch-map-scroll {
@@ -1277,6 +1296,45 @@ button:disabled {
 
 .auth-form button {
   margin-top: 2px;
+}
+
+.signup-terms {
+  display: grid;
+  gap: 8px;
+}
+
+.signup-terms-copy {
+  max-height: 96px;
+  overflow: auto;
+  border: 1px solid #d8d8ec;
+  border-radius: 6px;
+  padding: 10px;
+  color: #4d4f70;
+  background: #f8f8ff;
+  font-size: 0.74rem;
+  font-weight: 700;
+  line-height: 1.45;
+  text-transform: none;
+}
+
+.signup-terms-check {
+  display: grid;
+  grid-template-columns: 18px 1fr;
+  align-items: start;
+  gap: 8px;
+  color: var(--ink);
+  font-size: 0.76rem;
+  font-weight: 900;
+  line-height: 1.35;
+  text-transform: none;
+}
+
+.signup-terms-check input {
+  width: 18px;
+  min-height: 18px;
+  margin: 0;
+  padding: 0;
+  accent-color: var(--app-blue);
 }
 
 .demo-credentials {

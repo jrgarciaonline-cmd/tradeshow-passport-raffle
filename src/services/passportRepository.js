@@ -10,6 +10,8 @@ const DEFAULT_EVENT_ID = 'landfx-passport-raffle'
 const OFFLINE_QUEUE_KEY = 'tradeshow-passport-offline-queue-v1'
 const DEFAULT_MAP_SRC = '/maps/asla_map.PNG'
 const PLACEHOLDER_MAP_SRC = '/maps/placeholder_map.svg'
+const DEFAULT_TERMS_TEXT =
+  'By creating a passport, I agree to participate in this raffle and allow my submitted information to be used for raffle administration and event follow-up.'
 
 const defaultEvent = {
   id: DEFAULT_EVENT_ID,
@@ -32,6 +34,7 @@ function getInitialEventState() {
       instructions: defaultInstructions,
       mapSrc: DEFAULT_MAP_SRC,
       boothCategories: defaultBoothCategories,
+      termsText: DEFAULT_TERMS_TEXT,
     },
   }
 }
@@ -64,6 +67,7 @@ function getPlaceholderEventState() {
       instructions: defaultInstructions,
       mapSrc: PLACEHOLDER_MAP_SRC,
       boothCategories: [],
+      termsText: DEFAULT_TERMS_TEXT,
     },
   }
 }
@@ -258,6 +262,11 @@ function mergeSharedState(state, sharedState, options = {}) {
           boothCategories: Array.isArray(sharedState.settings?.boothCategories)
             ? sharedState.settings.boothCategories
             : baseSettings.boothCategories,
+          termsText:
+            sharedState.settings?.termsText ||
+            state.settings?.termsText ||
+            baseSettings.termsText ||
+            DEFAULT_TERMS_TEXT,
         },
   }
 }

@@ -133,6 +133,7 @@ export function AdminDashboard({ store }) {
       : defaultInstructions
   ).join('\n')
   const categoryText = (store.settings?.boothCategories ?? []).join('\n')
+  const termsText = store.settings?.termsText ?? ''
   const boothCategoryOptions = useMemo(() => {
     const categorySet = new Set([
       ...(store.settings?.boothCategories ?? []),
@@ -953,6 +954,7 @@ export function AdminDashboard({ store }) {
                   requiredScanCount: formData.get('requiredScanCount'),
                   instructions,
                   boothCategories,
+                  termsText: String(formData.get('termsText') ?? '').trim(),
                 })
               }}
             >
@@ -987,6 +989,15 @@ export function AdminDashboard({ store }) {
                   placeholder="Irrigation&#10;Lighting&#10;Hardscape"
                 />
               </label>
+              <label className="form-field">
+                <span>Terms of service</span>
+                <textarea
+                  name="termsText"
+                  rows="6"
+                  defaultValue={termsText}
+                  placeholder="Enter the terms attendees must accept before signing up..."
+                />
+              </label>
               <label className="form-field asset-upload-field">
                 <span>Home screen image</span>
                 <input
@@ -1008,6 +1019,20 @@ export function AdminDashboard({ store }) {
                   }
                 />
                 <small>Recommended: 1200 x 800 px transparent PNG/JPG.</small>
+              </label>
+              <label className="form-field asset-upload-field">
+                <span>Expo map image</span>
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/jpg"
+                  onChange={(event) =>
+                    uploadSettingsImage('mapSrc', event.target.files?.[0])
+                  }
+                />
+                <small>
+                  Recommended: 3000 x 2000 px or larger PNG/JPG. Keep the same crop
+                  if replacing later so saved booth pins stay aligned.
+                </small>
               </label>
               <button type="submit" className="primary">
                 Save Settings

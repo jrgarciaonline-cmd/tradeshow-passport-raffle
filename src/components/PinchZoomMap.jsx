@@ -151,12 +151,52 @@ export function PinchZoomMap({
     })
   }
 
+  const zoomAtPoint = (clientX, clientY, nextScale) => {
+    const rect = viewportRef.current?.getBoundingClientRect()
+    if (!rect) return
+
+    const currentView = viewRef.current
+    const scale = clamp(nextScale, getFitScale(rect, mapSize), MAX_SCALE)
+    const anchorX = clientX - rect.left
+    const anchorY = clientY - rect.top
+    const mapX = (anchorX - currentView.x) / currentView.scale
+    const mapY = (anchorY - currentView.y) / currentView.scale
+
+    updateView({
+      scale,
+      x: anchorX - mapX * scale,
+      y: anchorY - mapY * scale,
+    })
+  }
+
+  const zoomFromCenter = (factor) => {
+    const rect = viewportRef.current?.getBoundingClientRect()
+    if (!rect) return
+
+    zoomAtPoint(
+      rect.left + rect.width / 2,
+      rect.top + rect.height / 2,
+      viewRef.current.scale * factor,
+    )
+  }
+
+  const resetView = () => {
+    const rect = viewportRef.current?.getBoundingClientRect()
+    if (!rect) return
+
+    updateView({
+      scale: getFitScale(rect, mapSize),
+      x: 0,
+      y: 0,
+    })
+  }
+
   useEffect(() => {
     focusBoothIdRef.current = focusBoothId
   }, [focusBoothId])
 
   useEffect(() => {
-    if (focusBoothIdRef.current) return
+    if (focusBoothIdRef.current || lastFocusedBoothId.current) return
 
     const rect = viewportRef.current?.getBoundingClientRect()
     if (!rect) return
@@ -237,10 +277,27 @@ export function PinchZoomMap({
       <div className="pinch-map-header">
         {title && <strong>{title}</strong>}
         <span>{placementBoothId ? 'Tap map to place' : 'Pinch or drag'}</span>
+        <div className="map-zoom-controls" aria-label="Map zoom controls">
+          <button type="button" onClick={() => zoomFromCenter(1.22)} aria-label="Zoom in">
+            +
+          </button>
+          <button type="button" onClick={() => zoomFromCenter(0.82)} aria-label="Zoom out">
+            -
+          </button>
+          <button type="button" onClick={resetView} aria-label="Reset map zoom">
+            Reset
+          </button>
+        </div>
       </div>
       <div
         ref={viewportRef}
         className="pinch-map-scroll"
+        onWheel={(event) => {
+          event.preventDefault()
+          const delta = -event.deltaY
+          const factor = delta > 0 ? 1.14 : 0.88
+          zoomAtPoint(event.clientX, event.clientY, viewRef.current.scale * factor)
+        }}
         onPointerDown={(event) => {
           event.preventDefault()
           movedDuringGesture.current = false
