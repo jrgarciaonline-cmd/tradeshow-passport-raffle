@@ -1,4 +1,4 @@
-import { defaultBooths, defaultInstructions } from '../data/mockData'
+import { defaultBoothCategories, defaultBooths, defaultInstructions } from '../data/mockData'
 
 const STORAGE_KEY = 'tradeshow-passport-raffle-v2'
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
@@ -31,6 +31,7 @@ function getInitialEventState() {
       requiredScanCount: 4,
       instructions: defaultInstructions,
       mapSrc: DEFAULT_MAP_SRC,
+      boothCategories: defaultBoothCategories,
     },
   }
 }
@@ -62,6 +63,7 @@ function getPlaceholderEventState() {
       requiredScanCount: 1,
       instructions: defaultInstructions,
       mapSrc: PLACEHOLDER_MAP_SRC,
+      boothCategories: [],
     },
   }
 }
@@ -252,6 +254,9 @@ function mergeSharedState(state, sharedState, options = {}) {
             ? sharedState.settings.instructions
             : state.settings.instructions,
           mapSrc: sharedState.settings?.mapSrc || state.settings.mapSrc,
+          boothCategories: Array.isArray(sharedState.settings?.boothCategories)
+            ? sharedState.settings.boothCategories
+            : state.settings.boothCategories,
         },
   }
 }

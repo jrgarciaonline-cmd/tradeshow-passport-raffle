@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { defaultInstructions } from '../data/mockData'
 import { PinchZoomMap } from './PinchZoomMap'
 import { WinnerWheel } from './WinnerWheel'
@@ -6,7 +6,7 @@ import { WinnerWheel } from './WinnerWheel'
 const emptyBooth = {
   id: '',
   name: '',
-  category: 'Irrigation',
+  category: '',
   location: '',
   description: '',
   websiteUrl: '',
@@ -16,7 +16,6 @@ const emptyBooth = {
 }
 
 const adminSections = ['Events', 'Settings', 'Booths', 'Map', 'Signups', 'Raffle', 'Winner', 'Picked']
-const manufacturerCategories = ['Irrigation', 'Site', 'Lighting', 'Hardscape', 'Other']
 const emptyEventDraft = { id: '', name: '', status: 'hidden', createdAt: '' }
 
 function readImageFile(file) {
@@ -73,6 +72,15 @@ export function AdminPanel({
   const instructionsText = (
     settings?.instructions?.length ? settings.instructions : defaultInstructions
   ).join('\n')
+  const categoryText = (settings?.boothCategories ?? []).join('\n')
+  const boothCategoryOptions = useMemo(() => {
+    const categorySet = new Set([
+      ...(settings?.boothCategories ?? []),
+      draft.category,
+    ].filter(Boolean))
+
+    return [...categorySet]
+  }, [draft.category, settings?.boothCategories])
 
   const editBooth = (booth) => {
     setActiveAdminSection('Booths')
@@ -265,9 +273,14 @@ export function AdminPanel({
               .split('\n')
               .map((line) => line.trim())
               .filter((line) => line.length > 0)
+            const boothCategories = String(formData.get('boothCategories') ?? '')
+              .split('\n')
+              .map((line) => line.trim())
+              .filter((line) => line.length > 0)
             onSaveSettings({
               requiredScanCount: formData.get('requiredScanCount'),
               instructions,
+              boothCategories,
             })
           }}
         >
@@ -289,6 +302,15 @@ export function AdminPanel({
               rows="6"
               defaultValue={instructionsText}
               placeholder="Enter each instruction on a new line..."
+            />
+          </label>
+          <label className="form-field full">
+            <span>Booth categories (one per line)</span>
+            <textarea
+              name="boothCategories"
+              rows="4"
+              defaultValue={categoryText}
+              placeholder="Irrigation&#10;Lighting&#10;Hardscape"
             />
           </label>
           <label className="form-field full asset-upload-field">
@@ -348,7 +370,10 @@ export function AdminPanel({
               value={draft.category}
               onChange={(event) => updateDraft('category', event.target.value)}
             >
-              {manufacturerCategories.map((category) => (
+              <option value="" disabled>
+                Add categories in Settings
+              </option>
+              {boothCategoryOptions.map((category) => (
                 <option key={category} value={category}>
                   {category}
                 </option>

@@ -80,8 +80,7 @@ export const defaultBooths = [
   },
 ]
 
-export const boothCategories = [
-  'All',
+export const defaultBoothCategories = [
   'Equipment',
   'Hardscapes',
   'Irrigation',

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import './App.css'
-import { boothCategories, defaultInstructions } from './data/mockData'
+import { defaultInstructions } from './data/mockData'
 import { usePassportStore } from './services/usePassportStore'
 import { AdminDashboard } from './components/AdminDashboard'
 import { AdminPanel } from './components/AdminPanel'
@@ -46,12 +46,23 @@ function App() {
   const instructions = store.settings?.instructions?.length
     ? store.settings.instructions
     : defaultInstructions
+  const boothCategoryOptions = useMemo(() => {
+    const categorySet = new Set([
+      ...(store.settings?.boothCategories ?? []),
+      ...store.booths.map((booth) => booth.category).filter(Boolean),
+    ])
+
+    return ['All', ...categorySet]
+  }, [store.booths, store.settings?.boothCategories])
+
+  const selectedCategory = boothCategoryOptions.includes(category) ? category : 'All'
 
   const filteredBooths = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase()
 
     return store.booths.filter((booth) => {
-      const matchesCategory = category === 'All' || booth.category === category
+      const matchesCategory =
+        selectedCategory === 'All' || booth.category === selectedCategory
       const matchesQuery =
         !normalizedQuery ||
         [booth.name, booth.location, booth.description, booth.category]
@@ -61,7 +72,7 @@ function App() {
 
       return matchesCategory && matchesQuery
     })
-  }, [category, query, store.booths])
+  }, [query, selectedCategory, store.booths])
 
   const completedBooths = filteredBooths.filter((booth) =>
     store.completedIds.includes(booth.id),
@@ -340,10 +351,10 @@ function App() {
                 <label className="select-field">
                   <span>Filter</span>
                   <select
-                    value={category}
+                    value={selectedCategory}
                     onChange={(event) => setCategory(event.target.value)}
                   >
-                    {boothCategories.map((item) => (
+                    {boothCategoryOptions.map((item) => (
                       <option key={item}>{item}</option>
                     ))}
                   </select>

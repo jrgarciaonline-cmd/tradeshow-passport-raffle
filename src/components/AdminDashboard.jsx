@@ -11,7 +11,7 @@ import { WinnerConfetti } from './WinnerConfetti'
 const emptyBooth = {
   id: '',
   name: '',
-  category: 'Irrigation',
+  category: '',
   location: '',
   description: '',
   websiteUrl: '',
@@ -46,8 +46,6 @@ const emptyEventDraft = {
   status: 'hidden',
   createdAt: '',
 }
-
-const manufacturerCategories = ['Irrigation', 'Site', 'Lighting', 'Hardscape', 'Other']
 
 function confirmWinnerReset() {
   return (
@@ -134,6 +132,15 @@ export function AdminDashboard({ store }) {
       ? store.settings.instructions
       : defaultInstructions
   ).join('\n')
+  const categoryText = (store.settings?.boothCategories ?? []).join('\n')
+  const boothCategoryOptions = useMemo(() => {
+    const categorySet = new Set([
+      ...(store.settings?.boothCategories ?? []),
+      draft.category,
+    ].filter(Boolean))
+
+    return [...categorySet]
+  }, [draft.category, store.settings?.boothCategories])
   const winner =
     winnerSelection.eventId === store.activeEventId ? winnerSelection.entry : null
 
@@ -724,7 +731,10 @@ export function AdminDashboard({ store }) {
                       updateDraft('category', event.target.value)
                     }
                   >
-                    {manufacturerCategories.map((category) => (
+                    <option value="" disabled>
+                      Add categories in Settings
+                    </option>
+                    {boothCategoryOptions.map((category) => (
                       <option key={category} value={category}>
                         {category}
                       </option>
@@ -934,10 +944,15 @@ export function AdminDashboard({ store }) {
                   .split('\n')
                   .map((line) => line.trim())
                   .filter((line) => line.length > 0)
+                const boothCategories = String(formData.get('boothCategories') ?? '')
+                  .split('\n')
+                  .map((line) => line.trim())
+                  .filter((line) => line.length > 0)
 
                 store.saveSettings({
                   requiredScanCount: formData.get('requiredScanCount'),
                   instructions,
+                  boothCategories,
                 })
               }}
             >
@@ -961,6 +976,15 @@ export function AdminDashboard({ store }) {
                   name="instructions"
                   rows="9"
                   defaultValue={instructionsText}
+                />
+              </label>
+              <label className="form-field">
+                <span>Booth categories, one per line</span>
+                <textarea
+                  name="boothCategories"
+                  rows="5"
+                  defaultValue={categoryText}
+                  placeholder="Irrigation&#10;Lighting&#10;Hardscape"
                 />
               </label>
               <label className="form-field asset-upload-field">
