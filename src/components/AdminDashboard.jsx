@@ -633,6 +633,34 @@ export function AdminDashboard({ store }) {
                             >
                               Edit
                             </button>
+                            {event.status === 'active' && (
+                              <button
+                                type="button"
+                                onClick={async () => {
+                                  const result = await store.saveEvent({
+                                    ...event,
+                                    status: 'hidden',
+                                  })
+                                  setEventMessage(result.message)
+                                }}
+                              >
+                                Hide
+                              </button>
+                            )}
+                            {event.status === 'hidden' && (
+                              <button
+                                type="button"
+                                onClick={async () => {
+                                  const result = await store.saveEvent({
+                                    ...event,
+                                    status: 'active',
+                                  })
+                                  setEventMessage(result.message)
+                                }}
+                              >
+                                Show
+                              </button>
+                            )}
                             {event.status === 'archived' ? (
                               <button
                                 type="button"

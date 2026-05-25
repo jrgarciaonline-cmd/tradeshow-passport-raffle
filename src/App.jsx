@@ -75,6 +75,10 @@ function App() {
   const pendingSyncCount = store.syncStatus?.pendingCount ?? 0
   const isOffline = store.syncStatus?.online === false
   const canShowSyncStatus = Boolean(store.session || store.adminAuthenticated)
+  const attendeeActiveEvent =
+    store.activeEvents.find((event) => event.id === store.activeEventId) ??
+    store.activeEvents[0] ??
+    store.activeEvent
   const syncMessage = canShowSyncStatus
     ? isOffline
       ? pendingSyncCount
@@ -95,6 +99,23 @@ function App() {
     }
     return result
   }
+
+  useEffect(() => {
+    if (
+      activeMode === 'attendee' &&
+      !store.session &&
+      store.activeEvents.length > 0 &&
+      !store.activeEvents.some((event) => event.id === store.activeEventId)
+    ) {
+      store.selectEvent(store.activeEvents[0].id)
+    }
+  }, [
+    activeMode,
+    store.session,
+    store.activeEventId,
+    store.activeEvents,
+    store,
+  ])
 
   useEffect(() => {
     if (!scannedBoothId) return undefined
@@ -227,7 +248,7 @@ function App() {
         <div className="app-content">
           {!store.session && activeMode !== 'admin' && (
             <AuthScreen
-              activeEvent={store.activeEvent}
+              activeEvent={attendeeActiveEvent}
               activeEvents={store.activeEvents}
               key={authView}
               initialView={authView}

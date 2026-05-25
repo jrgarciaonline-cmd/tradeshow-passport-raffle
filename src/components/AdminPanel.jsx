@@ -200,6 +200,34 @@ export function AdminPanel({
                 <button type="button" onClick={() => setEventDraft(event)}>
                   Edit
                 </button>
+                {event.status === 'active' && (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const result = await onSaveEvent({
+                        ...event,
+                        status: 'hidden',
+                      })
+                      setEventMessage(result.message)
+                    }}
+                  >
+                    Hide
+                  </button>
+                )}
+                {event.status === 'hidden' && (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const result = await onSaveEvent({
+                        ...event,
+                        status: 'active',
+                      })
+                      setEventMessage(result.message)
+                    }}
+                  >
+                    Show
+                  </button>
+                )}
                 {event.status === 'archived' ? (
                   <button
                     type="button"
