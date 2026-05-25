@@ -88,6 +88,8 @@ export function PinchZoomMap({
   const pointerStart = useRef(null)
   const lastFocusedBoothId = useRef('')
   const focusBoothIdRef = useRef(focusBoothId)
+  const pendingFocus = useRef(null)
+  const hasPositionedView = useRef(false)
   const [view, setView] = useState(INITIAL_VIEW)
   const [mapSize, setMapSize] = useState(INITIAL_MAP_SIZE)
   const [selectedBoothId, setSelectedBoothId] = useState(null)
@@ -100,6 +102,7 @@ export function PinchZoomMap({
       if (!rect) return
 
       const constrained = constrainView(nextView, rect, mapSize)
+      hasPositionedView.current = true
       viewRef.current = constrained
       setView(constrained)
     })
@@ -152,6 +155,7 @@ export function PinchZoomMap({
   }
 
   const zoomAtPoint = (clientX, clientY, nextScale) => {
+    pendingFocus.current = null
     const rect = viewportRef.current?.getBoundingClientRect()
     if (!rect) return
 
@@ -181,6 +185,7 @@ export function PinchZoomMap({
   }
 
   const resetView = () => {
+    pendingFocus.current = null
     const rect = viewportRef.current?.getBoundingClientRect()
     if (!rect) return
 
@@ -193,10 +198,13 @@ export function PinchZoomMap({
 
   useEffect(() => {
     focusBoothIdRef.current = focusBoothId
-  }, [focusBoothId])
+    if (focusBoothId) {
+      pendingFocus.current = { boothId: focusBoothId, key: focusKey }
+    }
+  }, [focusBoothId, focusKey])
 
   useEffect(() => {
-    if (focusBoothIdRef.current || lastFocusedBoothId.current) return
+    if (focusBoothIdRef.current || hasPositionedView.current) return
 
     const rect = viewportRef.current?.getBoundingClientRect()
     if (!rect) return
@@ -211,6 +219,7 @@ export function PinchZoomMap({
       mapSize,
     )
 
+    hasPositionedView.current = true
     viewRef.current = fittedView
     setView(fittedView)
   }, [mapSize])
@@ -232,16 +241,18 @@ export function PinchZoomMap({
   }, [mapSize])
 
   useEffect(() => {
-    if (!focusBoothId) {
-      lastFocusedBoothId.current = ''
-      return
+    if (focusBoothId) {
+      pendingFocus.current = { boothId: focusBoothId, key: focusKey }
     }
 
-    const focusRequestId = `${focusBoothId}:${focusKey}:${mapSize.width}x${mapSize.height}`
+    const focusRequest = pendingFocus.current
+    if (!focusRequest?.boothId) return
+
+    const focusRequestId = `${focusRequest.boothId}:${focusRequest.key}:${mapSize.width}x${mapSize.height}`
     if (lastFocusedBoothId.current === focusRequestId) return
 
     const frame = requestAnimationFrame(() => {
-      const booth = booths.find((item) => item.id === focusBoothId)
+      const booth = booths.find((item) => item.id === focusRequest.boothId)
       const rect = viewportRef.current?.getBoundingClientRect()
       if (!booth || !rect) return
 
@@ -263,6 +274,7 @@ export function PinchZoomMap({
         mapSize,
       )
 
+      hasPositionedView.current = true
       viewRef.current = focusedView
       setView(focusedView)
       lastFocusedBoothId.current = focusRequestId
@@ -294,12 +306,14 @@ export function PinchZoomMap({
         className="pinch-map-scroll"
         onWheel={(event) => {
           event.preventDefault()
+          pendingFocus.current = null
           const delta = -event.deltaY
           const factor = delta > 0 ? 1.14 : 0.88
           zoomAtPoint(event.clientX, event.clientY, viewRef.current.scale * factor)
         }}
         onPointerDown={(event) => {
           event.preventDefault()
+          pendingFocus.current = null
           movedDuringGesture.current = false
           pointerStart.current = { x: event.clientX, y: event.clientY }
           event.currentTarget.setPointerCapture(event.pointerId)
