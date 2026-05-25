@@ -70,6 +70,15 @@ function App() {
   const visibleBooths =
     challengeView === 'Completed' ? completedBooths : activeBooths
   const activeMode = store.adminAuthenticated && mode === 'admin' ? 'admin' : 'attendee'
+  const pendingSyncCount = store.syncStatus?.pendingCount ?? 0
+  const isOffline = store.syncStatus?.online === false
+  const syncMessage = isOffline
+    ? pendingSyncCount
+      ? `${pendingSyncCount} saved update${pendingSyncCount === 1 ? '' : 's'} will sync when online`
+      : 'Offline mode'
+    : pendingSyncCount
+      ? `Syncing ${pendingSyncCount} saved update${pendingSyncCount === 1 ? '' : 's'}`
+      : ''
 
   const handleScan = (code) => {
     const result = store.checkInByCode(code)
@@ -199,14 +208,25 @@ function App() {
             ⎋
           </button>
         </header>
+        {syncMessage && (
+          <div
+            className={`sync-status-badge ${isOffline ? 'is-offline' : ''}`}
+            role="status"
+          >
+            {syncMessage}
+          </div>
+        )}
 
         <div className="app-content">
           {!store.session && activeMode !== 'admin' && (
             <AuthScreen
+              activeEvent={store.activeEvent}
+              activeEvents={store.activeEvents}
               key={authView}
               initialView={authView}
               onRegister={store.registerAttendee}
               onSignIn={store.signInAttendee}
+              onSelectEvent={store.selectEvent}
               onAdminSignIn={async (credentials) => {
                 const result = await store.signInAdmin(credentials)
                 if (result.ok) setMode('admin')
@@ -364,6 +384,12 @@ function App() {
               winners={store.winners}
               attendeeProgress={store.attendeeProgress}
               requiredScanCount={store.requiredScanCount}
+              events={store.events}
+              activeEvent={store.activeEvent}
+              activeEventId={store.activeEventId}
+              onSelectEvent={store.selectEvent}
+              onSaveEvent={store.saveEvent}
+              onArchiveEvent={store.archiveEvent}
               onSaveBooth={store.saveBooth}
               onDeleteBooth={store.deleteBooth}
               onPlaceBooth={store.placeBoothOnMap}

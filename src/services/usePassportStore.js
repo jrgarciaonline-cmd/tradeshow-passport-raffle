@@ -68,8 +68,16 @@ function buildWinner(entry) {
 
 export function usePassportStore() {
   const [state, setState] = useState(() => passportRepository.load())
+  const [syncStatus, setSyncStatus] = useState(() =>
+    passportRepository.getOfflineQueueStatus(),
+  )
   const sharedSavePending = useRef(false)
   const preserveLocalUntil = useRef({})
+  const activeEventIdRef = useRef(state.activeEventId)
+
+  const refreshSyncStatus = () => {
+    setSyncStatus(passportRepository.getOfflineQueueStatus())
+  }
 
   const updateState = (updater, options = {}) => {
     setState((current) => {
@@ -82,10 +90,33 @@ export function usePassportStore() {
             : options.sharedPatch
         if (!patch) return next
         sharedSavePending.current = true
-        passportRepository.saveSharedPatch(patch).finally(() => {
-          sharedSavePending.current = false
-        })
+        passportRepository
+          .saveSharedPatch(patch, next.activeEventId)
+          .then(refreshSyncStatus)
+          .finally(() => {
+            sharedSavePending.current = false
+          })
       }
+      return next
+    })
+  }
+
+  const loadEventState = async (eventId, options = {}) => {
+    const eventState = await passportRepository.loadShared(eventId)
+    setState((current) => {
+      if (activeEventIdRef.current !== eventId) return current
+
+      const baseState = {
+        ...current,
+        ...passportRepository.getInitialEventState(),
+        activeEventId: eventId,
+        session: options.clearSession ? null : current.session,
+      }
+      const next = eventState
+        ? passportRepository.mergeShared(baseState, eventState)
+        : baseState
+
+      passportRepository.save(next)
       return next
     })
   }
@@ -96,13 +127,24 @@ export function usePassportStore() {
     let cancelled = false
 
     const syncSharedState = async () => {
-      const sharedState = await passportRepository.loadShared()
+      const queueStatus = await passportRepository.flushOfflineQueue()
+      if (!cancelled) setSyncStatus(queueStatus)
+      if (queueStatus.pendingCount > 0 || !queueStatus.online) return
+
+      const events = await passportRepository.loadEventIndex()
+      const eventId = activeEventIdRef.current
+      const sharedState = await passportRepository.loadShared(eventId)
 
       setState((current) => {
         if (cancelled) return current
         if (sharedSavePending.current) return current
 
-        if (!sharedState) return current
+        const nextEvents = events?.length ? events : current.events
+        if (!sharedState) {
+          const next = { ...current, events: nextEvents }
+          passportRepository.save(next)
+          return next
+        }
 
         const now = Date.now()
         const next = passportRepository.mergeShared(current, sharedState, {
@@ -111,8 +153,9 @@ export function usePassportStore() {
             settings: (preserveLocalUntil.current.settings ?? 0) > now,
           },
         })
-        passportRepository.save(next)
-        return next
+        const nextWithEvents = { ...next, events: nextEvents }
+        passportRepository.save(nextWithEvents)
+        return nextWithEvents
       })
     }
 
@@ -124,6 +167,7 @@ export function usePassportStore() {
 
     window.addEventListener('focus', syncSharedState)
     window.addEventListener('online', syncSharedState)
+    window.addEventListener('offline', refreshSyncStatus)
     document.addEventListener('visibilitychange', syncWhenVisible)
 
     return () => {
@@ -131,9 +175,14 @@ export function usePassportStore() {
       window.clearInterval(intervalId)
       window.removeEventListener('focus', syncSharedState)
       window.removeEventListener('online', syncSharedState)
+      window.removeEventListener('offline', refreshSyncStatus)
       document.removeEventListener('visibilitychange', syncWhenVisible)
     }
   }, [])
+
+  useEffect(() => {
+    activeEventIdRef.current = state.activeEventId
+  }, [state.activeEventId])
 
   const requiredScanCount = state.settings?.requiredScanCount ?? 4
   const passportComplete = state.completedIds.length >= requiredScanCount
@@ -148,6 +197,67 @@ export function usePassportStore() {
     currentAttendee && state.attendeeLocation
       ? state.attendeeLocation[currentAttendee.id]
       : ''
+  const activeEvent = state.events.find((event) => event.id === state.activeEventId)
+  const activeEvents = state.events.filter((event) => event.status === 'active')
+
+  const selectEvent = (eventId) => {
+    const nextEventId = state.events.find((event) => event.id === eventId)?.id
+    if (!nextEventId || nextEventId === state.activeEventId) {
+      return { ok: true, message: 'Event already selected.' }
+    }
+
+    activeEventIdRef.current = nextEventId
+    updateState((current) => ({
+      ...current,
+      ...passportRepository.getInitialEventState(),
+      activeEventId: nextEventId,
+      session: null,
+    }))
+    loadEventState(nextEventId, { clearSession: true })
+    return { ok: true, message: 'Event selected.' }
+  }
+
+  const saveEvent = (eventDraft) => {
+    const name = String(eventDraft.name ?? '').trim()
+    if (!name) return { ok: false, message: 'Enter an event name.' }
+
+    const id = eventDraft.id || buildBoothId(name) || crypto.randomUUID()
+    const nextEvent = {
+      id,
+      name,
+      status: eventDraft.status === 'archived' ? 'archived' : 'active',
+      createdAt: eventDraft.createdAt || new Date().toISOString(),
+    }
+
+    updateState((current) => {
+      const exists = current.events.some((event) => event.id === id)
+      const events = exists
+        ? current.events.map((event) => (event.id === id ? { ...event, ...nextEvent } : event))
+        : [...current.events, nextEvent]
+
+      passportRepository.saveEventIndex(events)
+      return {
+        ...current,
+        events,
+      }
+    })
+
+    if (!eventDraft.id) {
+      passportRepository.saveShared({
+        ...passportRepository.getInitialEventState(),
+        activeEventId: id,
+      })
+    }
+
+    return { ok: true, message: `${name} saved.` }
+  }
+
+  const archiveEvent = (eventId) => {
+    const event = state.events.find((item) => item.id === eventId)
+    if (!event) return { ok: false, message: 'Event not found.' }
+
+    return saveEvent({ ...event, status: 'archived' })
+  }
 
   const registerAttendee = (profile) => {
     const email = normalizeEmail(profile.email)
@@ -703,6 +813,12 @@ export function usePassportStore() {
     currentAttendee,
     currentAttendeeEntry,
     currentLocationBoothId,
+    syncStatus,
+    activeEvent,
+    activeEvents,
+    selectEvent,
+    saveEvent,
+    archiveEvent,
     registerAttendee,
     signInAttendee,
     signInAdmin,

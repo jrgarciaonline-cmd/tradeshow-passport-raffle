@@ -20,7 +20,15 @@ const emptyAdmin = {
 
 const roles = ['Landscape Architect', 'Manufacturer', 'Student', 'Other']
 
-export function AuthScreen({ initialView = 'signup', onRegister, onSignIn, onAdminSignIn }) {
+export function AuthScreen({
+  activeEvent,
+  activeEvents = [],
+  initialView = 'signup',
+  onRegister,
+  onSignIn,
+  onAdminSignIn,
+  onSelectEvent,
+}) {
   const [view, setView] = useState(initialView)
   const [registration, setRegistration] = useState(emptyRegistration)
   const [signIn, setSignIn] = useState(emptySignIn)
@@ -47,8 +55,28 @@ export function AuthScreen({ initialView = 'signup', onRegister, onSignIn, onAdm
       />
       <div>
         <h1>Passport Raffle</h1>
-        <p>Sign in to collect booth scans and unlock your raffle entry.</p>
+        <p>
+          {activeEvent?.name
+            ? activeEvent.name
+            : 'Sign in to collect booth scans and unlock your raffle entry.'}
+        </p>
       </div>
+
+      {activeEvents.length > 1 && (
+        <label className="form-field event-select-field">
+          <span>Event</span>
+          <select
+            value={activeEvent?.id ?? ''}
+            onChange={(event) => onSelectEvent?.(event.target.value)}
+          >
+            {activeEvents.map((event) => (
+              <option key={event.id} value={event.id}>
+                {event.name}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
 
       <div className="auth-tabs" aria-label="Sign in options">
         <button

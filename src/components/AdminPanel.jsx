@@ -15,8 +15,9 @@ const emptyBooth = {
   color: '#007b70',
 }
 
-const adminSections = ['Settings', 'Booths', 'Map', 'Signups', 'Raffle', 'Winner', 'Picked']
+const adminSections = ['Events', 'Settings', 'Booths', 'Map', 'Signups', 'Raffle', 'Winner', 'Picked']
 const manufacturerCategories = ['Irrigation', 'Site', 'Lighting', 'Hardscape', 'Other']
+const emptyEventDraft = { id: '', name: '', status: 'active', createdAt: '' }
 
 function confirmWinnerReset() {
   return (
@@ -33,6 +34,12 @@ export function AdminPanel({
   winners,
   attendeeProgress,
   requiredScanCount,
+  events,
+  activeEvent,
+  activeEventId,
+  onSelectEvent,
+  onSaveEvent,
+  onArchiveEvent,
   onSaveBooth,
   onDeleteBooth,
   onPlaceBooth,
@@ -51,6 +58,8 @@ export function AdminPanel({
   const [placementBoothId, setPlacementBoothId] = useState('')
   const [manualEntryMessage, setManualEntryMessage] = useState('')
   const [activeAdminSection, setActiveAdminSection] = useState('Settings')
+  const [eventDraft, setEventDraft] = useState(emptyEventDraft)
+  const [eventMessage, setEventMessage] = useState('')
   const instructionsText = (
     settings?.instructions?.length ? settings.instructions : defaultInstructions
   ).join('\n')
@@ -79,7 +88,7 @@ export function AdminPanel({
       <div className="admin-actions">
         <div>
           <p className="eyebrow">Admin</p>
-          <h2>Manage Passport Raffle</h2>
+          <h2>{activeEvent?.name ?? 'Manage Passport Raffle'}</h2>
         </div>
         <div className="admin-quick-actions">
           <a className="button-link" href="/admin">
@@ -102,6 +111,93 @@ export function AdminPanel({
       </nav>
 
       <div className="admin-grid">
+        <div
+          className="admin-list-section"
+          hidden={activeAdminSection !== 'Events'}
+        >
+          <form
+            className="manual-entry-form"
+            onSubmit={(event) => {
+              event.preventDefault()
+              const result = onSaveEvent(eventDraft)
+              setEventMessage(result.message)
+              if (result.ok) setEventDraft(emptyEventDraft)
+            }}
+          >
+            <h3>{eventDraft.id ? 'Edit event' : 'Create event'}</h3>
+            <label className="form-field">
+              <span>Event name</span>
+              <input
+                required
+                value={eventDraft.name}
+                onChange={(event) =>
+                  setEventDraft((current) => ({
+                    ...current,
+                    name: event.target.value,
+                  }))
+                }
+              />
+            </label>
+            <label className="form-field">
+              <span>Status</span>
+              <select
+                value={eventDraft.status}
+                onChange={(event) =>
+                  setEventDraft((current) => ({
+                    ...current,
+                    status: event.target.value,
+                  }))
+                }
+              >
+                <option value="active">Active</option>
+                <option value="archived">Archived</option>
+              </select>
+            </label>
+            <button type="submit" className="primary">
+              {eventDraft.id ? 'Save event' : 'Create event'}
+            </button>
+            {eventMessage && <p className="muted">{eventMessage}</p>}
+          </form>
+
+          <div className="admin-section-heading">
+            <h3>Events</h3>
+          </div>
+          {events.map((event) => (
+            <article className="entry-card" key={event.id}>
+              <strong>{event.name}</strong>
+              <p className="muted">
+                {event.status}
+                {event.id === activeEventId ? ' / Current' : ''}
+              </p>
+              <div className="card-actions">
+                <button
+                  type="button"
+                  disabled={event.id === activeEventId}
+                  onClick={() => {
+                    const result = onSelectEvent(event.id)
+                    setEventMessage(result.message)
+                  }}
+                >
+                  Open
+                </button>
+                <button type="button" onClick={() => setEventDraft(event)}>
+                  Edit
+                </button>
+                <button
+                  type="button"
+                  disabled={event.status === 'archived'}
+                  onClick={() => {
+                    const result = onArchiveEvent(event.id)
+                    setEventMessage(result.message)
+                  }}
+                >
+                  Archive
+                </button>
+              </div>
+            </article>
+          ))}
+        </div>
+
         <form
           className="settings-form"
           hidden={activeAdminSection !== 'Settings'}

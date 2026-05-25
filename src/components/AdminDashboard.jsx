@@ -40,6 +40,13 @@ const emptyManualEntry = {
   chances: 1,
 }
 
+const emptyEventDraft = {
+  id: '',
+  name: '',
+  status: 'active',
+  createdAt: '',
+}
+
 const manufacturerCategories = ['Irrigation', 'Site', 'Lighting', 'Hardscape', 'Other']
 
 function confirmWinnerReset() {
@@ -107,6 +114,8 @@ export function AdminDashboard({ store }) {
     getInviteAccessToken() ? 'Loading your admin invitation...' : '',
   )
   const [invitePending, setInvitePending] = useState(false)
+  const [eventDraft, setEventDraft] = useState(emptyEventDraft)
+  const [eventMessage, setEventMessage] = useState('')
 
   const instructionsText = (
     store.settings?.instructions?.length
@@ -425,6 +434,7 @@ export function AdminDashboard({ store }) {
         </div>
         <nav aria-label="Admin sections">
           {[
+            'Events',
             'Booths',
             'Map',
             'Settings',
@@ -461,7 +471,9 @@ export function AdminDashboard({ store }) {
       <section className="admin-dashboard-main">
         <header className="admin-dashboard-header">
           <div>
-            <p className="eyebrow">Live Shared Admin</p>
+            <p className="eyebrow">
+              {store.activeEvent?.name ?? 'Live Shared Admin'}
+            </p>
             <h2>{activeSection}</h2>
           </div>
           <div className="admin-header-actions">
@@ -483,11 +495,141 @@ export function AdminDashboard({ store }) {
         </header>
 
         <div className="admin-stat-grid">
+          <StatCard label="Event" value={store.activeEvent?.name ?? 'None'} />
           <StatCard label="Booths" value={store.booths.length} />
           <StatCard label="Required Scans" value={store.requiredScanCount} />
           <StatCard label="Signups" value={store.attendees.length} />
           <StatCard label="Wheel Entries" value={wheelEntries.length} />
         </div>
+
+        {activeSection === 'Events' && (
+          <section className="admin-workspace two-column">
+            <form
+              className="desktop-card admin-editor-form"
+              onSubmit={(event) => {
+                event.preventDefault()
+                const result = store.saveEvent(eventDraft)
+                setEventMessage(result.message)
+                if (result.ok) setEventDraft(emptyEventDraft)
+              }}
+            >
+              <div>
+                <p className="eyebrow">
+                  {eventDraft.id ? 'Editing Event' : 'New Event'}
+                </p>
+                <h3>{eventDraft.id ? eventDraft.name : 'Create Event'}</h3>
+              </div>
+              <label className="form-field">
+                <span>Event Name</span>
+                <input
+                  required
+                  value={eventDraft.name}
+                  onChange={(event) =>
+                    setEventDraft((current) => ({
+                      ...current,
+                      name: event.target.value,
+                    }))
+                  }
+                  placeholder="ASLA Los Angeles 2026"
+                />
+              </label>
+              <label className="form-field">
+                <span>Status</span>
+                <select
+                  value={eventDraft.status}
+                  onChange={(event) =>
+                    setEventDraft((current) => ({
+                      ...current,
+                      status: event.target.value,
+                    }))
+                  }
+                >
+                  <option value="active">Active</option>
+                  <option value="archived">Archived</option>
+                </select>
+              </label>
+              <div className="admin-form-actions">
+                <button type="submit" className="primary">
+                  {eventDraft.id ? 'Save Event' : 'Create Event'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEventDraft(emptyEventDraft)}
+                >
+                  Clear
+                </button>
+              </div>
+              {eventMessage && <p className="admin-muted">{eventMessage}</p>}
+              <p className="admin-muted">
+                Events keep booths, scans, entries, winners, and settings
+                separate.
+              </p>
+            </form>
+
+            <div className="desktop-card">
+              <div className="table-toolbar">
+                <h3>Events</h3>
+                <span className="admin-muted">
+                  {store.events.length} total
+                </span>
+              </div>
+              <div className="admin-table-wrap">
+                <table className="admin-table">
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Status</th>
+                      <th>Created</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {store.events.map((event) => (
+                      <tr key={event.id}>
+                        <td>
+                          <strong>{event.name}</strong>
+                          {event.id === store.activeEventId && <span>Current</span>}
+                        </td>
+                        <td>{event.status}</td>
+                        <td>{normalizeDate(event.createdAt)}</td>
+                        <td>
+                          <div className="table-actions">
+                            <button
+                              type="button"
+                              disabled={event.id === store.activeEventId}
+                              onClick={() => {
+                                const result = store.selectEvent(event.id)
+                                setEventMessage(result.message)
+                              }}
+                            >
+                              Open
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setEventDraft(event)}
+                            >
+                              Edit
+                            </button>
+                            <button
+                              type="button"
+                              disabled={event.status === 'archived'}
+                              onClick={() => {
+                                const result = store.archiveEvent(event.id)
+                                setEventMessage(result.message)
+                              }}
+                            >
+                              Archive
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+        )}
 
         {activeSection === 'Booths' && (
           <section className="admin-workspace two-column">

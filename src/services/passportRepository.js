@@ -5,23 +5,61 @@ const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY
 const SUPABASE_TABLE = 'passport_state'
 const SHARED_ROW_ID = 'shared'
+const EVENTS_ROW_ID = 'events'
+const DEFAULT_EVENT_ID = 'landfx-passport-raffle'
+const OFFLINE_QUEUE_KEY = 'tradeshow-passport-offline-queue-v1'
+
+const defaultEvent = {
+  id: DEFAULT_EVENT_ID,
+  name: 'ASLA Los Angeles 2026',
+  status: 'active',
+  createdAt: new Date().toISOString(),
+}
+
+function getInitialEventState() {
+  return {
+    booths: defaultBooths,
+    completedIds: [],
+    attendeeProgress: {},
+    attendeeLocation: {},
+    entries: [],
+    winners: [],
+    attendees: [],
+    settings: {
+      requiredScanCount: 4,
+      instructions: defaultInstructions,
+    },
+  }
+}
 
 const initialState = {
-  booths: defaultBooths,
-  completedIds: [],
-  attendeeProgress: {},
-  attendeeLocation: {},
-  entries: [],
-  winners: [],
-  attendees: [],
+  ...getInitialEventState(),
+  events: [defaultEvent],
+  activeEventId: DEFAULT_EVENT_ID,
   session: null,
   adminAuthenticated: false,
   adminSession: null,
   adminUsers: [],
-  settings: {
-    requiredScanCount: 4,
-    instructions: defaultInstructions,
-  },
+}
+
+function normalizeEvents(events) {
+  if (!Array.isArray(events) || !events.length) return [defaultEvent]
+
+  return events.map((event) => ({
+    ...event,
+    id: event.id || crypto.randomUUID(),
+    name: event.name || 'Untitled Event',
+    status: event.status === 'archived' ? 'archived' : 'active',
+    createdAt: event.createdAt || new Date().toISOString(),
+  }))
+}
+
+function getActiveEventId(state) {
+  const events = normalizeEvents(state.events)
+  const matchingEvent = events.find((event) => event.id === state.activeEventId)
+  if (matchingEvent) return matchingEvent.id
+
+  return events.find((event) => event.status === 'active')?.id ?? events[0].id
 }
 
 function readState() {
@@ -30,9 +68,12 @@ function readState() {
     if (!stored) return initialState
 
     const parsed = JSON.parse(stored)
+    const events = normalizeEvents(parsed.events)
     return {
       ...initialState,
       ...parsed,
+      events,
+      activeEventId: parsed.activeEventId || getActiveEventId({ ...parsed, events }),
       settings: {
         ...initialState.settings,
         ...parsed.settings,
@@ -50,6 +91,44 @@ function writeState(state) {
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
 }
 
+function readOfflineQueue() {
+  try {
+    const stored = window.localStorage.getItem(OFFLINE_QUEUE_KEY)
+    const parsed = stored ? JSON.parse(stored) : []
+    return Array.isArray(parsed) ? parsed : []
+  } catch {
+    return []
+  }
+}
+
+function writeOfflineQueue(queue) {
+  window.localStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(queue))
+}
+
+function getOnlineStatus() {
+  return typeof navigator === 'undefined' ? true : navigator.onLine
+}
+
+function getOfflineQueueStatus() {
+  return {
+    online: getOnlineStatus(),
+    pendingCount: readOfflineQueue().length,
+  }
+}
+
+function queueSharedPatch(patch, eventId) {
+  const queue = readOfflineQueue()
+  const queuedPatch = {
+    id: crypto.randomUUID(),
+    eventId,
+    patch,
+    queuedAt: new Date().toISOString(),
+  }
+
+  writeOfflineQueue([...queue, queuedPatch])
+  return queuedPatch
+}
+
 function isSupabaseConfigured() {
   return Boolean(SUPABASE_URL && SUPABASE_ANON_KEY)
 }
@@ -64,6 +143,10 @@ function getSharedState(state) {
     attendeeLocation: state.attendeeLocation,
     settings: state.settings,
   }
+}
+
+function getSharedRowId(eventId = DEFAULT_EVENT_ID) {
+  return `event:${eventId}`
 }
 
 function mergeSharedState(state, sharedState, options = {}) {
@@ -124,6 +207,7 @@ function mergeUniqueByIdentity(currentItems = [], nextItems = []) {
 
 function mergeSharedPatch(sharedState, patch) {
   const currentSharedState = sharedState ?? {
+    ...getInitialEventState(),
     booths: [],
     entries: [],
     winners: [],
@@ -189,7 +273,24 @@ async function requestSupabase(path, options = {}) {
   return response.json()
 }
 
+async function loadRemoteShared(eventId = DEFAULT_EVENT_ID) {
+  const rows = await requestSupabase(
+    `${SUPABASE_TABLE}?id=eq.${getSharedRowId(eventId)}&select=data&limit=1`,
+  )
+  if (rows?.[0]?.data) return rows[0].data
+
+  if (eventId === DEFAULT_EVENT_ID) {
+    const legacyRows = await requestSupabase(
+      `${SUPABASE_TABLE}?id=eq.${SHARED_ROW_ID}&select=data&limit=1`,
+    )
+    return legacyRows?.[0]?.data ?? null
+  }
+
+  return null
+}
+
 export const passportRepository = {
+  defaultEvent,
   load() {
     return readState()
   },
@@ -199,12 +300,39 @@ export const passportRepository = {
   mergeShared(state, sharedState, options) {
     return mergeSharedState(state, sharedState, options)
   },
-  async loadShared() {
+  getInitialEventState,
+  getActiveEventId,
+  async loadEventIndex() {
     try {
       const rows = await requestSupabase(
-        `${SUPABASE_TABLE}?id=eq.${SHARED_ROW_ID}&select=data&limit=1`,
+        `${SUPABASE_TABLE}?id=eq.${EVENTS_ROW_ID}&select=data&limit=1`,
       )
-      return rows?.[0]?.data ?? null
+      return normalizeEvents(rows?.[0]?.data?.events)
+    } catch (error) {
+      console.warn(error)
+      return null
+    }
+  },
+  async saveEventIndex(events) {
+    try {
+      await requestSupabase(`${SUPABASE_TABLE}?on_conflict=id`, {
+        method: 'POST',
+        headers: {
+          Prefer: 'resolution=merge-duplicates,return=minimal',
+        },
+        body: JSON.stringify({
+          id: EVENTS_ROW_ID,
+          data: { events: normalizeEvents(events) },
+          updated_at: new Date().toISOString(),
+        }),
+      })
+    } catch (error) {
+      console.warn(error)
+    }
+  },
+  async loadShared(eventId = DEFAULT_EVENT_ID) {
+    try {
+      return loadRemoteShared(eventId)
     } catch (error) {
       console.warn(error)
       return null
@@ -218,7 +346,7 @@ export const passportRepository = {
           Prefer: 'resolution=merge-duplicates,return=minimal',
         },
         body: JSON.stringify({
-          id: SHARED_ROW_ID,
+          id: getSharedRowId(state.activeEventId),
           data: getSharedState(state),
           updated_at: new Date().toISOString(),
         }),
@@ -227,9 +355,9 @@ export const passportRepository = {
       console.warn(error)
     }
   },
-  async saveSharedPatch(patch) {
+  async saveSharedPatch(patch, eventId = DEFAULT_EVENT_ID) {
     try {
-      const sharedState = await this.loadShared()
+      const sharedState = await loadRemoteShared(eventId)
       const nextSharedState = mergeSharedPatch(sharedState, patch)
 
       await requestSupabase(`${SUPABASE_TABLE}?on_conflict=id`, {
@@ -238,14 +366,50 @@ export const passportRepository = {
           Prefer: 'resolution=merge-duplicates,return=minimal',
         },
         body: JSON.stringify({
-          id: SHARED_ROW_ID,
+          id: getSharedRowId(eventId),
           data: nextSharedState,
           updated_at: new Date().toISOString(),
         }),
       })
+      return { ok: true, queued: false }
     } catch (error) {
       console.warn(error)
+      queueSharedPatch(patch, eventId)
+      return { ok: false, queued: true }
     }
+  },
+  getOfflineQueueStatus,
+  async flushOfflineQueue() {
+    const queue = readOfflineQueue()
+    if (!queue.length) return getOfflineQueueStatus()
+    if (!isSupabaseConfigured() || !getOnlineStatus()) return getOfflineQueueStatus()
+
+    const remaining = []
+
+    for (const queuedPatch of queue) {
+      try {
+        const sharedState = await loadRemoteShared(queuedPatch.eventId)
+        const nextSharedState = mergeSharedPatch(sharedState, queuedPatch.patch)
+
+        await requestSupabase(`${SUPABASE_TABLE}?on_conflict=id`, {
+          method: 'POST',
+          headers: {
+            Prefer: 'resolution=merge-duplicates,return=minimal',
+          },
+          body: JSON.stringify({
+            id: getSharedRowId(queuedPatch.eventId),
+            data: nextSharedState,
+            updated_at: new Date().toISOString(),
+          }),
+        })
+      } catch (error) {
+        console.warn(error)
+        remaining.push(queuedPatch)
+      }
+    }
+
+    writeOfflineQueue(remaining)
+    return getOfflineQueueStatus()
   },
   isRemoteEnabled() {
     return isSupabaseConfigured()

@@ -656,6 +656,30 @@
   text-align: center;
 }
 
+.sync-status-badge {
+  position: absolute;
+  top: 42px;
+  left: 14px;
+  right: 14px;
+  z-index: 20;
+  border: 1px solid rgba(9, 103, 71, 0.2);
+  border-radius: 999px;
+  padding: 7px 12px;
+  color: #096747;
+  background: rgba(231, 250, 241, 0.94);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12);
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-align: center;
+  pointer-events: none;
+}
+
+.sync-status-badge.is-offline {
+  border-color: rgba(176, 88, 0, 0.24);
+  color: #875100;
+  background: rgba(255, 245, 224, 0.95);
+}
+
 .icon-button {
   width: 40px;
   height: 36px;
