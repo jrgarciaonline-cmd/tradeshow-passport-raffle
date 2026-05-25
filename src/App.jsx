@@ -78,7 +78,7 @@ function App() {
   const attendeeActiveEvent =
     store.activeEvents.find((event) => event.id === store.activeEventId) ??
     store.activeEvents[0] ??
-    store.activeEvent
+    null
   const syncMessage = canShowSyncStatus
     ? isOffline
       ? pendingSyncCount
@@ -102,6 +102,7 @@ function App() {
 
   useEffect(() => {
     if (
+      !isAdminRoute &&
       activeMode === 'attendee' &&
       !store.session &&
       store.activeEvents.length > 0 &&
@@ -110,6 +111,7 @@ function App() {
       store.selectEvent(store.activeEvents[0].id)
     }
   }, [
+    isAdminRoute,
     activeMode,
     store.session,
     store.activeEventId,

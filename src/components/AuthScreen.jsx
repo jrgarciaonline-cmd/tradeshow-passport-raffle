@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 
 const emptyRegistration = {
   name: '',
@@ -33,11 +33,33 @@ export function AuthScreen({
   const [registration, setRegistration] = useState(emptyRegistration)
   const [signIn, setSignIn] = useState(emptySignIn)
   const [admin, setAdmin] = useState(emptyAdmin)
+  const [adminUnlocked, setAdminUnlocked] = useState(initialView === 'admin')
   const [message, setMessage] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const logoTapState = useRef({ count: 0, lastTapAt: 0 })
+  const noAvailableEvents = activeEvents.length === 0
+  const showAdminAuth = adminUnlocked || initialView === 'admin'
+  const currentView = showAdminAuth || view !== 'admin' ? view : 'signup'
 
   const updateRegistration = (field, value) => {
     setRegistration((current) => ({ ...current, [field]: value }))
+  }
+
+  const handleLogoTap = () => {
+    const now = Date.now()
+    const nextCount =
+      now - logoTapState.current.lastTapAt < 900
+        ? logoTapState.current.count + 1
+        : 1
+
+    logoTapState.current = { count: nextCount, lastTapAt: now }
+
+    if (nextCount >= 3) {
+      setAdminUnlocked(true)
+      setView('admin')
+      setMessage('')
+      logoTapState.current = { count: 0, lastTapAt: 0 }
+    }
   }
 
   const submitResult = async (result) => {
@@ -47,20 +69,36 @@ export function AuthScreen({
   }
 
   return (
-    <section className="auth-screen">
-      <img
-        className="auth-logo"
-        src="/logos/landfx-logo-400w.png"
-        alt="Land F/X"
-      />
+    <section className={`auth-screen ${noAvailableEvents ? 'no-events' : ''}`}>
+      <button
+        type="button"
+        className="auth-logo-button"
+        onClick={noAvailableEvents ? handleLogoTap : undefined}
+        aria-label={noAvailableEvents ? 'Land F/X logo' : undefined}
+      >
+        <img
+          className="auth-logo"
+          src="/logos/landfx-logo-400w.png"
+          alt="Land F/X"
+        />
+      </button>
       <div>
         <h1>Passport Raffle</h1>
         <p>
-          {activeEvent?.name
+          {noAvailableEvents
+            ? 'No passport raffle events are available right now.'
+            : activeEvent?.name
             ? activeEvent.name
             : 'Sign in to collect booth scans and unlock your raffle entry.'}
         </p>
       </div>
+
+      {noAvailableEvents && currentView !== 'admin' && (
+        <div className="no-events-card">
+          <strong>No Available Events</strong>
+          <span>Please check back when the raffle is live.</span>
+        </div>
+      )}
 
       {activeEvents.length > 1 && (
         <label className="form-field event-select-field">
@@ -78,10 +116,14 @@ export function AuthScreen({
         </label>
       )}
 
-      <div className="auth-tabs" aria-label="Sign in options">
+      {!noAvailableEvents && (
+      <div
+        className={`auth-tabs ${showAdminAuth ? '' : 'attendee-only'}`}
+        aria-label="Sign in options"
+      >
         <button
           type="button"
-          className={view === 'signup' ? 'active' : ''}
+          className={currentView === 'signup' ? 'active' : ''}
           onClick={() => {
             setView('signup')
             setMessage('')
@@ -91,7 +133,7 @@ export function AuthScreen({
         </button>
         <button
           type="button"
-          className={view === 'signin' ? 'active' : ''}
+          className={currentView === 'signin' ? 'active' : ''}
           onClick={() => {
             setView('signin')
             setMessage('')
@@ -99,19 +141,22 @@ export function AuthScreen({
         >
           Sign In
         </button>
-        <button
-          type="button"
-          className={view === 'admin' ? 'active' : ''}
-          onClick={() => {
-            setView('admin')
-            setMessage('')
-          }}
-        >
-          Admin
-        </button>
+        {showAdminAuth && (
+          <button
+            type="button"
+            className={currentView === 'admin' ? 'active' : ''}
+            onClick={() => {
+              setView('admin')
+              setMessage('')
+            }}
+          >
+            Admin
+          </button>
+        )}
       </div>
+      )}
 
-      {view === 'signup' && (
+      {!noAvailableEvents && currentView === 'signup' && (
         <form
           className="auth-form"
           onSubmit={async (event) => {
@@ -177,7 +222,7 @@ export function AuthScreen({
         </form>
       )}
 
-      {view === 'signin' && (
+      {!noAvailableEvents && currentView === 'signin' && (
         <form
           className="auth-form"
           onSubmit={async (event) => {
@@ -213,7 +258,7 @@ export function AuthScreen({
         </form>
       )}
 
-      {view === 'admin' && (
+      {currentView === 'admin' && showAdminAuth && (
         <form
           className="auth-form"
           onSubmit={async (event) => {
