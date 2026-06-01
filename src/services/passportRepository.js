@@ -218,6 +218,18 @@ function getSharedRowId(eventId = DEFAULT_EVENT_ID) {
   return `event:${eventId}`
 }
 
+function pickSyncedAssetUrl(sharedValue, localValue) {
+  if (typeof sharedValue === 'string' && sharedValue.startsWith('data:')) {
+    return sharedValue
+  }
+
+  if (typeof localValue === 'string' && localValue.startsWith('data:')) {
+    return localValue
+  }
+
+  return sharedValue ?? localValue
+}
+
 function mergeSharedState(state, sharedState, options = {}) {
   if (!sharedState) return state
   const preserveLocalSections = options.preserveLocalSections ?? {}
@@ -258,7 +270,19 @@ function mergeSharedState(state, sharedState, options = {}) {
           instructions: sharedState.settings?.instructions?.length
             ? sharedState.settings.instructions
             : state.settings.instructions,
-          mapSrc: sharedState.settings?.mapSrc || state.settings.mapSrc,
+          mapSrc:
+            pickSyncedAssetUrl(
+              sharedState.settings?.mapSrc,
+              state.settings?.mapSrc,
+            ) || baseSettings.mapSrc,
+          homeImageSrc: pickSyncedAssetUrl(
+            sharedState.settings?.homeImageSrc,
+            state.settings?.homeImageSrc,
+          ),
+          raffleCompleteImageSrc: pickSyncedAssetUrl(
+            sharedState.settings?.raffleCompleteImageSrc,
+            state.settings?.raffleCompleteImageSrc,
+          ),
           boothCategories: Array.isArray(sharedState.settings?.boothCategories)
             ? sharedState.settings.boothCategories
             : baseSettings.boothCategories,

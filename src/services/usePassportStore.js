@@ -773,24 +773,30 @@ export function usePassportStore() {
     preserveLocalUntil.current.booths = Date.now() + 15000
   }
 
-  const saveSettings = (settings) => {
-    updateState((current) => ({
-      ...current,
-      settings: {
-        ...current.settings,
-        ...settings,
-        requiredScanCount: Math.max(
-          1,
-          Number(
-            settings.requiredScanCount ?? current.settings?.requiredScanCount ?? 1,
-          ) || 1,
-        ),
-      },
-    }), {
-      sharedPatch: (next) => ({
-        settings: next.settings,
+  const saveSettings = (settingsPatch) => {
+    const normalizedPatch = { ...settingsPatch }
+
+    if (settingsPatch.requiredScanCount !== undefined) {
+      normalizedPatch.requiredScanCount = Math.max(
+        1,
+        Number(settingsPatch.requiredScanCount) || 1,
+      )
+    }
+
+    updateState(
+      (current) => ({
+        ...current,
+        settings: {
+          ...current.settings,
+          ...normalizedPatch,
+        },
       }),
-    })
+      {
+        sharedPatch: () => ({
+          settings: normalizedPatch,
+        }),
+      },
+    )
     preserveLocalUntil.current.settings = Date.now() + 15000
   }
 

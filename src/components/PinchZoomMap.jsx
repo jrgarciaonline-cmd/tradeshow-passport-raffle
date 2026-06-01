@@ -400,6 +400,7 @@ export function PinchZoomMap({
           }}
         >
           <img
+            key={mapSrc}
             src={mapSrc}
             alt="Expo floor map"
             onLoad={(event) => {

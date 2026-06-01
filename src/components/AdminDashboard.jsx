@@ -89,16 +89,7 @@ function getInviteAccessToken() {
   return accessToken
 }
 
-function readImageFile(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.addEventListener('load', () => resolve(reader.result))
-    reader.addEventListener('error', () => reject(reader.error))
-    reader.readAsDataURL(file)
-  })
-}
-
-export function AdminDashboard({ store }) {
+import { readOptimizedImageFile } from '../utils/imageUpload'
   const [activeSection, setActiveSection] = useState('Booths')
   const [login, setLogin] = useState(emptyLogin)
   const [loginMessage, setLoginMessage] = useState('')
@@ -278,7 +269,12 @@ export function AdminDashboard({ store }) {
   const uploadSettingsImage = async (field, file) => {
     if (!file) return
 
-    const imageDataUrl = await readImageFile(file)
+    const imageDataUrl = await readOptimizedImageFile(file, {
+      maxWidth: field === 'mapSrc' ? 2400 : 1400,
+      maxHeight: field === 'mapSrc' ? 2400 : 1400,
+      preferJpeg: field === 'mapSrc',
+      quality: 0.84,
+    })
     store.saveSettings({ [field]: imageDataUrl })
     setSettingsMessage('Image saved.')
   }

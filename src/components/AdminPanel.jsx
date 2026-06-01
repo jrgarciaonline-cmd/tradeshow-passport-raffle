@@ -19,16 +19,7 @@ const emptyBooth = {
 const adminSections = ['Events', 'Settings', 'Booths', 'Map', 'Signups', 'Raffle', 'Winner', 'Picked']
 const emptyEventDraft = { id: '', name: '', status: 'hidden', createdAt: '' }
 
-function readImageFile(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.addEventListener('load', () => resolve(reader.result))
-    reader.addEventListener('error', () => reject(reader.error))
-    reader.readAsDataURL(file)
-  })
-}
-
-function confirmWinnerReset() {
+import { readOptimizedImageFile } from '../utils/imageUpload'
   return (
     window.confirm('Reset picked winners? This clears the winners history.') &&
     window.confirm('Are you absolutely sure? This cannot be undone.') &&
@@ -110,7 +101,12 @@ export function AdminPanel({
   const uploadSettingsImage = async (field, file) => {
     if (!file) return
 
-    const imageDataUrl = await readImageFile(file)
+    const imageDataUrl = await readOptimizedImageFile(file, {
+      maxWidth: field === 'mapSrc' ? 2400 : 1400,
+      maxHeight: field === 'mapSrc' ? 2400 : 1400,
+      preferJpeg: field === 'mapSrc',
+      quality: 0.84,
+    })
     onSaveSettings({ [field]: imageDataUrl })
     setSettingsMessage('Image saved.')
   }
