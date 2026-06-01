@@ -652,25 +652,56 @@
   font-size: 0.88rem;
 }
 
-.app-bar strong {
+.app-bar-title {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.app-bar-title strong {
   text-align: center;
+}
+
+.sync-status-dot {
+  flex: 0 0 auto;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.22);
+  animation: sync-status-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes sync-status-pulse {
+  0%,
+  100% {
+    opacity: 0.45;
+    transform: scale(0.88);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 .sync-status-badge {
   position: absolute;
-  top: 42px;
-  left: 14px;
-  right: 14px;
+  top: 40px;
+  right: 10px;
+  left: auto;
   z-index: 20;
-  border: 1px solid rgba(9, 103, 71, 0.2);
+  max-width: min(240px, calc(100% - 20px));
+  border: 1px solid rgba(176, 88, 0, 0.22);
   border-radius: 999px;
-  padding: 7px 12px;
-  color: #096747;
-  background: rgba(231, 250, 241, 0.94);
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12);
-  font-size: 0.72rem;
+  padding: 4px 10px;
+  color: #875100;
+  background: rgba(255, 245, 224, 0.94);
+  font-size: 0.62rem;
   font-weight: 800;
-  text-align: center;
+  text-align: right;
   pointer-events: none;
 }
 
@@ -1352,8 +1383,8 @@ button:disabled {
 
 .segmented-control {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  width: 220px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  width: min(100%, 220px);
   justify-self: center;
   border: 1px solid #d5d5d5;
   border-radius: 4px;
@@ -1362,11 +1393,12 @@ button:disabled {
 }
 
 .segmented-control button {
-  min-height: 26px;
+  min-height: 32px;
   border: 0;
   border-radius: 0;
-  padding: 0 8px;
-  font-size: 0.68rem;
+  padding: 0 12px;
+  font-size: 0.72rem;
+  font-weight: 800;
 }
 
 .segmented-control .active {

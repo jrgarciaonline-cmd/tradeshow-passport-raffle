@@ -86,19 +86,16 @@ function App() {
   const pendingSyncCount = store.syncStatus?.pendingCount ?? 0
   const isOffline = store.syncStatus?.online === false
   const canShowSyncStatus = Boolean(store.session || store.adminAuthenticated)
+  const isSyncingOnline = canShowSyncStatus && !isOffline && pendingSyncCount > 0
+  const offlineSyncMessage = canShowSyncStatus && isOffline
+    ? pendingSyncCount
+      ? `${pendingSyncCount} saved update${pendingSyncCount === 1 ? '' : 's'} will sync when online`
+      : 'Offline mode'
+    : ''
   const attendeeActiveEvent =
     store.activeEvents.find((event) => event.id === store.activeEventId) ??
     store.activeEvents[0] ??
     null
-  const syncMessage = canShowSyncStatus
-    ? isOffline
-      ? pendingSyncCount
-        ? `${pendingSyncCount} saved update${pendingSyncCount === 1 ? '' : 's'} will sync when online`
-        : 'Offline mode'
-      : pendingSyncCount
-        ? `Syncing ${pendingSyncCount} saved update${pendingSyncCount === 1 ? '' : 's'}`
-        : ''
-    : ''
 
   const handleScan = (code) => {
     const result = store.checkInByCode(code)
@@ -236,7 +233,17 @@ function App() {
           >
             {activeMode === 'admin' ? '‹' : '⚙'}
           </button>
-          <strong>Land F/X Passport Raffle</strong>
+          <div className="app-bar-title">
+            <strong>Land F/X Passport Raffle</strong>
+            {isSyncingOnline && (
+              <span
+                className="sync-status-dot"
+                role="status"
+                aria-label={`Syncing ${pendingSyncCount} saved update${pendingSyncCount === 1 ? '' : 's'}`}
+                title="Saved scans are syncing in the background"
+              />
+            )}
+          </div>
           <button
             type="button"
             className="icon-button"
@@ -249,12 +256,9 @@ function App() {
             ⎋
           </button>
         </header>
-        {syncMessage && (
-          <div
-            className={`sync-status-badge ${isOffline ? 'is-offline' : ''}`}
-            role="status"
-          >
-            {syncMessage}
+        {offlineSyncMessage && (
+          <div className="sync-status-badge is-offline" role="status">
+            {offlineSyncMessage}
           </div>
         )}
 
