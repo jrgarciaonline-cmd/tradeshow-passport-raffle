@@ -257,20 +257,35 @@ function writeSessionSlice(state) {
   )
 }
 
+function sanitizeAppState(state) {
+  if (
+    state.session?.type === 'attendee' &&
+    !state.attendees.some((attendee) => attendee.id === state.session.attendeeId)
+  ) {
+    return {
+      ...state,
+      session: null,
+      completedIds: [],
+    }
+  }
+
+  return state
+}
+
 function loadLocalShell() {
-  if (!isCloudFirstEnabled()) return readState()
+  if (!isCloudFirstEnabled()) return sanitizeAppState(readState())
 
   const sessionSlice = readSessionSlice()
   const activeEventId = sessionSlice?.activeEventId ?? DEFAULT_EVENT_ID
 
-  return {
+  return sanitizeAppState({
     ...initialState,
     ...getEventBaseState(activeEventId),
     activeEventId,
     session: sessionSlice?.session ?? null,
     adminAuthenticated: sessionSlice?.adminAuthenticated ?? false,
     adminSession: sessionSlice?.adminSession ?? null,
-  }
+  })
 }
 
 async function loadRemoteEventIndex() {
@@ -304,9 +319,11 @@ async function bootstrapFromRemote(activeEventId = DEFAULT_EVENT_ID) {
     adminSession: sessionSlice?.adminSession ?? null,
   }
 
-  if (!sharedState) return baseState
+  if (!sharedState) return sanitizeAppState(baseState)
 
-  return mergeSharedState(baseState, sharedState, { eventId: resolvedEventId })
+  return sanitizeAppState(
+    mergeSharedState(baseState, sharedState, { eventId: resolvedEventId }),
+  )
 }
 
 function isRemoteAssetRef(value) {

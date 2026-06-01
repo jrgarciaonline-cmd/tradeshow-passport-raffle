@@ -96,6 +96,13 @@ function App() {
     store.activeEvents.find((event) => event.id === store.activeEventId) ??
     store.activeEvents[0] ??
     null
+  const hasValidAttendeeSession = Boolean(
+    store.session?.type === 'attendee' &&
+      store.attendees.some((attendee) => attendee.id === store.session.attendeeId),
+  )
+  const shouldShowAuth =
+    activeMode !== 'admin' &&
+    (!hasValidAttendeeSession || store.isBootstrapping)
 
   const handleScan = (code) => {
     const result = store.checkInByCode(code)
@@ -199,28 +206,11 @@ function App() {
     )
   }
 
-  if (store.isBootstrapping) {
-    return (
-      <main className="app-stage">
-        <section className="phone-shell no-bottom-nav" aria-label="Trade show passport app">
-          <header className="app-bar">
-            <span className="icon-button is-hidden" aria-hidden="true" />
-            <div className="app-bar-title">
-              <strong>Land F/X Passport Raffle</strong>
-            </div>
-            <span className="icon-button is-hidden" aria-hidden="true" />
-          </header>
-          <div className="app-content app-bootstrap">Loading event data...</div>
-        </section>
-      </main>
-    )
-  }
-
   return (
     <main className="app-stage">
       <section
         className={`phone-shell ${
-          store.session?.type === 'attendee' && activeMode === 'attendee'
+          hasValidAttendeeSession && activeMode === 'attendee'
             ? ''
             : 'no-bottom-nav'
         }`}
@@ -286,25 +276,38 @@ function App() {
         )}
 
         <div className="app-content">
-          {!store.session && activeMode !== 'admin' && (
-            <AuthScreen
-              activeEvent={attendeeActiveEvent}
-              activeEvents={store.activeEvents}
-              key={authView}
-              initialView={authView}
-              onRegister={store.registerAttendee}
-              onSignIn={store.signInAttendee}
-              onSelectEvent={store.selectEvent}
-              termsText={store.settings?.termsText}
-              onAdminSignIn={async (credentials) => {
-                const result = await store.signInAdmin(credentials)
-                if (result.ok) setMode('admin')
-                return result
-              }}
-            />
+          {shouldShowAuth && (
+            <>
+              {store.isBootstrapping ? (
+                <section className="auth-screen app-bootstrap">
+                  <img
+                    className="auth-logo"
+                    src="/logos/landfx-logo-400w.png"
+                    alt="Land F/X"
+                  />
+                  <p>Loading event data...</p>
+                </section>
+              ) : (
+                <AuthScreen
+                  activeEvent={attendeeActiveEvent}
+                  activeEvents={store.activeEvents}
+                  key={authView}
+                  initialView={authView}
+                  onRegister={store.registerAttendee}
+                  onSignIn={store.signInAttendee}
+                  onSelectEvent={store.selectEvent}
+                  termsText={store.settings?.termsText}
+                  onAdminSignIn={async (credentials) => {
+                    const result = await store.signInAdmin(credentials)
+                    if (result.ok) setMode('admin')
+                    return result
+                  }}
+                />
+              )}
+            </>
           )}
 
-          {store.session && activeMode === 'attendee' && activeTab === 'Home' && (
+          {hasValidAttendeeSession && activeMode === 'attendee' && activeTab === 'Home' && (
             <>
               <PassportSummary
                 attendeeName={store.currentAttendee?.name}
@@ -352,7 +355,7 @@ function App() {
             </>
           )}
 
-          {store.session && activeMode === 'attendee' && activeTab === 'Booths' && (
+          {hasValidAttendeeSession && activeMode === 'attendee' && activeTab === 'Booths' && (
             <section className="content-stack">
               <div className="segmented-control" aria-label="Booth status">
                 {['Active', 'Completed'].map((view) => (
@@ -411,7 +414,7 @@ function App() {
             </section>
           )}
 
-          {store.session && activeMode === 'attendee' && activeTab === 'Map' && (
+          {hasValidAttendeeSession && activeMode === 'attendee' && activeTab === 'Map' && (
             <MapView
               booths={store.booths}
               completedIds={store.completedIds}
@@ -435,7 +438,7 @@ function App() {
             />
           )}
 
-          {store.session &&
+          {hasValidAttendeeSession &&
             activeMode === 'attendee' &&
             activeTab === 'Instructions' && (
             <section className="instructions-screen">
@@ -446,7 +449,7 @@ function App() {
             </section>
           )}
 
-          {store.session &&
+          {hasValidAttendeeSession &&
             activeMode === 'attendee' &&
             activeTab === 'QR Scanner' && (
             <ScannerPanel
@@ -487,7 +490,7 @@ function App() {
           )}
         </div>
 
-        {store.session?.type === 'attendee' && activeMode === 'attendee' && (
+        {hasValidAttendeeSession && activeMode === 'attendee' && (
           <nav className="bottom-nav" aria-label="Attendee views">
             {attendeeTabs.map((tab) => (
               <button
