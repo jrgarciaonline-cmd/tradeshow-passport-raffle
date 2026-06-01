@@ -4,6 +4,8 @@ import {
   getSupabaseUser,
   updateSupabasePassword,
 } from '../services/adminAuth'
+import { uploadEventAsset } from '../services/assetStorage'
+import { readOptimizedImageFile } from '../utils/imageUpload'
 import { PinchZoomMap } from './PinchZoomMap'
 import { AdminToast } from './AdminToast'
 import { BoothQrGenerator } from './BoothQrGenerator'
@@ -89,8 +91,7 @@ function getInviteAccessToken() {
   return accessToken
 }
 
-import { readOptimizedImageFile } from '../utils/imageUpload'
-import { uploadEventAsset } from '../services/assetStorage'
+export function AdminDashboard({ store }) {
   const [activeSection, setActiveSection] = useState('Booths')
   const [login, setLogin] = useState(emptyLogin)
   const [loginMessage, setLoginMessage] = useState('')

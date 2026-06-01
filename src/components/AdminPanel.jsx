@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { defaultInstructions } from '../data/mockData'
+import { uploadEventAsset } from '../services/assetStorage'
+import { readOptimizedImageFile } from '../utils/imageUpload'
 import { PinchZoomMap } from './PinchZoomMap'
 import { AdminToast } from './AdminToast'
 import { WinnerWheel } from './WinnerWheel'
@@ -19,8 +21,7 @@ const emptyBooth = {
 const adminSections = ['Events', 'Settings', 'Booths', 'Map', 'Signups', 'Raffle', 'Winner', 'Picked']
 const emptyEventDraft = { id: '', name: '', status: 'hidden', createdAt: '' }
 
-import { readOptimizedImageFile } from '../utils/imageUpload'
-import { uploadEventAsset } from '../services/assetStorage'
+function confirmWinnerReset() {
   return (
     window.confirm('Reset picked winners? This clears the winners history.') &&
     window.confirm('Are you absolutely sure? This cannot be undone.') &&
