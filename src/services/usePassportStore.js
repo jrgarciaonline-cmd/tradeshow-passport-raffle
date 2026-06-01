@@ -68,6 +68,9 @@ function buildWinner(entry) {
 
 export function usePassportStore() {
   const [state, setState] = useState(() => passportRepository.load())
+  const [isBootstrapping, setIsBootstrapping] = useState(() =>
+    passportRepository.isCloudFirstEnabled(),
+  )
   const [syncStatus, setSyncStatus] = useState(() =>
     passportRepository.getOfflineQueueStatus(),
   )
@@ -120,6 +123,30 @@ export function usePassportStore() {
       return next
     })
   }
+
+  useEffect(() => {
+    if (!passportRepository.isCloudFirstEnabled()) return undefined
+
+    let cancelled = false
+
+    passportRepository
+      .bootstrapFromRemote(activeEventIdRef.current)
+      .then((next) => {
+        if (cancelled) return
+        passportRepository.save(next)
+        setState(next)
+      })
+      .catch((error) => {
+        console.warn(error)
+      })
+      .finally(() => {
+        if (!cancelled) setIsBootstrapping(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   useEffect(() => {
     if (!passportRepository.isRemoteEnabled()) return undefined
@@ -847,6 +874,7 @@ export function usePassportStore() {
 
   return {
     ...state,
+    isBootstrapping,
     requiredScanCount,
     passportComplete,
     currentAttendee,

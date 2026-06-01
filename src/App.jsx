@@ -190,7 +190,30 @@ function App() {
   ])
 
   if (isAdminRoute) {
-    return <AdminDashboard store={store} />
+    return store.isBootstrapping ? (
+      <main className="admin-dashboard-shell login-only">
+        <section className="admin-login-card app-bootstrap">Loading event data...</section>
+      </main>
+    ) : (
+      <AdminDashboard store={store} />
+    )
+  }
+
+  if (store.isBootstrapping) {
+    return (
+      <main className="app-stage">
+        <section className="phone-shell no-bottom-nav" aria-label="Trade show passport app">
+          <header className="app-bar">
+            <span className="icon-button is-hidden" aria-hidden="true" />
+            <div className="app-bar-title">
+              <strong>Land F/X Passport Raffle</strong>
+            </div>
+            <span className="icon-button is-hidden" aria-hidden="true" />
+          </header>
+          <div className="app-content app-bootstrap">Loading event data...</div>
+        </section>
+      </main>
+    )
   }
 
   return (

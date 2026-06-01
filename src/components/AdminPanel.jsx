@@ -20,6 +20,7 @@ const adminSections = ['Events', 'Settings', 'Booths', 'Map', 'Signups', 'Raffle
 const emptyEventDraft = { id: '', name: '', status: 'hidden', createdAt: '' }
 
 import { readOptimizedImageFile } from '../utils/imageUpload'
+import { uploadEventAsset } from '../services/assetStorage'
   return (
     window.confirm('Reset picked winners? This clears the winners history.') &&
     window.confirm('Are you absolutely sure? This cannot be undone.') &&
@@ -101,12 +102,23 @@ export function AdminPanel({
   const uploadSettingsImage = async (field, file) => {
     if (!file) return
 
-    const imageDataUrl = await readOptimizedImageFile(file, {
+    let imageDataUrl = await readOptimizedImageFile(file, {
       maxWidth: field === 'mapSrc' ? 2400 : 1400,
       maxHeight: field === 'mapSrc' ? 2400 : 1400,
       preferJpeg: field === 'mapSrc',
       quality: 0.84,
     })
+
+    try {
+      imageDataUrl = await uploadEventAsset({
+        eventId: activeEventId,
+        assetType: field,
+        dataUrl: imageDataUrl,
+      })
+    } catch (error) {
+      console.warn(error)
+    }
+
     onSaveSettings({ [field]: imageDataUrl })
     setSettingsMessage('Image saved.')
   }

@@ -90,6 +90,7 @@ function getInviteAccessToken() {
 }
 
 import { readOptimizedImageFile } from '../utils/imageUpload'
+import { uploadEventAsset } from '../services/assetStorage'
   const [activeSection, setActiveSection] = useState('Booths')
   const [login, setLogin] = useState(emptyLogin)
   const [loginMessage, setLoginMessage] = useState('')
@@ -269,12 +270,23 @@ import { readOptimizedImageFile } from '../utils/imageUpload'
   const uploadSettingsImage = async (field, file) => {
     if (!file) return
 
-    const imageDataUrl = await readOptimizedImageFile(file, {
+    let imageDataUrl = await readOptimizedImageFile(file, {
       maxWidth: field === 'mapSrc' ? 2400 : 1400,
       maxHeight: field === 'mapSrc' ? 2400 : 1400,
       preferJpeg: field === 'mapSrc',
       quality: 0.84,
     })
+
+    try {
+      imageDataUrl = await uploadEventAsset({
+        eventId: store.activeEventId,
+        assetType: field,
+        dataUrl: imageDataUrl,
+      })
+    } catch (error) {
+      console.warn(error)
+    }
+
     store.saveSettings({ [field]: imageDataUrl })
     setSettingsMessage('Image saved.')
   }

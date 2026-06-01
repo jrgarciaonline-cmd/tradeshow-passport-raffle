@@ -1,6 +1,7 @@
 import { defaultBoothCategories, defaultBooths, defaultInstructions } from '../data/mockData'
 
 const STORAGE_KEY = 'tradeshow-passport-raffle-v2'
+const SESSION_STORAGE_KEY = 'tradeshow-passport-session-v1'
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY
 const SUPABASE_TABLE = 'passport_state'
@@ -134,6 +135,11 @@ function readState() {
 }
 
 function writeState(state) {
+  if (isCloudFirstEnabled()) {
+    writeSessionSlice(state)
+    return
+  }
+
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
 }
 
@@ -218,15 +224,101 @@ function getSharedRowId(eventId = DEFAULT_EVENT_ID) {
   return `event:${eventId}`
 }
 
+function isCloudFirstEnabled() {
+  return isSupabaseConfigured() && import.meta.env.VITE_CLOUD_FIRST !== 'false'
+}
+
+function readSessionSlice() {
+  try {
+    const stored = window.localStorage.getItem(SESSION_STORAGE_KEY)
+    if (!stored) return null
+
+    const parsed = JSON.parse(stored)
+    return {
+      session: parsed.session ?? null,
+      activeEventId: parsed.activeEventId || DEFAULT_EVENT_ID,
+      adminAuthenticated: Boolean(parsed.adminAuthenticated),
+      adminSession: parsed.adminSession ?? null,
+    }
+  } catch {
+    return null
+  }
+}
+
+function writeSessionSlice(state) {
+  window.localStorage.setItem(
+    SESSION_STORAGE_KEY,
+    JSON.stringify({
+      session: state.session,
+      activeEventId: state.activeEventId,
+      adminAuthenticated: state.adminAuthenticated,
+      adminSession: state.adminSession,
+    }),
+  )
+}
+
+function loadLocalShell() {
+  if (!isCloudFirstEnabled()) return readState()
+
+  const sessionSlice = readSessionSlice()
+  const activeEventId = sessionSlice?.activeEventId ?? DEFAULT_EVENT_ID
+
+  return {
+    ...initialState,
+    ...getEventBaseState(activeEventId),
+    activeEventId,
+    session: sessionSlice?.session ?? null,
+    adminAuthenticated: sessionSlice?.adminAuthenticated ?? false,
+    adminSession: sessionSlice?.adminSession ?? null,
+  }
+}
+
+async function loadRemoteEventIndex() {
+  try {
+    const rows = await requestSupabase(
+      `${SUPABASE_TABLE}?id=eq.${EVENTS_ROW_ID}&select=data&limit=1`,
+    )
+    return normalizeEvents(rows?.[0]?.data?.events)
+  } catch (error) {
+    console.warn(error)
+    return null
+  }
+}
+
+async function bootstrapFromRemote(activeEventId = DEFAULT_EVENT_ID) {
+  const events = normalizeEvents((await loadRemoteEventIndex()) ?? [defaultEvent])
+  const resolvedEventId =
+    events.find((event) => event.id === activeEventId)?.id ??
+    events.find((event) => event.status === 'active')?.id ??
+    events[0]?.id ??
+    DEFAULT_EVENT_ID
+  const sharedState = await loadRemoteShared(resolvedEventId)
+  const sessionSlice = readSessionSlice()
+  const baseState = {
+    ...initialState,
+    ...getEventBaseState(resolvedEventId),
+    events,
+    activeEventId: resolvedEventId,
+    session: sessionSlice?.session ?? null,
+    adminAuthenticated: sessionSlice?.adminAuthenticated ?? false,
+    adminSession: sessionSlice?.adminSession ?? null,
+  }
+
+  if (!sharedState) return baseState
+
+  return mergeSharedState(baseState, sharedState, { eventId: resolvedEventId })
+}
+
+function isRemoteAssetRef(value) {
+  return (
+    typeof value === 'string' &&
+    (value.startsWith('data:') || value.startsWith('http://') || value.startsWith('https://'))
+  )
+}
+
 function pickSyncedAssetUrl(sharedValue, localValue) {
-  if (typeof sharedValue === 'string' && sharedValue.startsWith('data:')) {
-    return sharedValue
-  }
-
-  if (typeof localValue === 'string' && localValue.startsWith('data:')) {
-    return localValue
-  }
-
+  if (isRemoteAssetRef(sharedValue)) return sharedValue
+  if (isRemoteAssetRef(localValue)) return localValue
   return sharedValue ?? localValue
 }
 
@@ -408,11 +500,13 @@ async function loadRemoteShared(eventId = DEFAULT_EVENT_ID) {
 export const passportRepository = {
   defaultEvent,
   load() {
-    return readState()
+    return loadLocalShell()
   },
   save(state) {
     writeState(state)
   },
+  isCloudFirstEnabled,
+  bootstrapFromRemote,
   mergeShared(state, sharedState, options) {
     return mergeSharedState(state, sharedState, options)
   },
@@ -421,15 +515,7 @@ export const passportRepository = {
   getEventBaseState,
   getActiveEventId,
   async loadEventIndex() {
-    try {
-      const rows = await requestSupabase(
-        `${SUPABASE_TABLE}?id=eq.${EVENTS_ROW_ID}&select=data&limit=1`,
-      )
-      return normalizeEvents(rows?.[0]?.data?.events)
-    } catch (error) {
-      console.warn(error)
-      return null
-    }
+    return loadRemoteEventIndex()
   },
   async saveEventIndex(events) {
     try {
