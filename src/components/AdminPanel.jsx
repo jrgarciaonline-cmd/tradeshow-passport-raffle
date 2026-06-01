@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { defaultInstructions } from '../data/mockData'
 import { PinchZoomMap } from './PinchZoomMap'
 import { WinnerWheel } from './WinnerWheel'
@@ -69,6 +69,7 @@ export function AdminPanel({
   const [activeAdminSection, setActiveAdminSection] = useState('Settings')
   const [eventDraft, setEventDraft] = useState(emptyEventDraft)
   const [eventMessage, setEventMessage] = useState('')
+  const [settingsMessage, setSettingsMessage] = useState('')
   const instructionsText = (
     settings?.instructions?.length ? settings.instructions : defaultInstructions
   ).join('\n')
@@ -82,6 +83,10 @@ export function AdminPanel({
 
     return [...categorySet]
   }, [draft.category, settings?.boothCategories])
+
+  useEffect(() => {
+    setSettingsMessage('')
+  }, [activeEventId])
 
   const editBooth = (booth) => {
     setActiveAdminSection('Booths')
@@ -106,6 +111,41 @@ export function AdminPanel({
 
     const imageDataUrl = await readImageFile(file)
     onSaveSettings({ [field]: imageDataUrl })
+    setSettingsMessage('Image saved.')
+  }
+
+  const saveSettingsFromForm = (form) => {
+    const formData = new FormData(form)
+    const requiredScanCount = Number(formData.get('requiredScanCount'))
+
+    if (!Number.isFinite(requiredScanCount) || requiredScanCount < 1) {
+      setSettingsMessage('Enter a required scan count of at least 1.')
+      return
+    }
+
+    if (booths.length > 0 && requiredScanCount > booths.length) {
+      setSettingsMessage(
+        `Required scan count cannot be more than ${booths.length} (number of booths).`,
+      )
+      return
+    }
+
+    const instructions = String(formData.get('instructions') ?? '')
+      .split('\n')
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0)
+    const boothCategories = String(formData.get('boothCategories') ?? '')
+      .split('\n')
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0)
+
+    onSaveSettings({
+      requiredScanCount,
+      instructions,
+      boothCategories,
+      termsText: String(formData.get('termsText') ?? '').trim(),
+    })
+    setSettingsMessage('Settings saved.')
   }
 
   return (
@@ -264,26 +304,13 @@ export function AdminPanel({
         </div>
 
         <form
+          key={activeEventId}
           className="settings-form"
           hidden={activeAdminSection !== 'Settings'}
+          noValidate
           onSubmit={(event) => {
             event.preventDefault()
-            const formData = new FormData(event.currentTarget)
-            const nextInstructionsText = String(formData.get('instructions') ?? '')
-            const instructions = nextInstructionsText
-              .split('\n')
-              .map((line) => line.trim())
-              .filter((line) => line.length > 0)
-            const boothCategories = String(formData.get('boothCategories') ?? '')
-              .split('\n')
-              .map((line) => line.trim())
-              .filter((line) => line.length > 0)
-            onSaveSettings({
-              requiredScanCount: formData.get('requiredScanCount'),
-              instructions,
-              boothCategories,
-              termsText: String(formData.get('termsText') ?? '').trim(),
-            })
+            saveSettingsFromForm(event.currentTarget)
           }}
         >
           <h3>Raffle settings</h3>
@@ -293,7 +320,6 @@ export function AdminPanel({
               name="requiredScanCount"
               type="number"
               min="1"
-              max={booths.length}
               defaultValue={settings?.requiredScanCount ?? 4}
             />
           </label>
@@ -363,6 +389,7 @@ export function AdminPanel({
           <button type="submit" className="primary">
             Save settings
           </button>
+          {settingsMessage && <p className="muted">{settingsMessage}</p>}
         </form>
 
         <form

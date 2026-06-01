@@ -126,6 +126,7 @@ export function AdminDashboard({ store }) {
   const [invitePending, setInvitePending] = useState(false)
   const [eventDraft, setEventDraft] = useState(emptyEventDraft)
   const [eventMessage, setEventMessage] = useState('')
+  const [settingsMessage, setSettingsMessage] = useState('')
 
   const instructionsText = (
     store.settings?.instructions?.length
@@ -144,6 +145,10 @@ export function AdminDashboard({ store }) {
   }, [draft.category, store.settings?.boothCategories])
   const winner =
     winnerSelection.eventId === store.activeEventId ? winnerSelection.entry : null
+
+  useEffect(() => {
+    setSettingsMessage('')
+  }, [store.activeEventId])
 
   const filteredBooths = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase()
@@ -273,6 +278,41 @@ export function AdminDashboard({ store }) {
 
     const imageDataUrl = await readImageFile(file)
     store.saveSettings({ [field]: imageDataUrl })
+    setSettingsMessage('Image saved.')
+  }
+
+  const saveSettingsFromForm = (form) => {
+    const formData = new FormData(form)
+    const requiredScanCount = Number(formData.get('requiredScanCount'))
+
+    if (!Number.isFinite(requiredScanCount) || requiredScanCount < 1) {
+      setSettingsMessage('Enter a required scan count of at least 1.')
+      return
+    }
+
+    if (store.booths.length > 0 && requiredScanCount > store.booths.length) {
+      setSettingsMessage(
+        `Required scan count cannot be more than ${store.booths.length} (number of booths).`,
+      )
+      return
+    }
+
+    const instructions = String(formData.get('instructions') ?? '')
+      .split('\n')
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0)
+    const boothCategories = String(formData.get('boothCategories') ?? '')
+      .split('\n')
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0)
+
+    store.saveSettings({
+      requiredScanCount,
+      instructions,
+      boothCategories,
+      termsText: String(formData.get('termsText') ?? '').trim(),
+    })
+    setSettingsMessage('Settings saved.')
   }
 
   const saveDraft = () => {
@@ -937,25 +977,12 @@ export function AdminDashboard({ store }) {
         {activeSection === 'Settings' && (
           <section className="admin-workspace narrow">
             <form
+              key={store.activeEventId}
               className="desktop-card admin-editor-form"
+              noValidate
               onSubmit={(event) => {
                 event.preventDefault()
-                const formData = new FormData(event.currentTarget)
-                const instructions = String(formData.get('instructions') ?? '')
-                  .split('\n')
-                  .map((line) => line.trim())
-                  .filter((line) => line.length > 0)
-                const boothCategories = String(formData.get('boothCategories') ?? '')
-                  .split('\n')
-                  .map((line) => line.trim())
-                  .filter((line) => line.length > 0)
-
-                store.saveSettings({
-                  requiredScanCount: formData.get('requiredScanCount'),
-                  instructions,
-                  boothCategories,
-                  termsText: String(formData.get('termsText') ?? '').trim(),
-                })
+                saveSettingsFromForm(event.currentTarget)
               }}
             >
               <div>
@@ -968,7 +995,6 @@ export function AdminDashboard({ store }) {
                   name="requiredScanCount"
                   type="number"
                   min="1"
-                  max={store.booths.length}
                   defaultValue={store.settings?.requiredScanCount ?? 4}
                 />
               </label>
@@ -1037,6 +1063,7 @@ export function AdminDashboard({ store }) {
               <button type="submit" className="primary">
                 Save Settings
               </button>
+              {settingsMessage && <p className="admin-muted">{settingsMessage}</p>}
             </form>
           </section>
         )}
