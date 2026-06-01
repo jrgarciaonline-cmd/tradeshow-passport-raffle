@@ -5,6 +5,8 @@ import {
   updateSupabasePassword,
 } from '../services/adminAuth'
 import { PinchZoomMap } from './PinchZoomMap'
+import { AdminToast } from './AdminToast'
+import { BoothQrGenerator } from './BoothQrGenerator'
 import { WinnerDancerShow } from './WinnerDancerShow'
 import { WinnerConfetti } from './WinnerConfetti'
 
@@ -496,6 +498,10 @@ export function AdminDashboard({ store }) {
 
   return (
     <main className="admin-dashboard-shell">
+      <AdminToast
+        message={settingsMessage}
+        onClear={() => setSettingsMessage('')}
+      />
       <aside className="admin-sidebar">
         <img src="/logos/landfx-logo-400w.png" alt="Land F/X" />
         <div>
@@ -743,6 +749,7 @@ export function AdminDashboard({ store }) {
 
         {activeSection === 'Booths' && (
           <section className="admin-workspace two-column">
+            <div className="admin-booth-column">
             <form
               className="desktop-card admin-editor-form"
               onSubmit={(event) => {
@@ -863,6 +870,17 @@ export function AdminDashboard({ store }) {
                 </button>
               </div>
             </form>
+
+            <BoothQrGenerator
+              booths={store.booths}
+              selectedBoothId={draft.id}
+              qrCode={draft.qrCode}
+              onSelectBooth={(boothId) => {
+                const booth = store.booths.find((item) => item.id === boothId)
+                if (booth) setDraft({ ...emptyBooth, ...booth })
+              }}
+            />
+            </div>
 
             <div className="desktop-card">
               <div className="table-toolbar">
@@ -1063,7 +1081,6 @@ export function AdminDashboard({ store }) {
               <button type="submit" className="primary">
                 Save Settings
               </button>
-              {settingsMessage && <p className="admin-muted">{settingsMessage}</p>}
             </form>
           </section>
         )}

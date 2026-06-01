@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { defaultInstructions } from '../data/mockData'
 import { PinchZoomMap } from './PinchZoomMap'
+import { AdminToast } from './AdminToast'
 import { WinnerWheel } from './WinnerWheel'
 
 const emptyBooth = {
@@ -150,6 +151,10 @@ export function AdminPanel({
 
   return (
     <section className="admin-panel">
+      <AdminToast
+        message={settingsMessage}
+        onClear={() => setSettingsMessage('')}
+      />
       <div className="admin-actions">
         <div>
           <p className="eyebrow">Admin</p>
@@ -389,7 +394,6 @@ export function AdminPanel({
           <button type="submit" className="primary">
             Save settings
           </button>
-          {settingsMessage && <p className="muted">{settingsMessage}</p>}
         </form>
 
         <form
