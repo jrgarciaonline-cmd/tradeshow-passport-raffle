@@ -196,6 +196,13 @@ function App() {
     store.currentAttendeeEntry?.id,
   ])
 
+  useEffect(() => {
+    if (activeTab !== 'Map') return undefined
+    store.refreshFromRemote?.()
+    return undefined
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only refresh when opening Map
+  }, [activeTab])
+
   if (isAdminRoute) {
     return store.isBootstrapping ? (
       <main className="admin-dashboard-shell login-only">

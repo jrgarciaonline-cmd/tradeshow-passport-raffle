@@ -1,5 +1,14 @@
-const CACHE_NAME = 'passport-raffle-v3'
+const CACHE_NAME = 'passport-raffle-v4'
 const APP_SHELL = ['/', '/index.html', '/manifest.webmanifest', '/pwa-icon.svg']
+
+function isStaticAssetPath(pathname) {
+  return (
+    pathname.startsWith('/maps/') ||
+    pathname.startsWith('/logos/') ||
+    pathname.startsWith('/home/') ||
+    /\.(png|jpe?g|webp|svg|gif)$/i.test(pathname)
+  )
+}
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL)))
@@ -22,6 +31,13 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url)
 
   if (url.origin !== self.location.origin) return
+
+  // Map and image assets must always come from the network so admin uploads
+  // show up on phones without stale service-worker cache.
+  if (isStaticAssetPath(url.pathname)) {
+    event.respondWith(fetch(event.request))
+    return
+  }
 
   if (event.request.mode === 'navigate') {
     event.respondWith(

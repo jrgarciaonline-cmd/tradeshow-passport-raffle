@@ -77,6 +77,7 @@ export function usePassportStore() {
   const sharedSavePending = useRef(false)
   const preserveLocalUntil = useRef({})
   const activeEventIdRef = useRef(state.activeEventId)
+  const syncSharedStateRef = useRef(null)
 
   const refreshSyncStatus = () => {
     setSyncStatus(passportRepository.getOfflineQueueStatus())
@@ -156,7 +157,9 @@ export function usePassportStore() {
     const syncSharedState = async () => {
       const queueStatus = await passportRepository.flushOfflineQueue()
       if (!cancelled) setSyncStatus(queueStatus)
-      if (queueStatus.pendingCount > 0 || !queueStatus.online) return
+      // Still pull remote updates when online — pending scan queue must not
+      // block map/settings sync on mobile.
+      if (!queueStatus.online) return
 
       const events = await passportRepository.loadEventIndex()
       const eventId = activeEventIdRef.current
@@ -187,23 +190,30 @@ export function usePassportStore() {
       })
     }
 
+    syncSharedStateRef.current = syncSharedState
     syncSharedState()
     const intervalId = window.setInterval(syncSharedState, 5000)
     const syncWhenVisible = () => {
       if (document.visibilityState === 'visible') syncSharedState()
     }
+    const syncOnPageShow = (event) => {
+      if (event.persisted || document.visibilityState === 'visible') syncSharedState()
+    }
 
     window.addEventListener('focus', syncSharedState)
     window.addEventListener('online', syncSharedState)
     window.addEventListener('offline', refreshSyncStatus)
+    window.addEventListener('pageshow', syncOnPageShow)
     document.addEventListener('visibilitychange', syncWhenVisible)
 
     return () => {
       cancelled = true
+      syncSharedStateRef.current = null
       window.clearInterval(intervalId)
       window.removeEventListener('focus', syncSharedState)
       window.removeEventListener('online', syncSharedState)
       window.removeEventListener('offline', refreshSyncStatus)
+      window.removeEventListener('pageshow', syncOnPageShow)
       document.removeEventListener('visibilitychange', syncWhenVisible)
     }
   }, [])
@@ -911,5 +921,6 @@ export function usePassportStore() {
     saveSettings,
     exportEntriesCsv,
     exportAttendeesCsv,
+    refreshFromRemote: () => syncSharedStateRef.current?.(),
   }
 }

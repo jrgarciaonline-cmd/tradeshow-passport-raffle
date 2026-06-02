@@ -334,9 +334,12 @@ function isRemoteAssetRef(value) {
 }
 
 function pickSyncedAssetUrl(sharedValue, localValue) {
+  // Always prefer the cloud value when syncing — stale local URLs/data URLs
+  // were blocking phones from picking up newly uploaded maps.
   if (isRemoteAssetRef(sharedValue)) return sharedValue
+  if (sharedValue) return sharedValue
   if (isRemoteAssetRef(localValue)) return localValue
-  return sharedValue ?? localValue
+  return localValue
 }
 
 function mergeSharedState(state, sharedState, options = {}) {
