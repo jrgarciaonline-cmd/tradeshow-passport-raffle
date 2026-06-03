@@ -102,6 +102,16 @@ export function PinchZoomMap({
 
   const openBoothPopup = (boothId) => {
     if (placementBoothId) return
+    const viewport = viewportRef.current
+    if (viewport) {
+      for (const pointerId of [...pointers.current.keys()]) {
+        if (viewport.hasPointerCapture(pointerId)) {
+          viewport.releasePointerCapture(pointerId)
+        }
+      }
+      pointers.current.clear()
+      gestureStart.current = null
+    }
     setSelectedBoothId(boothId)
   }
 
@@ -146,8 +156,19 @@ export function PinchZoomMap({
   }
 
   const endPointer = (pointerId, target) => {
+    if (target.hasPointerCapture(pointerId)) {
+      target.releasePointerCapture(pointerId)
+    }
     pointers.current.delete(pointerId)
+    if (!pointers.current.size) {
+      gestureStart.current = null
+      return
+    }
     startGesture(target)
+  }
+
+  const closeBoothPopup = () => {
+    setSelectedBoothId(null)
   }
 
   const placeBoothAtPoint = (clientX, clientY) => {
@@ -389,7 +410,7 @@ export function PinchZoomMap({
             })
           }
         }}
-        onPointerUp={(event) => {
+        onPointerUpCapture={(event) => {
           if (
             placementBoothId &&
             pointers.current.size === 1 &&
@@ -400,9 +421,9 @@ export function PinchZoomMap({
           }
           endPointer(event.pointerId, event.currentTarget)
         }}
-        onPointerCancel={(event) =>
+        onPointerCancelCapture={(event) => {
           endPointer(event.pointerId, event.currentTarget)
-        }
+        }}
       >
         <div
           className="pinch-map-area"
@@ -513,23 +534,23 @@ export function PinchZoomMap({
         </div>
         {selectedBoothId &&
           createPortal(
-            <div
-              className="booth-popup-overlay"
-              onClick={() => setSelectedBoothId(null)}
-            >
+            <div className="booth-popup-overlay" role="presentation">
+              <button
+                type="button"
+                className="booth-popup-backdrop"
+                aria-label="Close booth details"
+                onClick={closeBoothPopup}
+              />
               {(() => {
                 const booth = booths.find((b) => b.id === selectedBoothId)
                 if (!booth) return null
 
                 return (
-                  <div
-                    className="booth-popup"
-                    onClick={(event) => event.stopPropagation()}
-                  >
+                  <div className="booth-popup" role="dialog" aria-modal="true">
                     <button
                       type="button"
                       className="booth-popup-close"
-                      onClick={() => setSelectedBoothId(null)}
+                      onClick={closeBoothPopup}
                       aria-label="Close"
                     >
                       ✕
@@ -556,7 +577,10 @@ export function PinchZoomMap({
                       <button
                         type="button"
                         className="booth-popup-button"
-                        onClick={() => onScanBooth?.(booth.id)}
+                        onClick={() => {
+                          closeBoothPopup()
+                          onScanBooth?.(booth.id)
+                        }}
                       >
                         Scan QR Code
                       </button>
