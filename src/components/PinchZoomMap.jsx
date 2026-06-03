@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { MapMarkerLogo } from './MapMarkerLogo'
 
 const DEFAULT_MAP_SRC = '/maps/asla_map.PNG'
@@ -53,6 +54,10 @@ function formatBoothLocation(location) {
   return match?.[0] ?? location
 }
 
+function isMapPinTarget(target) {
+  return target instanceof Element && Boolean(target.closest('.pinch-map-pin'))
+}
+
 function constrainView(view, container, mapSize) {
   const minScale = getFitScale(container, mapSize)
   const scale = clamp(view.scale, minScale, MAX_SCALE)
@@ -93,6 +98,12 @@ export function PinchZoomMap({
   const [view, setView] = useState(INITIAL_VIEW)
   const [mapSize, setMapSize] = useState(INITIAL_MAP_SIZE)
   const [selectedBoothId, setSelectedBoothId] = useState(null)
+  const pinTapStart = useRef(null)
+
+  const openBoothPopup = (boothId) => {
+    if (placementBoothId) return
+    setSelectedBoothId(boothId)
+  }
 
   const updateView = (nextView) => {
     if (frameRef.current) cancelAnimationFrame(frameRef.current)
@@ -312,6 +323,8 @@ export function PinchZoomMap({
           zoomAtPoint(event.clientX, event.clientY, viewRef.current.scale * factor)
         }}
         onPointerDown={(event) => {
+          if (isMapPinTarget(event.target)) return
+
           event.preventDefault()
           pendingFocus.current = null
           movedDuringGesture.current = false
@@ -432,12 +445,38 @@ export function PinchZoomMap({
                 }}
                 title={`${booth.name} / ${booth.location}`}
                 aria-label={`${booth.name}, ${booth.location}`}
-                onClick={(e) => {
-                  e.stopPropagation()
-                  if (placementBoothId) {
+                onPointerDown={(event) => {
+                  event.stopPropagation()
+                  pinTapStart.current = {
+                    pointerId: event.pointerId,
+                    x: event.clientX,
+                    y: event.clientY,
+                    boothId: booth.id,
+                  }
+                }}
+                onPointerUp={(event) => {
+                  event.stopPropagation()
+                  const start = pinTapStart.current
+                  if (
+                    !start ||
+                    start.boothId !== booth.id ||
+                    start.pointerId !== event.pointerId
+                  ) {
                     return
                   }
-                  setSelectedBoothId(booth.id)
+
+                  pinTapStart.current = null
+                  const moved = Math.hypot(
+                    event.clientX - start.x,
+                    event.clientY - start.y,
+                  )
+                  if (moved <= 6) {
+                    openBoothPopup(booth.id)
+                  }
+                }}
+                onClick={(event) => {
+                  event.stopPropagation()
+                  openBoothPopup(booth.id)
                 }}
               >
                 <span className="map-marker-pin">
@@ -472,60 +511,62 @@ export function PinchZoomMap({
             )
           })()}
         </div>
-        {selectedBoothId && (
-          <div
-            className="booth-popup-overlay"
-            onClick={() => setSelectedBoothId(null)}
-          >
-            {(() => {
-              const booth = booths.find((b) => b.id === selectedBoothId)
-              if (!booth) return null
+        {selectedBoothId &&
+          createPortal(
+            <div
+              className="booth-popup-overlay"
+              onClick={() => setSelectedBoothId(null)}
+            >
+              {(() => {
+                const booth = booths.find((b) => b.id === selectedBoothId)
+                if (!booth) return null
 
-              return (
-                <div
-                  className="booth-popup"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <button
-                    type="button"
-                    className="booth-popup-close"
-                    onClick={() => setSelectedBoothId(null)}
-                    aria-label="Close"
+                return (
+                  <div
+                    className="booth-popup"
+                    onClick={(event) => event.stopPropagation()}
                   >
-                    ✕
-                  </button>
-                  <div className="booth-popup-logo">
-                    {booth.logoDataUrl ? (
-                      <img src={booth.logoDataUrl} alt="" />
-                    ) : (
-                      <span>{booth.name.slice(0, 1)}</span>
-                    )}
-                  </div>
-                  <h3>{booth.name}</h3>
-                  <div className="booth-popup-actions">
-                    {booth.websiteUrl && (
-                      <a
-                        href={booth.websiteUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="booth-popup-button"
-                      >
-                        Visit Website
-                      </a>
-                    )}
                     <button
                       type="button"
-                      className="booth-popup-button"
-                      onClick={() => onScanBooth?.(booth.id)}
+                      className="booth-popup-close"
+                      onClick={() => setSelectedBoothId(null)}
+                      aria-label="Close"
                     >
-                      Scan QR Code
+                      ✕
                     </button>
+                    <div className="booth-popup-logo">
+                      {booth.logoDataUrl ? (
+                        <img src={booth.logoDataUrl} alt="" />
+                      ) : (
+                        <span>{booth.name.slice(0, 1)}</span>
+                      )}
+                    </div>
+                    <h3>{booth.name}</h3>
+                    <div className="booth-popup-actions">
+                      {booth.websiteUrl && (
+                        <a
+                          href={booth.websiteUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="booth-popup-button"
+                        >
+                          Visit Website
+                        </a>
+                      )}
+                      <button
+                        type="button"
+                        className="booth-popup-button"
+                        onClick={() => onScanBooth?.(booth.id)}
+                      >
+                        Scan QR Code
+                      </button>
+                    </div>
                   </div>
-                </div>
-              )
-            })()}
-          </div>
-        )}
+                )
+              })()}
+            </div>,
+            document.body,
+          )}
       </div>
     </div>
   )
