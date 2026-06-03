@@ -986,12 +986,15 @@ button:disabled {
   position: relative;
   overflow: hidden;
   overscroll-behavior: contain;
-  touch-action: none;
   cursor: grab;
 }
 
 .pinch-map-scroll:active {
   cursor: grabbing;
+}
+
+.pinch-map.is-locked .pinch-map-scroll {
+  cursor: default;
 }
 
 .pinch-map-area {
@@ -1005,7 +1008,14 @@ button:disabled {
   will-change: transform;
 }
 
-.pinch-map-area img {
+.pinch-map-surface {
+  position: absolute;
+  inset: 0;
+  touch-action: none;
+  cursor: inherit;
+}
+
+.pinch-map-surface img {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -1013,6 +1023,22 @@ button:disabled {
   object-fit: fill;
   user-select: none;
   -webkit-user-drag: none;
+  pointer-events: none;
+}
+
+.pinch-map-pins {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.pinch-map-pins .pinch-map-pin {
+  pointer-events: auto;
+  touch-action: manipulation;
+}
+
+.pinch-map.is-locked .pinch-map-pins {
+  pointer-events: none;
 }
 
 .pinch-map-pin {
@@ -2370,6 +2396,11 @@ textarea {
   grid-template-rows: auto minmax(0, 1fr);
 }
 
+.map-panel-map {
+  position: relative;
+  min-height: 0;
+}
+
 .full-map-card {
   min-height: 0;
 }
@@ -3158,43 +3189,45 @@ button.danger {
   }
 }
 
-/* Booth Popup Styles */
-.booth-popup-overlay {
-  position: fixed;
+/* Booth map popup (sibling of map, not inside gesture layer) */
+.booth-map-popup {
+  position: absolute;
   inset: 0;
-  z-index: 6000;
+  z-index: 40;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 24px;
-  pointer-events: auto;
 }
 
-.booth-popup-backdrop {
+.booth-map-popup__backdrop {
   position: absolute;
   inset: 0;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
   border: 0;
   padding: 0;
-  background: rgba(0, 0, 0, 0.5);
+  margin: 0;
+  background: rgba(0, 0, 0, 0.52);
   cursor: default;
 }
 
-.booth-popup {
+.booth-map-popup__card {
   position: relative;
   z-index: 1;
-  pointer-events: auto;
+  width: min(320px, 100%);
   background: #fff;
   border-radius: 12px;
   padding: 24px;
-  max-width: 320px;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-  animation: slideUp 0.3s ease-out;
+  animation: booth-map-popup-in 0.22s ease-out;
 }
 
-@keyframes slideUp {
+@keyframes booth-map-popup-in {
   from {
     opacity: 0;
-    transform: translateY(20px);
+    transform: translateY(12px);
   }
   to {
     opacity: 1;
@@ -3202,12 +3235,13 @@ button.danger {
   }
 }
 
-.booth-popup-close {
+.booth-map-popup__close {
   position: absolute;
   top: 12px;
   right: 12px;
   width: 32px;
   height: 32px;
+  min-height: 0;
   border: none;
   background: none;
   color: #999;
@@ -3217,22 +3251,21 @@ button.danger {
   align-items: center;
   justify-content: center;
   border-radius: 6px;
-  transition: background 0.2s, color 0.2s;
 }
 
-.booth-popup-close:hover {
+.booth-map-popup__close:hover {
   background: #f0f0f0;
   color: #333;
 }
 
-.booth-popup h3 {
-  margin: 0 0 16px 0;
+.booth-map-popup__card h3 {
+  margin: 0 0 16px;
   font-size: 18px;
   font-weight: 600;
   color: #1e6a7a;
 }
 
-.booth-popup-logo {
+.booth-map-popup__logo {
   display: grid;
   width: 116px;
   min-height: 62px;
@@ -3244,14 +3277,14 @@ button.danger {
   background: #fff;
 }
 
-.booth-popup-logo img {
+.booth-map-popup__logo img {
   display: block;
   max-width: 100%;
   max-height: 58px;
   object-fit: contain;
 }
 
-.booth-popup-logo span {
+.booth-map-popup__logo span {
   display: grid;
   width: 42px;
   height: 42px;
@@ -3262,31 +3295,32 @@ button.danger {
   font-weight: 900;
 }
 
-.booth-popup-actions {
+.booth-map-popup__actions {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
 }
 
-.booth-popup-button {
+.booth-map-popup__button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  min-height: 40px;
   padding: 10px 16px;
-  background: #1e6a7a;
-  color: #fff;
-  text-decoration: none;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 500;
-  transition: background 0.2s;
   border: none;
+  border-radius: 6px;
+  color: #fff;
+  background: #1e6a7a;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
 }
 
-button.booth-popup-button {
-  min-height: 0;
+button.booth-map-popup__button {
+  min-height: 40px;
 }
 
-.booth-popup-button:hover {
+.booth-map-popup__button:hover {
   background: #155460;
 }

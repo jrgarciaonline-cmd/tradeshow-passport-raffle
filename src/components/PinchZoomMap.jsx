@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react'
-import { createPortal } from 'react-dom'
 import { MapMarkerLogo } from './MapMarkerLogo'
 
 const DEFAULT_MAP_SRC = '/maps/asla_map.PNG'
@@ -54,10 +53,6 @@ function formatBoothLocation(location) {
   return match?.[0] ?? location
 }
 
-function isMapPinTarget(target) {
-  return target instanceof Element && Boolean(target.closest('.pinch-map-pin'))
-}
-
 function constrainView(view, container, mapSize) {
   const minScale = getFitScale(container, mapSize)
   const scale = clamp(view.scale, minScale, MAX_SCALE)
@@ -74,12 +69,13 @@ export function PinchZoomMap({
   booths,
   completedIds,
   onPlaceBooth,
-  onScanBooth,
+  onBoothSelect,
   placementBoothId = '',
   focusBoothId = '',
   focusKey = 0,
   onFocusHandled,
   locationBoothId = '',
+  mapLocked = false,
   className = '',
   title = '',
   mapSrc = DEFAULT_MAP_SRC,
@@ -97,23 +93,6 @@ export function PinchZoomMap({
   const hasPositionedView = useRef(false)
   const [view, setView] = useState(INITIAL_VIEW)
   const [mapSize, setMapSize] = useState(INITIAL_MAP_SIZE)
-  const [selectedBoothId, setSelectedBoothId] = useState(null)
-  const pinTapStart = useRef(null)
-
-  const openBoothPopup = (boothId) => {
-    if (placementBoothId) return
-    const viewport = viewportRef.current
-    if (viewport) {
-      for (const pointerId of [...pointers.current.keys()]) {
-        if (viewport.hasPointerCapture(pointerId)) {
-          viewport.releasePointerCapture(pointerId)
-        }
-      }
-      pointers.current.clear()
-      gestureStart.current = null
-    }
-    setSelectedBoothId(boothId)
-  }
 
   const updateView = (nextView) => {
     if (frameRef.current) cancelAnimationFrame(frameRef.current)
@@ -155,20 +134,14 @@ export function PinchZoomMap({
     }
   }
 
-  const endPointer = (pointerId, target) => {
-    if (target.hasPointerCapture(pointerId)) {
-      target.releasePointerCapture(pointerId)
-    }
+  const endPointer = (pointerId) => {
     pointers.current.delete(pointerId)
     if (!pointers.current.size) {
       gestureStart.current = null
       return
     }
-    startGesture(target)
-  }
-
-  const closeBoothPopup = () => {
-    setSelectedBoothId(null)
+    const viewport = viewportRef.current
+    if (viewport) startGesture(viewport)
   }
 
   const placeBoothAtPoint = (clientX, clientY) => {
@@ -226,6 +199,83 @@ export function PinchZoomMap({
       x: 0,
       y: 0,
     })
+  }
+
+  const handleSurfacePointerDown = (event) => {
+    if (mapLocked) return
+
+    movedDuringGesture.current = false
+    pointerStart.current = { x: event.clientX, y: event.clientY }
+    pointers.current.set(event.pointerId, {
+      x: event.clientX,
+      y: event.clientY,
+    })
+    startGesture(viewportRef.current)
+  }
+
+  const handleSurfacePointerMove = (event) => {
+    if (mapLocked || !pointers.current.has(event.pointerId)) return
+
+    pointers.current.set(event.pointerId, {
+      x: event.clientX,
+      y: event.clientY,
+    })
+
+    if (pointerStart.current) {
+      const movedDistance = Math.hypot(
+        event.clientX - pointerStart.current.x,
+        event.clientY - pointerStart.current.y,
+      )
+      movedDuringGesture.current = movedDistance > 6
+    }
+
+    const start = gestureStart.current
+    if (!start) return
+
+    const points = [...pointers.current.values()]
+
+    if (start.mode === 'pan' && points.length === 1) {
+      updateView({
+        ...start.view,
+        x: start.view.x + points[0].x - start.point.x,
+        y: start.view.y + points[0].y - start.point.y,
+      })
+      return
+    }
+
+    if (start.mode === 'pinch' && points.length === 2) {
+      const currentMidpoint = midpoint(points[0], points[1])
+      const minScale = getFitScale(start.rect, mapSize)
+      const nextScale = clamp(
+        start.view.scale * (distance(points[0], points[1]) / start.distance),
+        minScale,
+        MAX_SCALE,
+      )
+      const startAnchorX = start.midpoint.x - start.rect.left
+      const startAnchorY = start.midpoint.y - start.rect.top
+      const currentAnchorX = currentMidpoint.x - start.rect.left
+      const currentAnchorY = currentMidpoint.y - start.rect.top
+      const mapX = (startAnchorX - start.view.x) / start.view.scale
+      const mapY = (startAnchorY - start.view.y) / start.view.scale
+
+      updateView({
+        scale: nextScale,
+        x: currentAnchorX - mapX * nextScale,
+        y: currentAnchorY - mapY * nextScale,
+      })
+    }
+  }
+
+  const handleSurfacePointerUp = (event) => {
+    if (
+      placementBoothId &&
+      pointers.current.size === 1 &&
+      pointers.current.has(event.pointerId) &&
+      !movedDuringGesture.current
+    ) {
+      placeBoothAtPoint(event.clientX, event.clientY)
+    }
+    endPointer(event.pointerId)
   }
 
   useEffect(() => {
@@ -317,7 +367,7 @@ export function PinchZoomMap({
   }, [booths, focusBoothId, focusKey, mapSize, onFocusHandled])
 
   return (
-    <div className={`pinch-map ${className}`}>
+    <div className={`pinch-map ${mapLocked ? 'is-locked' : ''} ${className}`}>
       <div className="pinch-map-header">
         {title && <strong>{title}</strong>}
         <span>{placementBoothId ? 'Tap map to place' : 'Pinch or drag'}</span>
@@ -337,92 +387,12 @@ export function PinchZoomMap({
         ref={viewportRef}
         className="pinch-map-scroll"
         onWheel={(event) => {
+          if (mapLocked) return
           event.preventDefault()
           pendingFocus.current = null
           const delta = -event.deltaY
           const factor = delta > 0 ? 1.14 : 0.88
           zoomAtPoint(event.clientX, event.clientY, viewRef.current.scale * factor)
-        }}
-        onPointerDown={(event) => {
-          if (isMapPinTarget(event.target)) return
-
-          event.preventDefault()
-          pendingFocus.current = null
-          movedDuringGesture.current = false
-          pointerStart.current = { x: event.clientX, y: event.clientY }
-          event.currentTarget.setPointerCapture(event.pointerId)
-          pointers.current.set(event.pointerId, {
-            x: event.clientX,
-            y: event.clientY,
-          })
-          startGesture(event.currentTarget)
-        }}
-        onPointerMove={(event) => {
-          if (!pointers.current.has(event.pointerId)) return
-          event.preventDefault()
-
-          pointers.current.set(event.pointerId, {
-            x: event.clientX,
-            y: event.clientY,
-          })
-
-          if (pointerStart.current) {
-            const movedDistance = Math.hypot(
-              event.clientX - pointerStart.current.x,
-              event.clientY - pointerStart.current.y,
-            )
-            movedDuringGesture.current = movedDistance > 6
-          }
-
-          const start = gestureStart.current
-          if (!start) return
-
-          const points = [...pointers.current.values()]
-
-          if (start.mode === 'pan' && points.length === 1) {
-            updateView({
-              ...start.view,
-              x: start.view.x + points[0].x - start.point.x,
-              y: start.view.y + points[0].y - start.point.y,
-            })
-            return
-          }
-
-          if (start.mode === 'pinch' && points.length === 2) {
-            const currentMidpoint = midpoint(points[0], points[1])
-            const minScale = getFitScale(start.rect, mapSize)
-            const nextScale = clamp(
-              start.view.scale * (distance(points[0], points[1]) / start.distance),
-              minScale,
-              MAX_SCALE,
-            )
-            const startAnchorX = start.midpoint.x - start.rect.left
-            const startAnchorY = start.midpoint.y - start.rect.top
-            const currentAnchorX = currentMidpoint.x - start.rect.left
-            const currentAnchorY = currentMidpoint.y - start.rect.top
-            const mapX = (startAnchorX - start.view.x) / start.view.scale
-            const mapY = (startAnchorY - start.view.y) / start.view.scale
-
-            updateView({
-              scale: nextScale,
-              x: currentAnchorX - mapX * nextScale,
-              y: currentAnchorY - mapY * nextScale,
-            })
-          }
-        }}
-        onPointerUpCapture={(event) => {
-          if (
-            placementBoothId &&
-            pointers.current.size === 1 &&
-            pointers.current.has(event.pointerId) &&
-            !movedDuringGesture.current
-          ) {
-            placeBoothAtPoint(event.clientX, event.clientY)
-          }
-          endPointer(event.pointerId, event.currentTarget)
-        }}
-        onPointerCancelCapture={(event) => {
-          endPointer(event.pointerId, event.currentTarget)
         }}
       >
         <div
@@ -433,87 +403,70 @@ export function PinchZoomMap({
             transform: `translate3d(${view.x}px, ${view.y}px, 0) scale(${view.scale})`,
           }}
         >
-          <img
-            key={mapSrc}
-            src={mapSrc}
-            alt="Expo floor map"
-            onLoad={(event) => {
-              const { naturalWidth, naturalHeight } = event.currentTarget
-              if (!naturalWidth || !naturalHeight) return
+          <div
+            className="pinch-map-surface"
+            onPointerDown={handleSurfacePointerDown}
+            onPointerMove={handleSurfacePointerMove}
+            onPointerUp={handleSurfacePointerUp}
+            onPointerCancel={handleSurfacePointerUp}
+          >
+            <img
+              key={mapSrc}
+              src={mapSrc}
+              alt="Expo floor map"
+              draggable={false}
+              onLoad={(event) => {
+                const { naturalWidth, naturalHeight } = event.currentTarget
+                if (!naturalWidth || !naturalHeight) return
 
-              setMapSize({
-                width: BASE_MAP_WIDTH,
-                height: Math.round(BASE_MAP_WIDTH * (naturalHeight / naturalWidth)),
-              })
-            }}
-          />
-          {booths.map((booth) => {
-            const completed = completedIds.includes(booth.id)
-            const selected = placementBoothId === booth.id
-            const locationLabel = formatBoothLocation(booth.location)
+                setMapSize({
+                  width: BASE_MAP_WIDTH,
+                  height: Math.round(BASE_MAP_WIDTH * (naturalHeight / naturalWidth)),
+                })
+              }}
+            />
+          </div>
+          <div className="pinch-map-pins" aria-hidden={mapLocked}>
+            {booths.map((booth) => {
+              const completed = completedIds.includes(booth.id)
+              const selected = placementBoothId === booth.id
+              const locationLabel = formatBoothLocation(booth.location)
 
-            return (
-              <button
-                type="button"
-                className={`pinch-map-pin ${completed ? 'complete' : ''} ${
-                  selected ? 'selected' : ''
-                }`}
-                key={booth.id}
-                style={{
-                  '--x': `${booth.map.x}%`,
-                  '--y': `${booth.map.y}%`,
-                  '--pin-color': booth.color,
-                }}
-                title={`${booth.name} / ${booth.location}`}
-                aria-label={`${booth.name}, ${booth.location}`}
-                onPointerDown={(event) => {
-                  event.stopPropagation()
-                  pinTapStart.current = {
-                    pointerId: event.pointerId,
-                    x: event.clientX,
-                    y: event.clientY,
-                    boothId: booth.id,
-                  }
-                }}
-                onPointerUp={(event) => {
-                  event.stopPropagation()
-                  const start = pinTapStart.current
-                  if (
-                    !start ||
-                    start.boothId !== booth.id ||
-                    start.pointerId !== event.pointerId
-                  ) {
-                    return
-                  }
-
-                  pinTapStart.current = null
-                  const moved = Math.hypot(
-                    event.clientX - start.x,
-                    event.clientY - start.y,
-                  )
-                  if (moved <= 6) {
-                    openBoothPopup(booth.id)
-                  }
-                }}
-                onClick={(event) => {
-                  event.stopPropagation()
-                  openBoothPopup(booth.id)
-                }}
-              >
-                <span className="map-marker-pin">
-                  <span className="map-marker-location">{locationLabel}</span>
-                </span>
-                <span className="map-marker-banner">
-                  {booth.logoDataUrl ? (
-                    <MapMarkerLogo src={booth.logoDataUrl} alt="" />
-                  ) : (
-                    <strong>{booth.name}</strong>
-                  )}
-                </span>
-                {completed && <span className="map-marker-check">✓</span>}
-              </button>
-            )
-          })}
+              return (
+                <button
+                  type="button"
+                  className={`pinch-map-pin ${completed ? 'complete' : ''} ${
+                    selected ? 'selected' : ''
+                  }`}
+                  key={booth.id}
+                  style={{
+                    '--x': `${booth.map.x}%`,
+                    '--y': `${booth.map.y}%`,
+                    '--pin-color': booth.color,
+                  }}
+                  title={`${booth.name} / ${booth.location}`}
+                  aria-label={`${booth.name}, ${booth.location}`}
+                  disabled={mapLocked}
+                  onClick={() => {
+                    if (placementBoothId || mapLocked) return
+                    onBoothSelect?.(booth.id)
+                  }}
+                >
+                  <span className="map-marker-pin">
+                    <span className="map-marker-location">{locationLabel}</span>
+                  </span>
+                  <span className="map-marker-banner">
+                    {booth.logoDataUrl ? (
+                      <MapMarkerLogo src={booth.logoDataUrl} alt="" />
+                    ) : (
+                      <strong>{booth.name}</strong>
+                    )}
+                  </span>
+                  {completed && <span className="map-marker-check">✓</span>}
+                </button>
+              )
+            })}
+          </div>
           {(() => {
             const locationBooth = booths.find((booth) => booth.id === locationBoothId)
             if (!locationBooth) return null
@@ -532,65 +485,6 @@ export function PinchZoomMap({
             )
           })()}
         </div>
-        {selectedBoothId &&
-          createPortal(
-            <div className="booth-popup-overlay" role="presentation">
-              <button
-                type="button"
-                className="booth-popup-backdrop"
-                aria-label="Close booth details"
-                onClick={closeBoothPopup}
-              />
-              {(() => {
-                const booth = booths.find((b) => b.id === selectedBoothId)
-                if (!booth) return null
-
-                return (
-                  <div className="booth-popup" role="dialog" aria-modal="true">
-                    <button
-                      type="button"
-                      className="booth-popup-close"
-                      onClick={closeBoothPopup}
-                      aria-label="Close"
-                    >
-                      ✕
-                    </button>
-                    <div className="booth-popup-logo">
-                      {booth.logoDataUrl ? (
-                        <img src={booth.logoDataUrl} alt="" />
-                      ) : (
-                        <span>{booth.name.slice(0, 1)}</span>
-                      )}
-                    </div>
-                    <h3>{booth.name}</h3>
-                    <div className="booth-popup-actions">
-                      {booth.websiteUrl && (
-                        <a
-                          href={booth.websiteUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="booth-popup-button"
-                        >
-                          Visit Website
-                        </a>
-                      )}
-                      <button
-                        type="button"
-                        className="booth-popup-button"
-                        onClick={() => {
-                          closeBoothPopup()
-                          onScanBooth?.(booth.id)
-                        }}
-                      >
-                        Scan QR Code
-                      </button>
-                    </div>
-                  </div>
-                )
-              })()}
-            </div>,
-            document.body,
-          )}
       </div>
     </div>
   )

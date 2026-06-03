@@ -433,6 +433,7 @@ function App() {
               locationBoothId={store.currentLocationBoothId}
               mapSrc={store.settings?.mapSrc}
               onFocusHandled={() => setConsumedMapFocusKey(mapFocusKey)}
+              onBoothSelect={setSelectedMapBoothId}
               onClearFocus={() => {
                 setSelectedMapBoothId('')
                 setMapFocusBoothId('')

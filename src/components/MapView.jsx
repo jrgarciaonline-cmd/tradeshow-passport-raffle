@@ -1,3 +1,4 @@
+import { BoothMapPopup } from './BoothMapPopup'
 import { PinchZoomMap } from './PinchZoomMap'
 
 export function MapView({
@@ -9,10 +10,11 @@ export function MapView({
   locationBoothId,
   mapSrc,
   onFocusHandled,
+  onBoothSelect,
   onClearFocus,
   onScanBooth,
 }) {
-  const selectedBooth = booths.find((booth) => booth.id === selectedBoothId)
+  const selectedBooth = booths.find((booth) => booth.id === selectedBoothId) ?? null
 
   return (
     <section className="map-panel">
@@ -31,17 +33,25 @@ export function MapView({
           </p>
         )}
       </div>
-      <PinchZoomMap
-        booths={booths}
-        completedIds={completedIds}
-        focusBoothId={focusBoothId}
-        focusKey={focusKey}
-        locationBoothId={locationBoothId}
-        onScanBooth={onScanBooth}
-        onFocusHandled={onFocusHandled}
-        mapSrc={mapSrc}
-        className="full-map-card"
-      />
+      <div className="map-panel-map">
+        <PinchZoomMap
+          booths={booths}
+          completedIds={completedIds}
+          focusBoothId={focusBoothId}
+          focusKey={focusKey}
+          locationBoothId={locationBoothId}
+          mapLocked={Boolean(selectedBoothId)}
+          onBoothSelect={onBoothSelect}
+          onFocusHandled={onFocusHandled}
+          mapSrc={mapSrc}
+          className="full-map-card"
+        />
+        <BoothMapPopup
+          booth={selectedBooth}
+          onClose={() => onBoothSelect?.('')}
+          onScanBooth={onScanBooth}
+        />
+      </div>
     </section>
   )
 }
