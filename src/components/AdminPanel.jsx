@@ -19,7 +19,7 @@ const emptyBooth = {
 }
 
 const adminSections = ['Events', 'Settings', 'Booths', 'Map', 'Signups', 'Raffle', 'Winner', 'Picked']
-const emptyEventDraft = { id: '', name: '', status: 'hidden', createdAt: '' }
+const emptyEventDraft = { id: '', name: '', status: 'hidden', createdAt: '', duplicateFromId: '' }
 
 function confirmWinnerReset() {
   return (
@@ -41,6 +41,7 @@ export function AdminPanel({
   activeEventId,
   onSelectEvent,
   onSaveEvent,
+  onDuplicateEvent,
   onArchiveEvent,
   onUnarchiveEvent,
   onSaveBooth,
@@ -233,6 +234,27 @@ export function AdminPanel({
                 <option value="archived">Archived</option>
               </select>
             </label>
+            {!eventDraft.id && (
+              <label className="form-field">
+                <span>Copy setup from</span>
+                <select
+                  value={eventDraft.duplicateFromId ?? ''}
+                  onChange={(event) =>
+                    setEventDraft((current) => ({
+                      ...current,
+                      duplicateFromId: event.target.value,
+                    }))
+                  }
+                >
+                  <option value="">Blank event</option>
+                  {events.map((event) => (
+                    <option key={event.id} value={event.id}>
+                      {event.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
             <button type="submit" className="primary">
               {eventDraft.id ? 'Save event' : 'Create event'}
             </button>
@@ -262,6 +284,15 @@ export function AdminPanel({
                 </button>
                 <button type="button" onClick={() => setEventDraft(event)}>
                   Edit
+                </button>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const result = await onDuplicateEvent(event.id)
+                    setEventMessage(result.message)
+                  }}
+                >
+                  Duplicate
                 </button>
                 {event.status === 'active' && (
                   <button

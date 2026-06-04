@@ -255,9 +255,90 @@ export function usePassportStore() {
     return { ok: true, message: 'Event selected.' }
   }
 
+  const duplicateEvent = async (sourceEventId, draft = {}) => {
+    const sourceEvent = state.events.find((item) => item.id === sourceEventId)
+    if (!sourceEvent) return { ok: false, message: 'Event not found.' }
+
+    const name = String(draft.name ?? `${sourceEvent.name} Copy`).trim()
+    if (!name) return { ok: false, message: 'Enter an event name.' }
+
+    const id = buildBoothId(name) || crypto.randomUUID()
+    if (state.events.some((event) => event.id === id)) {
+      return { ok: false, message: 'An event with that name already exists.' }
+    }
+
+    let sourceShared =
+      sourceEventId === state.activeEventId
+        ? {
+            booths: state.booths,
+            settings: state.settings,
+          }
+        : null
+
+    if (!sourceShared) {
+      try {
+        sourceShared = await passportRepository.loadShared(sourceEventId)
+      } catch (error) {
+        console.warn(error)
+      }
+    }
+
+    const baseSettings = passportRepository.getEventBaseState(id).settings
+    const sharedData = {
+      booths: Array.isArray(sourceShared?.booths)
+        ? sourceShared.booths.map((booth) => ({ ...booth }))
+        : [],
+      settings: {
+        ...baseSettings,
+        ...(sourceShared?.settings ?? {}),
+      },
+      entries: [],
+      winners: [],
+      attendees: [],
+      attendeeProgress: {},
+      attendeeLocation: {},
+    }
+
+    const nextEvent = {
+      id,
+      name,
+      status: ['active', 'hidden', 'archived'].includes(draft.status)
+        ? draft.status
+        : 'hidden',
+      createdAt: new Date().toISOString(),
+    }
+
+    let savedEvents = state.events
+    updateState((current) => {
+      savedEvents = [...current.events, nextEvent]
+      return {
+        ...current,
+        events: savedEvents,
+      }
+    })
+
+    await passportRepository.saveEventIndex(savedEvents)
+    await passportRepository.saveShared({
+      ...sharedData,
+      activeEventId: id,
+    })
+
+    return {
+      ok: true,
+      message: `${name} created as a copy of ${sourceEvent.name}.`,
+    }
+  }
+
   const saveEvent = async (eventDraft) => {
     const name = String(eventDraft.name ?? '').trim()
     if (!name) return { ok: false, message: 'Enter an event name.' }
+
+    if (!eventDraft.id && eventDraft.duplicateFromId) {
+      return duplicateEvent(eventDraft.duplicateFromId, {
+        name,
+        status: eventDraft.status,
+      })
+    }
 
     const id = eventDraft.id || buildBoothId(name) || crypto.randomUUID()
     const nextEvent = {
@@ -895,6 +976,7 @@ export function usePassportStore() {
     activeEvents,
     selectEvent,
     saveEvent,
+    duplicateEvent,
     archiveEvent,
     unarchiveEvent,
     registerAttendee,

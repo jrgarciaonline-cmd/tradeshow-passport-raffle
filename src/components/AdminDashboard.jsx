@@ -49,6 +49,7 @@ const emptyEventDraft = {
   name: '',
   status: 'hidden',
   createdAt: '',
+  duplicateFromId: '',
 }
 
 function confirmWinnerReset() {
@@ -634,6 +635,27 @@ export function AdminDashboard({ store }) {
                   <option value="archived">Archived</option>
                 </select>
               </label>
+              {!eventDraft.id && (
+                <label className="form-field">
+                  <span>Copy setup from</span>
+                  <select
+                    value={eventDraft.duplicateFromId ?? ''}
+                    onChange={(event) =>
+                      setEventDraft((current) => ({
+                        ...current,
+                        duplicateFromId: event.target.value,
+                      }))
+                    }
+                  >
+                    <option value="">Blank event</option>
+                    {store.events.map((event) => (
+                      <option key={event.id} value={event.id}>
+                        {event.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
               <div className="admin-form-actions">
                 <button type="submit" className="primary">
                   {eventDraft.id ? 'Save Event' : 'Create Event'}
@@ -648,7 +670,8 @@ export function AdminDashboard({ store }) {
               {eventMessage && <p className="admin-muted">{eventMessage}</p>}
               <p className="admin-muted">
                 Events keep booths, scans, entries, winners, and settings
-                separate.
+                separate. Copy setup duplicates booths and settings only — not
+                attendees, scans, or raffle entries.
               </p>
             </form>
 
@@ -695,6 +718,15 @@ export function AdminDashboard({ store }) {
                               onClick={() => setEventDraft(event)}
                             >
                               Edit
+                            </button>
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                const result = await store.duplicateEvent(event.id)
+                                setEventMessage(result.message)
+                              }}
+                            >
+                              Duplicate
                             </button>
                             {event.status === 'active' && (
                               <button

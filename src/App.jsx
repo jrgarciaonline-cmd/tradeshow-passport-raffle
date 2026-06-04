@@ -472,6 +472,7 @@ function App() {
               activeEventId={store.activeEventId}
               onSelectEvent={store.selectEvent}
               onSaveEvent={store.saveEvent}
+              onDuplicateEvent={store.duplicateEvent}
               onArchiveEvent={store.archiveEvent}
               onUnarchiveEvent={store.unarchiveEvent}
               onSaveBooth={store.saveBooth}
