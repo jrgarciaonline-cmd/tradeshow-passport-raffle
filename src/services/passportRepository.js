@@ -352,12 +352,99 @@ function isRemoteAssetRef(value) {
 }
 
 function pickSyncedAssetUrl(sharedValue, localValue) {
-  // Always prefer the cloud value when syncing — stale local URLs/data URLs
-  // were blocking phones from picking up newly uploaded maps.
   if (isRemoteAssetRef(sharedValue)) return sharedValue
+  if (isRemoteAssetRef(localValue) && !isRemoteAssetRef(sharedValue)) return localValue
   if (sharedValue) return sharedValue
   if (isRemoteAssetRef(localValue)) return localValue
   return localValue
+}
+
+function pickAssetSetting(eventValue, legacyValue, eventUpdatedAt, legacyUpdatedAt) {
+  if (!eventValue && !legacyValue) return undefined
+  if (!legacyValue) return eventValue
+  if (!eventValue) return legacyValue
+  if (isRemoteAssetRef(eventValue) && !isRemoteAssetRef(legacyValue)) return eventValue
+  if (isRemoteAssetRef(legacyValue) && !isRemoteAssetRef(eventValue)) return legacyValue
+  if (eventUpdatedAt && legacyUpdatedAt) {
+    return new Date(eventUpdatedAt) >= new Date(legacyUpdatedAt)
+      ? eventValue
+      : legacyValue
+  }
+  return eventValue
+}
+
+function buildMergedSettings(
+  eventSettings = {},
+  legacySettings = {},
+  eventUpdatedAt,
+  legacyUpdatedAt,
+) {
+  return {
+    ...legacySettings,
+    ...eventSettings,
+    mapSrc: pickAssetSetting(
+      eventSettings.mapSrc,
+      legacySettings.mapSrc,
+      eventUpdatedAt,
+      legacyUpdatedAt,
+    ),
+    homeImageSrc: pickAssetSetting(
+      eventSettings.homeImageSrc,
+      legacySettings.homeImageSrc,
+      eventUpdatedAt,
+      legacyUpdatedAt,
+    ),
+    raffleCompleteImageSrc: pickAssetSetting(
+      eventSettings.raffleCompleteImageSrc,
+      legacySettings.raffleCompleteImageSrc,
+      eventUpdatedAt,
+      legacyUpdatedAt,
+    ),
+  }
+}
+
+function attachRemoteMeta(data, updatedAt) {
+  if (!data) return null
+
+  return {
+    ...data,
+    settings: {
+      ...data.settings,
+      remoteUpdatedAt: updatedAt,
+    },
+  }
+}
+
+function mergeDefaultEventShared(eventData, eventUpdatedAt, legacyData, legacyUpdatedAt) {
+  if (!eventData && !legacyData) return null
+  if (!legacyData) return attachRemoteMeta(eventData, eventUpdatedAt)
+  if (!eventData) return attachRemoteMeta(legacyData, legacyUpdatedAt)
+
+  const eventHasLive = hasLiveEventData(eventData)
+  const useLegacyLiveData = !eventHasLive && hasLiveEventData(legacyData)
+  const mergedSettings = buildMergedSettings(
+    eventData.settings,
+    legacyData.settings,
+    eventUpdatedAt,
+    legacyUpdatedAt,
+  )
+  const merged = {
+    booths: eventData.booths?.length ? eventData.booths : legacyData.booths ?? [],
+    settings: mergedSettings,
+    entries: useLegacyLiveData ? legacyData.entries ?? [] : eventData.entries ?? [],
+    winners: useLegacyLiveData ? legacyData.winners ?? [] : eventData.winners ?? [],
+    attendees: useLegacyLiveData ? legacyData.attendees ?? [] : eventData.attendees ?? [],
+    attendeeProgress: useLegacyLiveData
+      ? legacyData.attendeeProgress ?? {}
+      : eventData.attendeeProgress ?? {},
+    attendeeLocation: useLegacyLiveData
+      ? legacyData.attendeeLocation ?? {}
+      : eventData.attendeeLocation ?? {},
+  }
+  const syncUpdatedAt =
+    mergedSettings.mapSrc && eventUpdatedAt ? eventUpdatedAt : legacyUpdatedAt || eventUpdatedAt
+
+  return attachRemoteMeta(merged, syncUpdatedAt)
 }
 
 function mergeSharedState(state, sharedState, options = {}) {
@@ -540,36 +627,18 @@ async function loadRemoteShared(eventId = DEFAULT_EVENT_ID) {
   const eventData = row?.data ?? null
   const remoteUpdatedAt = row?.updated_at ?? null
 
-  const attachRemoteMeta = (data, updatedAt = remoteUpdatedAt) =>
-    data
-      ? {
-          ...data,
-          settings: {
-            ...data.settings,
-            remoteUpdatedAt: updatedAt,
-          },
-        }
-      : null
-
   if (eventId === DEFAULT_EVENT_ID) {
     const legacyRow = legacyRows?.[0] ?? null
     const legacyData = legacyRow?.data ?? null
-    const legacyUpdatedAt = legacyRow?.updated_at ?? remoteUpdatedAt
-    const eventHasLiveData = hasLiveEventData(eventData)
-    const legacyHasLiveData = hasLiveEventData(legacyData)
-
-    if (!eventHasLiveData && legacyHasLiveData) {
-      return attachRemoteMeta(legacyData, legacyUpdatedAt)
-    }
-    if (eventData) return attachRemoteMeta(eventData)
-    return attachRemoteMeta(legacyData, legacyUpdatedAt)
+    const legacyUpdatedAt = legacyRow?.updated_at ?? null
+    return mergeDefaultEventShared(eventData, remoteUpdatedAt, legacyData, legacyUpdatedAt)
   }
 
   if (eventData && !hasLiveEventData(eventData) && looksLikeDefaultEventClone(eventData)) {
     return getPlaceholderEventState()
   }
 
-  if (eventData) return attachRemoteMeta(eventData)
+  if (eventData) return attachRemoteMeta(eventData, remoteUpdatedAt)
   return null
 }
 
