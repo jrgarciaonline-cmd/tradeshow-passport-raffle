@@ -9,6 +9,7 @@ const SHARED_ROW_ID = 'shared'
 const EVENTS_ROW_ID = 'events'
 const DEFAULT_EVENT_ID = 'landfx-passport-raffle'
 const OFFLINE_QUEUE_KEY = 'tradeshow-passport-offline-queue-v1'
+const SUPABASE_REQUEST_TIMEOUT_MS = 10000
 const DEFAULT_MAP_SRC = '/maps/asla_map.PNG'
 const PLACEHOLDER_MAP_SRC = '/maps/placeholder_map.svg'
 const DEFAULT_TERMS_TEXT =
@@ -262,6 +263,11 @@ function sanitizeAppState(state) {
     state.session?.type === 'attendee' &&
     !state.attendees.some((attendee) => attendee.id === state.session.attendeeId)
   ) {
+    if (isCloudFirstEnabled()) {
+      // Attendee roster hydrates from Supabase immediately after startup.
+      return state
+    }
+
     return {
       ...state,
       session: null,
@@ -301,14 +307,26 @@ async function loadRemoteEventIndex() {
 }
 
 async function bootstrapFromRemote(activeEventId = DEFAULT_EVENT_ID) {
-  const events = normalizeEvents((await loadRemoteEventIndex()) ?? [defaultEvent])
+  const sessionSlice = readSessionSlice()
+  const preferredEventId = sessionSlice?.activeEventId ?? activeEventId
+
+  const [eventsResult, initialSharedState] = await Promise.all([
+    loadRemoteEventIndex(),
+    loadRemoteShared(preferredEventId),
+  ])
+
+  const events = normalizeEvents(eventsResult ?? [defaultEvent])
   const resolvedEventId =
-    events.find((event) => event.id === activeEventId)?.id ??
+    events.find((event) => event.id === preferredEventId)?.id ??
     events.find((event) => event.status === 'active')?.id ??
     events[0]?.id ??
     DEFAULT_EVENT_ID
-  const sharedState = await loadRemoteShared(resolvedEventId)
-  const sessionSlice = readSessionSlice()
+
+  const sharedState =
+    resolvedEventId === preferredEventId
+      ? initialSharedState
+      : await loadRemoteShared(resolvedEventId)
+
   const baseState = {
     ...initialState,
     ...getEventBaseState(resolvedEventId),
@@ -469,70 +487,82 @@ function mergeSharedPatch(sharedState, patch) {
 async function requestSupabase(path, options = {}) {
   if (!isSupabaseConfigured()) return null
 
-  const response = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
-    ...options,
-    cache: 'no-store',
-    headers: {
-      apikey: SUPABASE_ANON_KEY,
-      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-  })
+  const controller = new AbortController()
+  const timeout = window.setTimeout(() => controller.abort(), SUPABASE_REQUEST_TIMEOUT_MS)
 
-  if (!response.ok) {
-    const detail = await response.text()
-    const error = new Error(`Supabase request failed: ${response.status} ${detail}`)
-    error.status = response.status
+  try {
+    const response = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+      ...options,
+      cache: 'no-store',
+      signal: controller.signal,
+      headers: {
+        apikey: SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    })
+
+    if (!response.ok) {
+      const detail = await response.text()
+      const error = new Error(`Supabase request failed: ${response.status} ${detail}`)
+      error.status = response.status
+      throw error
+    }
+
+    if (response.status === 204) return null
+    return response.json()
+  } catch (error) {
+    if (error.name === 'AbortError') {
+      const timeoutError = new Error('Supabase request timed out.')
+      timeoutError.status = 408
+      throw timeoutError
+    }
     throw error
+  } finally {
+    window.clearTimeout(timeout)
   }
-
-  if (response.status === 204) return null
-  return response.json()
 }
 
 async function loadRemoteShared(eventId = DEFAULT_EVENT_ID) {
-  const rows = await requestSupabase(
+  const eventRowPromise = requestSupabase(
     `${SUPABASE_TABLE}?id=eq.${getSharedRowId(eventId)}&select=data,updated_at&limit=1`,
   )
+  const legacyRowPromise =
+    eventId === DEFAULT_EVENT_ID
+      ? requestSupabase(
+          `${SUPABASE_TABLE}?id=eq.${SHARED_ROW_ID}&select=data,updated_at&limit=1`,
+        )
+      : Promise.resolve(null)
+
+  const [rows, legacyRows] = await Promise.all([eventRowPromise, legacyRowPromise])
   const row = rows?.[0] ?? null
   const eventData = row?.data ?? null
   const remoteUpdatedAt = row?.updated_at ?? null
 
-  const attachRemoteMeta = (data) =>
+  const attachRemoteMeta = (data, updatedAt = remoteUpdatedAt) =>
     data
       ? {
           ...data,
           settings: {
             ...data.settings,
-            remoteUpdatedAt,
+            remoteUpdatedAt: updatedAt,
           },
         }
       : null
 
   if (eventId === DEFAULT_EVENT_ID) {
-    const legacyRows = await requestSupabase(
-      `${SUPABASE_TABLE}?id=eq.${SHARED_ROW_ID}&select=data,updated_at&limit=1`,
-    )
     const legacyRow = legacyRows?.[0] ?? null
     const legacyData = legacyRow?.data ?? null
     const legacyUpdatedAt = legacyRow?.updated_at ?? remoteUpdatedAt
-    const attachLegacyMeta = (data) =>
-      data
-        ? {
-            ...data,
-            settings: {
-              ...data.settings,
-              remoteUpdatedAt: legacyUpdatedAt,
-            },
-          }
-        : null
     const eventHasLiveData = hasLiveEventData(eventData)
     const legacyHasLiveData = hasLiveEventData(legacyData)
 
-    if (!eventHasLiveData && legacyHasLiveData) return attachLegacyMeta(legacyData)
+    if (!eventHasLiveData && legacyHasLiveData) {
+      return attachRemoteMeta(legacyData, legacyUpdatedAt)
+    }
     if (eventData) return attachRemoteMeta(eventData)
-    return attachLegacyMeta(legacyData)
+    return attachRemoteMeta(legacyData, legacyUpdatedAt)
   }
 
   if (eventData && !hasLiveEventData(eventData) && looksLikeDefaultEventClone(eventData)) {

@@ -85,8 +85,10 @@ function App() {
   const activeMode = store.adminAuthenticated && mode === 'admin' ? 'admin' : 'attendee'
   const pendingSyncCount = store.syncStatus?.pendingCount ?? 0
   const isOffline = store.syncStatus?.online === false
+  const isBackgroundLoading = store.isBootstrapping
   const canShowSyncStatus = Boolean(store.session || store.adminAuthenticated)
-  const isSyncingOnline = canShowSyncStatus && !isOffline && pendingSyncCount > 0
+  const isSyncingOnline =
+    canShowSyncStatus && !isOffline && (pendingSyncCount > 0 || isBackgroundLoading)
   const offlineSyncMessage = canShowSyncStatus && isOffline
     ? pendingSyncCount
       ? `${pendingSyncCount} saved update${pendingSyncCount === 1 ? '' : 's'} will sync when online`
@@ -98,11 +100,11 @@ function App() {
     null
   const hasValidAttendeeSession = Boolean(
     store.session?.type === 'attendee' &&
-      store.attendees.some((attendee) => attendee.id === store.session.attendeeId),
+      (store.attendees.some((attendee) => attendee.id === store.session.attendeeId) ||
+        store.isBootstrapping),
   )
   const shouldShowAuth =
-    activeMode !== 'admin' &&
-    (!hasValidAttendeeSession || store.isBootstrapping)
+    activeMode !== 'admin' && !hasValidAttendeeSession
 
   const handleScan = (code) => {
     const result = store.checkInByCode(code)
@@ -204,13 +206,7 @@ function App() {
   }, [activeTab])
 
   if (isAdminRoute) {
-    return store.isBootstrapping ? (
-      <main className="admin-dashboard-shell login-only">
-        <section className="admin-login-card app-bootstrap">Loading event data...</section>
-      </main>
-    ) : (
-      <AdminDashboard store={store} />
-    )
+    return <AdminDashboard store={store} />
   }
 
   return (
@@ -259,8 +255,16 @@ function App() {
               <span
                 className="sync-status-dot"
                 role="status"
-                aria-label={`Syncing ${pendingSyncCount} saved update${pendingSyncCount === 1 ? '' : 's'}`}
-                title="Saved scans are syncing in the background"
+                aria-label={
+                  isBackgroundLoading
+                    ? 'Loading latest event data'
+                    : `Syncing ${pendingSyncCount} saved update${pendingSyncCount === 1 ? '' : 's'}`
+                }
+                title={
+                  isBackgroundLoading
+                    ? 'Loading latest event data'
+                    : 'Saved scans are syncing in the background'
+                }
               />
             )}
           </div>
@@ -284,34 +288,21 @@ function App() {
 
         <div className={`app-content${activeTab === 'Map' ? ' is-map-view' : ''}`}>
           {shouldShowAuth && (
-            <>
-              {store.isBootstrapping ? (
-                <section className="auth-screen app-bootstrap">
-                  <img
-                    className="auth-logo"
-                    src="/logos/landfx-logo-400w.png"
-                    alt="Land F/X"
-                  />
-                  <p>Loading event data...</p>
-                </section>
-              ) : (
-                <AuthScreen
-                  activeEvent={attendeeActiveEvent}
-                  activeEvents={store.activeEvents}
-                  key={authView}
-                  initialView={authView}
-                  onRegister={store.registerAttendee}
-                  onSignIn={store.signInAttendee}
-                  onSelectEvent={store.selectEvent}
-                  termsText={store.settings?.termsText}
-                  onAdminSignIn={async (credentials) => {
-                    const result = await store.signInAdmin(credentials)
-                    if (result.ok) setMode('admin')
-                    return result
-                  }}
-                />
-              )}
-            </>
+            <AuthScreen
+              activeEvent={attendeeActiveEvent}
+              activeEvents={store.activeEvents}
+              key={authView}
+              initialView={authView}
+              onRegister={store.registerAttendee}
+              onSignIn={store.signInAttendee}
+              onSelectEvent={store.selectEvent}
+              termsText={store.settings?.termsText}
+              onAdminSignIn={async (credentials) => {
+                const result = await store.signInAdmin(credentials)
+                if (result.ok) setMode('admin')
+                return result
+              }}
+            />
           )}
 
           {hasValidAttendeeSession && activeMode === 'attendee' && activeTab === 'Home' && (
