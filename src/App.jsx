@@ -282,7 +282,7 @@ function App() {
           </div>
         )}
 
-        <div className="app-content">
+        <div className={`app-content${activeTab === 'Map' ? ' is-map-view' : ''}`}>
           {shouldShowAuth && (
             <>
               {store.isBootstrapping ? (
@@ -432,6 +432,7 @@ function App() {
               focusKey={mapFocusKey}
               locationBoothId={store.currentLocationBoothId}
               mapSrc={store.settings?.mapSrc}
+              mapVersion={store.settings?.remoteUpdatedAt}
               onFocusHandled={() => setConsumedMapFocusKey(mapFocusKey)}
               onBoothSelect={setSelectedMapBoothId}
               onClearFocus={() => {

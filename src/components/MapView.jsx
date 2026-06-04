@@ -9,6 +9,7 @@ export function MapView({
   focusKey,
   locationBoothId,
   mapSrc,
+  mapVersion = '',
   onFocusHandled,
   onBoothSelect,
   onClearFocus,
@@ -35,6 +36,7 @@ export function MapView({
       </div>
       <div className="map-panel-map">
         <PinchZoomMap
+          key={`${mapSrc ?? ''}:${mapVersion ?? ''}`}
           booths={booths}
           completedIds={completedIds}
           focusBoothId={focusBoothId}
@@ -44,6 +46,7 @@ export function MapView({
           onBoothSelect={onBoothSelect}
           onFocusHandled={onFocusHandled}
           mapSrc={mapSrc}
+          mapVersion={mapVersion}
           className="full-map-card"
         />
         <BoothMapPopup

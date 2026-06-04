@@ -1,4 +1,4 @@
-const CACHE_NAME = 'passport-raffle-v4'
+const CACHE_NAME = 'passport-raffle-v5'
 const APP_SHELL = ['/', '/index.html', '/manifest.webmanifest', '/pwa-icon.svg']
 
 function isStaticAssetPath(pathname) {

@@ -130,8 +130,18 @@ export function usePassportStore() {
 
     let cancelled = false
 
-    passportRepository
-      .bootstrapFromRemote(activeEventIdRef.current)
+    const loadRemoteBootstrap = (attempt = 0) =>
+      passportRepository
+        .bootstrapFromRemote(activeEventIdRef.current)
+        .catch((error) => {
+          console.warn(error)
+          if (attempt >= 2) throw error
+          return new Promise((resolve) => {
+            window.setTimeout(resolve, 1200 * (attempt + 1))
+          }).then(() => loadRemoteBootstrap(attempt + 1))
+        })
+
+    loadRemoteBootstrap()
       .then((next) => {
         if (cancelled) return
         passportRepository.save(next)

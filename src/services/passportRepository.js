@@ -471,6 +471,7 @@ async function requestSupabase(path, options = {}) {
 
   const response = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
     ...options,
+    cache: 'no-store',
     headers: {
       apikey: SUPABASE_ANON_KEY,
       Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
@@ -492,28 +493,53 @@ async function requestSupabase(path, options = {}) {
 
 async function loadRemoteShared(eventId = DEFAULT_EVENT_ID) {
   const rows = await requestSupabase(
-    `${SUPABASE_TABLE}?id=eq.${getSharedRowId(eventId)}&select=data&limit=1`,
+    `${SUPABASE_TABLE}?id=eq.${getSharedRowId(eventId)}&select=data,updated_at&limit=1`,
   )
-  const eventData = rows?.[0]?.data ?? null
+  const row = rows?.[0] ?? null
+  const eventData = row?.data ?? null
+  const remoteUpdatedAt = row?.updated_at ?? null
+
+  const attachRemoteMeta = (data) =>
+    data
+      ? {
+          ...data,
+          settings: {
+            ...data.settings,
+            remoteUpdatedAt,
+          },
+        }
+      : null
 
   if (eventId === DEFAULT_EVENT_ID) {
     const legacyRows = await requestSupabase(
-      `${SUPABASE_TABLE}?id=eq.${SHARED_ROW_ID}&select=data&limit=1`,
+      `${SUPABASE_TABLE}?id=eq.${SHARED_ROW_ID}&select=data,updated_at&limit=1`,
     )
-    const legacyData = legacyRows?.[0]?.data ?? null
+    const legacyRow = legacyRows?.[0] ?? null
+    const legacyData = legacyRow?.data ?? null
+    const legacyUpdatedAt = legacyRow?.updated_at ?? remoteUpdatedAt
+    const attachLegacyMeta = (data) =>
+      data
+        ? {
+            ...data,
+            settings: {
+              ...data.settings,
+              remoteUpdatedAt: legacyUpdatedAt,
+            },
+          }
+        : null
     const eventHasLiveData = hasLiveEventData(eventData)
     const legacyHasLiveData = hasLiveEventData(legacyData)
 
-    if (!eventHasLiveData && legacyHasLiveData) return legacyData
-    if (eventData) return eventData
-    return legacyData
+    if (!eventHasLiveData && legacyHasLiveData) return attachLegacyMeta(legacyData)
+    if (eventData) return attachRemoteMeta(eventData)
+    return attachLegacyMeta(legacyData)
   }
 
   if (eventData && !hasLiveEventData(eventData) && looksLikeDefaultEventClone(eventData)) {
     return getPlaceholderEventState()
   }
 
-  if (eventData) return eventData
+  if (eventData) return attachRemoteMeta(eventData)
   return null
 }
 

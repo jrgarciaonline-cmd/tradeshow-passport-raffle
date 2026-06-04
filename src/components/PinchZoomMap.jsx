@@ -1,7 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import { MapMarkerLogo } from './MapMarkerLogo'
+import {
+  PLACEHOLDER_MAP_SRC,
+  withMapCacheBust,
+} from '../utils/mapSrc'
 
-const DEFAULT_MAP_SRC = '/maps/asla_map.PNG'
 const BASE_MAP_WIDTH = 1600
 const DEFAULT_MAP_RATIO = 2059 / 3000
 const MAX_SCALE = 3.2
@@ -78,7 +81,8 @@ export function PinchZoomMap({
   mapLocked = false,
   className = '',
   title = '',
-  mapSrc = DEFAULT_MAP_SRC,
+  mapSrc = PLACEHOLDER_MAP_SRC,
+  mapVersion = '',
 }) {
   const viewportRef = useRef(null)
   const pointers = useRef(new Map())
@@ -93,6 +97,31 @@ export function PinchZoomMap({
   const hasPositionedView = useRef(false)
   const [view, setView] = useState(INITIAL_VIEW)
   const [mapSize, setMapSize] = useState(INITIAL_MAP_SIZE)
+  const [failedSrc, setFailedSrc] = useState('')
+  const primaryMapSrc = withMapCacheBust(mapSrc, mapVersion)
+  const displayMapSrc =
+    failedSrc === primaryMapSrc ? PLACEHOLDER_MAP_SRC : primaryMapSrc
+  const mapLoadFailed = failedSrc === primaryMapSrc && failedSrc !== ''
+
+  const fitMapToViewport = () => {
+    const rect = viewportRef.current?.getBoundingClientRect()
+    if (!rect?.width || !rect?.height) return false
+
+    const fittedView = constrainView(
+      {
+        scale: getFitScale(rect, mapSize),
+        x: 0,
+        y: 0,
+      },
+      rect,
+      mapSize,
+    )
+
+    hasPositionedView.current = true
+    viewRef.current = fittedView
+    setView(fittedView)
+    return true
+  }
 
   const updateView = (nextView) => {
     if (frameRef.current) cancelAnimationFrame(frameRef.current)
@@ -288,31 +317,24 @@ export function PinchZoomMap({
   useEffect(() => {
     if (focusBoothIdRef.current || hasPositionedView.current) return
 
-    const rect = viewportRef.current?.getBoundingClientRect()
-    if (!rect) return
-
-    const fittedView = constrainView(
-      {
-        scale: getFitScale(rect, mapSize),
-        x: 0,
-        y: 0,
-      },
-      rect,
-      mapSize,
-    )
-
-    hasPositionedView.current = true
-    viewRef.current = fittedView
-    setView(fittedView)
-  }, [mapSize])
+    fitMapToViewport()
+    // fitMapToViewport reads latest mapSize from render
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mapSize, displayMapSrc])
 
   useEffect(() => {
     const viewport = viewportRef.current
     if (!viewport) return undefined
 
-    const resizeObserver = new ResizeObserver(([entry]) => {
-      if (!entry) return
-      const rect = entry.contentRect
+    const resizeObserver = new ResizeObserver(() => {
+      if (!hasPositionedView.current) {
+        fitMapToViewport()
+        return
+      }
+
+      const rect = viewportRef.current?.getBoundingClientRect()
+      if (!rect?.width || !rect?.height) return
+
       const nextView = constrainView(viewRef.current, rect, mapSize)
       viewRef.current = nextView
       setView(nextView)
@@ -411,10 +433,11 @@ export function PinchZoomMap({
             onPointerCancel={handleSurfacePointerUp}
           >
             <img
-              key={mapSrc}
-              src={mapSrc}
+              key={displayMapSrc}
+              src={displayMapSrc}
               alt="Expo floor map"
               draggable={false}
+              decoding="async"
               onLoad={(event) => {
                 const { naturalWidth, naturalHeight } = event.currentTarget
                 if (!naturalWidth || !naturalHeight) return
@@ -423,8 +446,17 @@ export function PinchZoomMap({
                   width: BASE_MAP_WIDTH,
                   height: Math.round(BASE_MAP_WIDTH * (naturalHeight / naturalWidth)),
                 })
+                hasPositionedView.current = false
+              }}
+              onError={() => {
+                setFailedSrc(primaryMapSrc)
               }}
             />
+            {mapLoadFailed && (
+              <p className="map-load-error">
+                Unable to load the expo map. Pull to refresh or try again shortly.
+              </p>
+            )}
           </div>
           <div className="pinch-map-pins" aria-hidden={mapLocked}>
             {booths.map((booth) => {
