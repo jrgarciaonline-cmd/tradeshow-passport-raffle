@@ -1789,15 +1789,22 @@ textarea {
   min-width: 0;
 }
 
-.booth-stamp__perforation {
-  --stamp-paper: #faf6ee;
-  --stamp-ink: #2f2418;
-  --stamp-notch: 6px;
-  --stamp-notch-gap: 12px;
+.booth-stamp__art {
   position: relative;
-  padding: calc(var(--stamp-notch) + 2px);
-  filter: drop-shadow(0 2px 4px rgba(45, 32, 18, 0.08))
-    drop-shadow(0 8px 18px rgba(45, 32, 18, 0.1));
+  justify-self: center;
+  width: 100%;
+  max-width: 158px;
+}
+
+.booth-stamp__perforation {
+  --stamp-paper: #ffffff;
+  --stamp-notch: 7px;
+  --stamp-notch-gap: 13px;
+  position: relative;
+  aspect-ratio: 1;
+  padding: calc(var(--stamp-notch) + 1px);
+  filter: drop-shadow(2px 3px 0 rgba(55, 55, 55, 0.28))
+    drop-shadow(4px 7px 10px rgba(0, 0, 0, 0.14));
 }
 
 .booth-stamp__scallops {
@@ -1825,19 +1832,25 @@ textarea {
   position: relative;
   z-index: 1;
   display: grid;
-  grid-template-rows: auto 1fr;
-  overflow: hidden;
-  min-height: 168px;
-  background: linear-gradient(180deg, #fdfaf4 0%, var(--stamp-paper) 100%);
-  border: 1px solid rgba(120, 96, 62, 0.14);
-  border-radius: 1px;
+  height: 100%;
+  padding: 11px;
+  background: var(--stamp-paper);
+}
+
+.booth-stamp__frame {
+  display: grid;
+  height: 100%;
+  min-height: 0;
+  border: 2px solid #171717;
+  background: #fff;
 }
 
 .booth-stamp__logo {
   display: grid;
   place-items: center;
-  min-height: 88px;
-  padding: 12px 10px 10px;
+  min-height: 0;
+  height: 100%;
+  padding: 10px 8px;
 }
 
 .booth-stamp__logo img {
@@ -1845,65 +1858,26 @@ textarea {
   width: auto;
   height: auto;
   max-width: 100%;
-  max-height: 72px;
+  max-height: 100%;
   object-fit: contain;
 }
 
 .booth-stamp__logo span {
-  font-size: 1.45rem;
+  font-size: clamp(1.4rem, 6vw, 1.85rem);
   font-weight: 800;
   line-height: 1;
 }
 
-.booth-stamp__details {
-  display: grid;
-  gap: 4px;
-  padding: 8px 10px 10px;
-  text-align: center;
-  border-top: 1px dashed rgba(120, 96, 62, 0.22);
-  background: rgba(255, 255, 255, 0.42);
-}
-
-.booth-stamp__denomination {
-  justify-self: center;
-  padding: 1px 8px;
-  border: 1.5px solid rgba(47, 36, 24, 0.55);
-  border-radius: 2px;
-  color: var(--stamp-ink);
-  font-size: 0.58rem;
-  font-weight: 800;
-  letter-spacing: 0.06em;
-  line-height: 1.2;
-  text-transform: uppercase;
-}
-
-.booth-stamp__name {
-  margin: 0;
-  color: var(--stamp-ink);
-  font-size: 0.7rem;
-  font-weight: 700;
-  line-height: 1.25;
-}
-
-.booth-stamp__category {
-  margin: 0;
-  color: rgba(47, 36, 24, 0.66);
-  font-size: 0.58rem;
-  font-style: italic;
-  font-weight: 600;
-  line-height: 1.2;
-}
-
 .booth-stamp__postmark {
   position: absolute;
-  inset: 6%;
+  inset: 14%;
   z-index: 2;
   display: grid;
   place-items: center;
-  border: 3px solid rgba(156, 42, 42, 0.34);
+  border: 3px solid rgba(156, 42, 42, 0.32);
   border-radius: 50%;
-  color: rgba(156, 42, 42, 0.26);
-  opacity: 0.92;
+  color: rgba(156, 42, 42, 0.24);
+  opacity: 0.9;
   transform: rotate(-17deg);
   pointer-events: none;
 }
@@ -1912,19 +1886,43 @@ textarea {
   content: '';
   position: absolute;
   inset: 10%;
-  border: 2px solid rgba(156, 42, 42, 0.22);
+  border: 2px solid rgba(156, 42, 42, 0.2);
   border-radius: 50%;
 }
 
 .booth-stamp__postmark span {
   position: relative;
   max-width: 72%;
-  font-size: clamp(0.72rem, 2.8vw, 0.92rem);
+  font-size: clamp(0.68rem, 2.6vw, 0.88rem);
   font-weight: 800;
   letter-spacing: 0.14em;
   line-height: 1.05;
   text-align: center;
   text-transform: uppercase;
+}
+
+.booth-stamp__caption {
+  display: grid;
+  gap: 2px;
+  padding-inline: 4px;
+  text-align: center;
+}
+
+.booth-stamp__number {
+  color: #2f2418;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.booth-stamp__name {
+  margin: 0;
+  color: #2f2418;
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.25;
 }
 
 .booth-stamp__actions {
@@ -1952,15 +1950,11 @@ textarea {
 }
 
 .booth-stamp.is-complete .booth-stamp__face {
-  background: linear-gradient(180deg, #f4faf6 0%, #e8f1eb 100%);
+  filter: saturate(0.88);
 }
 
 .booth-stamp.is-complete .booth-stamp__logo {
-  opacity: 0.88;
-}
-
-.booth-stamp.is-complete .booth-stamp__details {
-  opacity: 0.82;
+  opacity: 0.9;
 }
 
 @keyframes stamp-highlight {
@@ -1975,8 +1969,8 @@ textarea {
   }
 
   100% {
-    filter: drop-shadow(0 2px 4px rgba(45, 32, 18, 0.08))
-      drop-shadow(0 8px 18px rgba(45, 32, 18, 0.1));
+    filter: drop-shadow(2px 3px 0 rgba(55, 55, 55, 0.28))
+      drop-shadow(4px 7px 10px rgba(0, 0, 0, 0.14));
   }
 }
 

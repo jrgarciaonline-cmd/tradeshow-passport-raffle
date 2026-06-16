@@ -18,20 +18,19 @@ export function BoothCard({ booth, completed, highlighted, onShowOnMap }) {
     <article
       className={`booth-stamp ${completed ? 'is-complete' : ''} ${highlighted ? 'highlighted' : ''}`}
     >
-      <div className="booth-stamp__perforation">
-        <div className="booth-stamp__scallops" aria-hidden="true" />
-        <div className="booth-stamp__face">
-          <div className="booth-stamp__logo" style={getBoothLogoFrameStyle(booth)}>
-            {booth.logoDataUrl ? (
-              <img src={booth.logoDataUrl} alt="" />
-            ) : (
-              <span aria-hidden="true">{completed ? '✓' : booth.name.slice(0, 1)}</span>
-            )}
-          </div>
-          <div className="booth-stamp__details">
-            <span className="booth-stamp__denomination">{boothLabel}</span>
-            <h3 className="booth-stamp__name">{booth.name}</h3>
-            <p className="booth-stamp__category">{booth.category}</p>
+      <div className="booth-stamp__art">
+        <div className="booth-stamp__perforation">
+          <div className="booth-stamp__scallops" aria-hidden="true" />
+          <div className="booth-stamp__face">
+            <div className="booth-stamp__frame">
+              <div className="booth-stamp__logo" style={getBoothLogoFrameStyle(booth)}>
+                {booth.logoDataUrl ? (
+                  <img src={booth.logoDataUrl} alt="" />
+                ) : (
+                  <span aria-hidden="true">{completed ? '✓' : booth.name.slice(0, 1)}</span>
+                )}
+              </div>
+            </div>
           </div>
           {completed && (
             <div className="booth-stamp__postmark" aria-hidden="true">
@@ -39,6 +38,11 @@ export function BoothCard({ booth, completed, highlighted, onShowOnMap }) {
             </div>
           )}
         </div>
+      </div>
+
+      <div className="booth-stamp__caption">
+        <span className="booth-stamp__number">{boothLabel}</span>
+        <h3 className="booth-stamp__name">{booth.name}</h3>
       </div>
 
       <div className="booth-stamp__actions">
