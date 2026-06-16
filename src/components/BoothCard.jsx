@@ -42,16 +42,16 @@ export function BoothCard({ booth, completed, highlighted, onShowOnMap }) {
               </div>
             </div>
           </div>
-          {visitedPostmark && (
-            <div
-              className={visitedPostmark.className}
-              style={visitedPostmark.style}
-              aria-hidden="true"
-            >
-              <span>Visited</span>
-            </div>
-          )}
         </div>
+        {visitedPostmark && (
+          <div
+            className={visitedPostmark.className}
+            style={visitedPostmark.style}
+            aria-hidden="true"
+          >
+            <span>Visited</span>
+          </div>
+        )}
       </div>
 
       <div className="booth-stamp__caption">

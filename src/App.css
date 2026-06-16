@@ -1862,6 +1862,8 @@ textarea {
 
 .booth-stamp__postmark {
   position: absolute;
+  right: -14%;
+  bottom: -12%;
   z-index: 2;
   display: grid;
   place-items: center;
@@ -1870,6 +1872,7 @@ textarea {
   background: var(--postmark-bg, rgba(255, 240, 240, 0.08));
   opacity: 0.92;
   pointer-events: none;
+  transform-origin: 72% 78%;
 }
 
 .booth-stamp__postmark--circle,

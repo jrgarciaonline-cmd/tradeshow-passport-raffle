@@ -20,16 +20,12 @@ export function getVisitedPostmarkLayout(boothId) {
   const shape = pick(hash, 0, SHAPES)
   const color = pick(hash, 1, COLORS)
 
-  const rotate = ((hash >> 10) % 58) - 29
-  const top = 10 + ((hash >> 16) % 26)
-  const left = 8 + ((hash >> 21) % 30)
-
-  let width = 54 + ((hash >> 26) % 22)
-  let height = 50 + ((hash >> 30) % 20)
+  let width = 58 + ((hash >> 26) % 16)
+  let height = 54 + ((hash >> 30) % 16)
 
   if (shape === 'wide') {
-    width = Math.max(width, 62)
-    height = Math.min(height, 44)
+    width = Math.max(width, 66)
+    height = Math.min(height, 46)
   } else if (shape === 'oval') {
     height = Math.max(height, width - 6)
   } else if (shape === 'circle') {
@@ -38,11 +34,11 @@ export function getVisitedPostmarkLayout(boothId) {
     height = size
   }
 
+  const rotate = ((hash >> 10) % 46) - 23
+
   return {
     className: `booth-stamp__postmark booth-stamp__postmark--${shape} booth-stamp__postmark--${color}`,
     style: {
-      top: `${top}%`,
-      left: `${left}%`,
       width: `${width}%`,
       height: `${height}%`,
       transform: `rotate(${rotate}deg)`,
