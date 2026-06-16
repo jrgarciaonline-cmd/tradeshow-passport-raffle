@@ -1773,8 +1773,8 @@ textarea {
 .challenge-list {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 20px 14px;
-  padding: 8px 4px 12px;
+  gap: 16px 12px;
+  padding: 4px 2px 8px;
   margin-inline: 0;
   border-top: 0;
 }
@@ -1796,7 +1796,6 @@ textarea {
   padding: 3px;
   border-radius: 4px;
   background: var(--stamp-paper);
-  transform-origin: center center;
   box-shadow:
     0 1px 2px rgba(45, 32, 18, 0.07),
     0 5px 14px rgba(45, 32, 18, 0.07);

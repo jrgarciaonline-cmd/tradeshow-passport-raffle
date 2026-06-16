@@ -1,5 +1,4 @@
 import { getBoothLogoFrameStyle } from '../utils/boothLogoStyles'
-import { getBoothStampPlacementStyle } from '../utils/boothStampLayout'
 
 function normalizeUrl(url) {
   if (!url) return ''
@@ -19,10 +18,7 @@ export function BoothCard({ booth, completed, highlighted, onShowOnMap }) {
     <article
       className={`booth-stamp ${completed ? 'is-complete' : ''} ${highlighted ? 'highlighted' : ''}`}
     >
-      <div
-        className="booth-stamp__perforation"
-        style={getBoothStampPlacementStyle(booth.id)}
-      >
+      <div className="booth-stamp__perforation">
         <div className="booth-stamp__face">
           <span className="booth-stamp__denomination">{boothLabel}</span>
           <div className="booth-stamp__vignette" style={getBoothLogoFrameStyle(booth)}>
