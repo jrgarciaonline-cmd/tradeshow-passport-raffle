@@ -19,17 +19,20 @@ export function BoothCard({ booth, completed, highlighted, onShowOnMap }) {
       className={`booth-stamp ${completed ? 'is-complete' : ''} ${highlighted ? 'highlighted' : ''}`}
     >
       <div className="booth-stamp__perforation">
+        <div className="booth-stamp__scallops" aria-hidden="true" />
         <div className="booth-stamp__face">
-          <span className="booth-stamp__denomination">{boothLabel}</span>
-          <div className="booth-stamp__vignette" style={getBoothLogoFrameStyle(booth)}>
+          <div className="booth-stamp__logo" style={getBoothLogoFrameStyle(booth)}>
             {booth.logoDataUrl ? (
               <img src={booth.logoDataUrl} alt="" />
             ) : (
-              <span aria-hidden="true">{completed ? '✓' : '▦'}</span>
+              <span aria-hidden="true">{completed ? '✓' : booth.name.slice(0, 1)}</span>
             )}
           </div>
-          <h3 className="booth-stamp__name">{booth.name}</h3>
-          <p className="booth-stamp__category">{booth.category}</p>
+          <div className="booth-stamp__details">
+            <span className="booth-stamp__denomination">{boothLabel}</span>
+            <h3 className="booth-stamp__name">{booth.name}</h3>
+            <p className="booth-stamp__category">{booth.category}</p>
+          </div>
           {completed && (
             <div className="booth-stamp__postmark" aria-hidden="true">
               <span>Visited</span>
