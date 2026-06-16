@@ -3,50 +3,60 @@ function normalizeUrl(url) {
   return /^https?:\/\//i.test(url) ? url : `https://${url}`
 }
 
+function formatBoothLocation(location) {
+  const match = String(location ?? '').match(/\d[\dA-Za-z-]*/)
+  return match?.[0] ?? location
+}
+
 export function BoothCard({ booth, completed, highlighted, onShowOnMap }) {
   const websiteUrl = normalizeUrl(booth.websiteUrl)
+  const boothLabel = formatBoothLocation(booth.location)
 
   return (
-    <article className={`booth-card ${completed ? 'is-complete' : ''} ${highlighted ? 'highlighted' : ''}`}>
-      <div>
-        <h3>
-          {booth.name} <span>{booth.location.replace(' / ', ' ')}</span>
-        </h3>
-        <p>{booth.description}</p>
-        <div className="booth-meta">
-          <span>{completed ? 'Visited' : 'Needs visit'}</span>
-          <span>{booth.category}</span>
-        </div>
-
-        <div className="booth-actions">
-          {websiteUrl ? (
-            <a
-              className="button-link"
-              href={websiteUrl}
-              target="_blank"
-              rel="noreferrer"
-            >
-              Visit Booth Web Page
-            </a>
-          ) : (
-            <button type="button" disabled>
-              Visit Booth Web Page
-            </button>
+    <article
+      className={`booth-stamp ${completed ? 'is-complete' : ''} ${highlighted ? 'highlighted' : ''}`}
+    >
+      <div className="booth-stamp__perforation">
+        <div className="booth-stamp__face">
+          <span className="booth-stamp__denomination">{boothLabel}</span>
+          <div className="booth-stamp__vignette" style={{ '--logo-bg': booth.color }}>
+            {booth.logoDataUrl ? (
+              <img src={booth.logoDataUrl} alt="" />
+            ) : (
+              <span aria-hidden="true">{completed ? '✓' : '▦'}</span>
+            )}
+          </div>
+          <h3 className="booth-stamp__name">{booth.name}</h3>
+          <p className="booth-stamp__category">{booth.category}</p>
+          {completed && (
+            <div className="booth-stamp__postmark" aria-hidden="true">
+              <span>Visited</span>
+            </div>
           )}
-          <button
-            type="button"
-            className="primary"
-            onClick={() => onShowOnMap(booth.id)}
-          >
-            Show on map
-          </button>
         </div>
       </div>
-      <div className="challenge-icon" style={{ '--logo-bg': booth.color }}>
-        {booth.logoDataUrl ? (
-          <img src={booth.logoDataUrl} alt={`${booth.name} logo`} />
+
+      <div className="booth-stamp__actions">
+        <button
+          type="button"
+          className="booth-stamp__action primary"
+          onClick={() => onShowOnMap(booth.id)}
+        >
+          Show on map
+        </button>
+        {websiteUrl ? (
+          <a
+            className="booth-stamp__action button-link"
+            href={websiteUrl}
+            target="_blank"
+            rel="noreferrer"
+          >
+            Website
+          </a>
         ) : (
-          <span>{completed ? '✓' : '▦'}</span>
+          <button type="button" className="booth-stamp__action" disabled>
+            Website
+          </button>
         )}
       </div>
     </article>

@@ -56,9 +56,8 @@ textarea {
 .auth-form,
 .auth-tabs,
 .segmented-control,
-.booth-card,
+.booth-stamp__action,
 .booth-details,
-.challenge-icon,
 .logo-preview,
 .raffle-panel,
 .celebration-panel,
@@ -181,16 +180,15 @@ textarea {
   -webkit-backdrop-filter: blur(12px);
 }
 
-.booth-card,
+.booth-stamp__action,
 .mobile-admin-wheel-card {
   background: var(--glass-surface-subtle);
 }
 
-.booth-card.is-complete,
-.booth-card.highlighted {
-  background:
-    linear-gradient(180deg, rgba(18, 168, 79, 0.12), rgba(255, 255, 255, 0.28)),
-    var(--glass-surface-subtle);
+.booth-stamp__perforation,
+.booth-stamp__face {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 .home-image-frame {
