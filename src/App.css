@@ -1797,6 +1797,7 @@ textarea {
   max-width: 164px;
   aspect-ratio: 1;
   overflow: visible;
+  transform-origin: center center;
 }
 
 .booth-stamp__shape {
@@ -1873,6 +1874,8 @@ textarea {
   opacity: 0.94;
   pointer-events: none;
   transform-origin: 72% 78%;
+  filter: drop-shadow(1px 2px 0 rgba(40, 40, 40, 0.22))
+    drop-shadow(2px 5px 10px rgba(0, 0, 0, 0.16));
 }
 
 .booth-stamp__postmark--circle,
