@@ -1814,43 +1814,37 @@ textarea {
 }
 
 .booth-stamp__perforation {
-  --stamp-paper: #f8f2e6;
-  --stamp-paper-dark: #ebe1cf;
+  --stamp-paper: #faf6ee;
   --stamp-ink: #2f2418;
   position: relative;
-  padding: 5px;
+  padding: 3px;
+  border-radius: 4px;
   background: var(--stamp-paper);
-  filter: drop-shadow(0 2px 4px rgba(45, 32, 18, 0.1))
-    drop-shadow(0 6px 14px rgba(45, 32, 18, 0.08));
-  -webkit-mask:
-    radial-gradient(circle at 4px 4px, transparent 3px, #000 3.25px) -4px -4px / 8px 8px repeat,
-    linear-gradient(#000 0 0);
-  -webkit-mask-composite: source-in;
-  mask:
-    radial-gradient(circle at 4px 4px, transparent 3px, #000 3.25px) -4px -4px / 8px 8px repeat,
-    linear-gradient(#000 0 0);
-  mask-composite: intersect;
+  box-shadow:
+    0 1px 2px rgba(45, 32, 18, 0.07),
+    0 5px 14px rgba(45, 32, 18, 0.07);
+}
+
+.booth-stamp__perforation::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  border: 1.5px dashed rgba(145, 122, 88, 0.42);
+  pointer-events: none;
 }
 
 .booth-stamp__face {
   position: relative;
+  z-index: 1;
   display: grid;
   gap: 6px;
   min-height: 148px;
   padding: 10px 10px 12px;
   text-align: center;
-  background:
-    linear-gradient(155deg, rgba(255, 255, 255, 0.72), transparent 42%),
-    linear-gradient(180deg, #fdf9f2 0%, var(--stamp-paper) 55%, var(--stamp-paper-dark) 100%);
-  border: 1px solid rgba(120, 96, 62, 0.22);
-}
-
-.booth-stamp__face::before {
-  content: '';
-  position: absolute;
-  inset: 4px;
-  border: 1px dashed rgba(120, 96, 62, 0.28);
-  pointer-events: none;
+  background: linear-gradient(180deg, #fdfaf4 0%, var(--stamp-paper) 100%);
+  border: 1px solid rgba(120, 96, 62, 0.16);
+  border-radius: 2px;
 }
 
 .booth-stamp__denomination {
@@ -1874,12 +1868,10 @@ textarea {
   place-items: center;
   overflow: hidden;
   padding: 4px;
-  border: 1px solid rgba(120, 96, 62, 0.18);
+  border: 1px solid rgba(120, 96, 62, 0.14);
   border-radius: 3px;
   color: var(--logo-bg);
-  background:
-    radial-gradient(circle at center, rgba(255, 255, 255, 0.95) 0%, rgba(247, 240, 228, 0.92) 100%);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.65);
+  background: #fff;
 }
 
 .booth-stamp__vignette img {
@@ -1947,16 +1939,21 @@ textarea {
   font-size: 0.62rem;
 }
 
+.booth-stamp__action.primary {
+  color: #fff;
+  background: rgba(5, 5, 5, 0.82);
+  border-color: rgba(5, 5, 5, 0.72);
+}
+
 .booth-stamp.highlighted .booth-stamp__perforation {
-  filter: drop-shadow(0 0 0 2px rgba(21, 182, 93, 0.35))
-    drop-shadow(0 4px 12px rgba(21, 182, 93, 0.18));
+  box-shadow:
+    0 0 0 2px rgba(21, 182, 93, 0.32),
+    0 4px 12px rgba(21, 182, 93, 0.14);
   animation: stamp-highlight 1.2s ease-in-out;
 }
 
 .booth-stamp.is-complete .booth-stamp__face {
-  background:
-    linear-gradient(155deg, rgba(255, 255, 255, 0.55), transparent 42%),
-    linear-gradient(180deg, #f2f7f3 0%, #e8f0ea 55%, #dde8e0 100%);
+  background: linear-gradient(180deg, #f4faf6 0%, #e8f1eb 100%);
 }
 
 .booth-stamp.is-complete .booth-stamp__vignette {
