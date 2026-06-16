@@ -589,6 +589,7 @@ export function AdminPanel({
               onPlaceBooth={onPlaceBooth}
               placementBoothId={placementBoothId}
               mapSrc={settings?.mapSrc}
+              mapVersion={settings?.remoteUpdatedAt}
               className="admin-placement-map"
               title="Place booth pins"
             />

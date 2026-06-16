@@ -1026,6 +1026,7 @@ export function AdminDashboard({ store }) {
                 onPlaceBooth={store.placeBoothOnMap}
                 placementBoothId={placementBoothId}
                 mapSrc={store.settings?.mapSrc}
+                mapVersion={store.settings?.remoteUpdatedAt}
                 className="desktop-placement-map"
                 title="Place booth pins"
               />

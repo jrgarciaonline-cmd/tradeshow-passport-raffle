@@ -1,4 +1,5 @@
 import { defaultBoothCategories, defaultBooths, defaultInstructions } from '../data/mockData'
+import { getUploadedAssetTimestamp } from '../utils/mapSrc'
 
 const STORAGE_KEY = 'tradeshow-passport-raffle-v2'
 const SESSION_STORAGE_KEY = 'tradeshow-passport-session-v1'
@@ -352,10 +353,7 @@ function isRemoteAssetRef(value) {
 }
 
 function pickSyncedAssetUrl(sharedValue, localValue) {
-  if (isRemoteAssetRef(sharedValue)) return sharedValue
-  if (isRemoteAssetRef(localValue) && !isRemoteAssetRef(sharedValue)) return localValue
   if (sharedValue) return sharedValue
-  if (isRemoteAssetRef(localValue)) return localValue
   return localValue
 }
 
@@ -363,6 +361,13 @@ function pickAssetSetting(eventValue, legacyValue, eventUpdatedAt, legacyUpdated
   if (!eventValue && !legacyValue) return undefined
   if (!legacyValue) return eventValue
   if (!eventValue) return legacyValue
+  if (isRemoteAssetRef(eventValue) && isRemoteAssetRef(legacyValue)) {
+    const eventAssetTs = getUploadedAssetTimestamp(eventValue)
+    const legacyAssetTs = getUploadedAssetTimestamp(legacyValue)
+    if (eventAssetTs && legacyAssetTs && eventAssetTs !== legacyAssetTs) {
+      return eventAssetTs >= legacyAssetTs ? eventValue : legacyValue
+    }
+  }
   if (isRemoteAssetRef(eventValue) && !isRemoteAssetRef(legacyValue)) return eventValue
   if (isRemoteAssetRef(legacyValue) && !isRemoteAssetRef(eventValue)) return legacyValue
   if (eventUpdatedAt && legacyUpdatedAt) {
@@ -371,6 +376,19 @@ function pickAssetSetting(eventValue, legacyValue, eventUpdatedAt, legacyUpdated
       : legacyValue
   }
   return eventValue
+}
+
+function getAssetSettingUpdatedAt(
+  value,
+  eventValue,
+  legacyValue,
+  eventUpdatedAt,
+  legacyUpdatedAt,
+) {
+  if (!value) return legacyUpdatedAt || eventUpdatedAt
+  if (value === eventValue) return eventUpdatedAt || legacyUpdatedAt
+  if (value === legacyValue) return legacyUpdatedAt || eventUpdatedAt
+  return legacyUpdatedAt || eventUpdatedAt
 }
 
 function buildMergedSettings(
@@ -441,8 +459,13 @@ function mergeDefaultEventShared(eventData, eventUpdatedAt, legacyData, legacyUp
       ? legacyData.attendeeLocation ?? {}
       : eventData.attendeeLocation ?? {},
   }
-  const syncUpdatedAt =
-    mergedSettings.mapSrc && eventUpdatedAt ? eventUpdatedAt : legacyUpdatedAt || eventUpdatedAt
+  const syncUpdatedAt = getAssetSettingUpdatedAt(
+    mergedSettings.mapSrc,
+    eventData.settings?.mapSrc,
+    legacyData.settings?.mapSrc,
+    eventUpdatedAt,
+    legacyUpdatedAt,
+  )
 
   return attachRemoteMeta(merged, syncUpdatedAt)
 }

@@ -453,6 +453,7 @@ export function PinchZoomMap({
             onPointerCancel={handleSurfacePointerUp}
           >
             <img
+              key={displayMapSrc}
               src={displayMapSrc}
               alt="Expo floor map"
               draggable={false}

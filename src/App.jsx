@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import './App.css'
+import './glass-theme.css'
+import './passport-background.css'
 import { defaultInstructions } from './data/mockData'
 import { usePassportStore } from './services/usePassportStore'
 import { AdminDashboard } from './components/AdminDashboard'
@@ -11,14 +13,21 @@ import { MapView } from './components/MapView'
 import { PassportSummary } from './components/PassportSummary'
 import { RaffleEntryPanel } from './components/RaffleEntryPanel'
 import { ScannerPanel } from './components/ScannerPanel'
+import { NavIcon } from './components/NavIcon'
+
+const NAV_ICON_SIZE = 18
 
 const attendeeTabs = [
-  { id: 'Home', icon: '▮' },
-  { id: 'Instructions', icon: '●' },
-  { id: 'QR Scanner', icon: '▣' },
-  { id: 'Booths', icon: '◆' },
-  { id: 'Map', icon: '▦' },
+  { id: 'Home', label: 'Home', icon: 'home' },
+  { id: 'Instructions', label: 'Info', icon: 'instructions' },
+  { id: 'QR Scanner', label: 'Scan', icon: 'scanner' },
+  { id: 'Booths', label: 'Booths', icon: 'booths' },
+  { id: 'Map', label: 'Map', icon: 'map' },
 ]
+
+const leftNavTabs = attendeeTabs.slice(0, 2)
+const scannerNavTab = attendeeTabs[2]
+const rightNavTabs = attendeeTabs.slice(3)
 
 function App() {
   const store = usePassportStore()
@@ -214,7 +223,7 @@ function App() {
       <section
         className={`phone-shell ${
           hasValidAttendeeSession && activeMode === 'attendee'
-            ? ''
+            ? 'has-vision-nav'
             : 'no-bottom-nav'
         }`}
         aria-label="Trade show passport app"
@@ -398,7 +407,7 @@ function App() {
                     completed={store.completedIds.includes(booth.id)}
                     highlighted={scannedBoothId === booth.id}
                     onShowOnMap={(boothId) => {
-                      setSelectedMapBoothId(boothId)
+                      setSelectedMapBoothId('')
                       setMapFocusBoothId(boothId)
                       setMapFocusKey((current) => current + 1)
                       setActiveTab('Map')
@@ -492,16 +501,44 @@ function App() {
         </div>
 
         {hasValidAttendeeSession && activeMode === 'attendee' && (
-          <nav className="bottom-nav" aria-label="Attendee views">
-            {attendeeTabs.map((tab) => (
+          <nav className="bottom-nav bottom-nav--vision" aria-label="Attendee views">
+            {leftNavTabs.map((tab) => (
               <button
                 type="button"
                 key={tab.id}
-                className={activeTab === tab.id ? 'active' : ''}
+                className={`bottom-nav-item${activeTab === tab.id ? ' active' : ''}`}
                 onClick={() => setActiveTab(tab.id)}
               >
-                <span aria-hidden="true">{tab.icon}</span>
-                {tab.id}
+                <span className="bottom-nav-icon-slot">
+                  <NavIcon name={tab.icon} size={NAV_ICON_SIZE} />
+                </span>
+                <span>{tab.label}</span>
+              </button>
+            ))}
+
+            <button
+              type="button"
+              className={`bottom-nav-scanner${activeTab === scannerNavTab.id ? ' active' : ''}`}
+              onClick={() => setActiveTab(scannerNavTab.id)}
+              aria-label={scannerNavTab.id}
+            >
+              <span className="bottom-nav-icon-slot bottom-nav-scanner-ring">
+                <NavIcon name={scannerNavTab.icon} size={NAV_ICON_SIZE} />
+              </span>
+              <span>{scannerNavTab.label}</span>
+            </button>
+
+            {rightNavTabs.map((tab) => (
+              <button
+                type="button"
+                key={tab.id}
+                className={`bottom-nav-item${activeTab === tab.id ? ' active' : ''}`}
+                onClick={() => setActiveTab(tab.id)}
+              >
+                <span className="bottom-nav-icon-slot">
+                  <NavIcon name={tab.icon} size={NAV_ICON_SIZE} />
+                </span>
+                <span>{tab.label}</span>
               </button>
             ))}
           </nav>

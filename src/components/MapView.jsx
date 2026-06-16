@@ -36,7 +36,7 @@ export function MapView({
       </div>
       <div className="map-panel-map">
         <PinchZoomMap
-          key={mapSrc ?? ''}
+          key={`${mapSrc ?? ''}:${mapVersion ?? ''}`}
           booths={booths}
           completedIds={completedIds}
           focusBoothId={focusBoothId}

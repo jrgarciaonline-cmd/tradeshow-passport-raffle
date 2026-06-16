@@ -1,0 +1,250 @@
+/* Glass theme — shared surfaces used across the attendee app */
+
+.phone-shell {
+  border: 1px solid var(--glass-border-soft);
+  background: rgba(255, 255, 255, 0.14);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  box-shadow: var(--glass-shadow-lg);
+}
+
+.app-content {
+  background: transparent;
+}
+
+.sync-status-badge {
+  border: 1px solid rgba(255, 255, 255, 0.42);
+  background: var(--glass-surface-strong);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  box-shadow: var(--glass-shadow);
+}
+
+button,
+.button-link {
+  border: 1px solid var(--glass-border-soft);
+  border-radius: var(--glass-radius-sm);
+  background: var(--glass-surface-strong);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  box-shadow: var(--glass-shadow);
+}
+
+.primary {
+  border-color: rgba(255, 255, 255, 0.16);
+  color: #fff;
+  background: rgba(5, 5, 5, 0.78);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  box-shadow:
+    0 8px 20px rgba(5, 5, 5, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+input,
+select,
+textarea {
+  border: 1px solid var(--glass-border-soft);
+  border-radius: var(--glass-radius-sm);
+  background: rgba(255, 255, 255, 0.48);
+  backdrop-filter: blur(12px) saturate(150%);
+  -webkit-backdrop-filter: blur(12px) saturate(150%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45);
+}
+
+.no-events-card,
+.auth-form,
+.auth-tabs,
+.segmented-control,
+.booth-card,
+.booth-details,
+.challenge-icon,
+.logo-preview,
+.raffle-panel,
+.celebration-panel,
+.pinch-map,
+.scan-frame,
+.manual-entry-form,
+.status-note,
+.demo-credentials,
+.mobile-winner-result,
+.mobile-eligible-list,
+.entry-card,
+.admin-actions,
+.settings-form,
+.admin-map-placement,
+.mobile-admin-wheel-card,
+.no-events-card,
+.admin-login-card,
+.admin-stat-card,
+.desktop-card,
+.admin-table-wrap,
+.booth-map-popup__card,
+.winner-result,
+.eligible-list,
+.mobile-wheel-tap-area {
+  border: 1px solid var(--glass-border-soft);
+  border-radius: var(--glass-radius);
+  background: var(--glass-surface);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  box-shadow: var(--glass-shadow);
+}
+
+.app-bar {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(5, 5, 5, 0.68);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+}
+
+.icon-button,
+.bottom-nav-item,
+.bottom-nav-scanner,
+.auth-tabs button,
+.segmented-control button,
+.auth-logo-button,
+.eligible-toggle,
+.mobile-admin-tabs button {
+  min-height: 0;
+  border: 0;
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: none;
+}
+
+.bottom-nav-item.active {
+  background: rgba(255, 255, 255, 0.52);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.75);
+}
+
+.auth-tabs .active,
+.segmented-control .active,
+.mobile-admin-tabs button.active {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(5, 5, 5, 0.78);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.edit-banner {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #fff;
+  background: rgba(5, 5, 5, 0.78);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.raffle-profile,
+.mobile-admin-tabs {
+  border: 1px solid var(--glass-border-soft);
+  border-radius: var(--glass-radius);
+  background: var(--glass-surface-subtle);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  box-shadow: var(--glass-shadow);
+}
+
+.mobile-admin-tabs {
+  border-radius: 0;
+  border-inline: 0;
+}
+
+.admin-dashboard-shell {
+  background: var(--passport-cover);
+}
+
+.admin-stat-card,
+.desktop-card,
+.admin-login-card,
+.admin-table-wrap {
+  border: 1px solid var(--glass-border-soft);
+  background: var(--glass-surface);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  box-shadow: var(--glass-shadow);
+}
+
+@media (max-width: 900px) {
+  .phone-shell {
+    border: 0;
+    box-shadow: none;
+  }
+}
+
+.signup-terms-copy {
+  border: 1px solid var(--glass-border-soft);
+  background: rgba(255, 255, 255, 0.34);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.booth-card,
+.mobile-admin-wheel-card {
+  background: var(--glass-surface-subtle);
+}
+
+.booth-card.is-complete,
+.booth-card.highlighted {
+  background:
+    linear-gradient(180deg, rgba(18, 168, 79, 0.12), rgba(255, 255, 255, 0.28)),
+    var(--glass-surface-subtle);
+}
+
+.home-image-frame {
+  border: 1px solid var(--glass-border-soft);
+  border-radius: var(--glass-radius);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.42), rgba(255, 255, 255, 0.18)),
+    rgba(255, 255, 255, 0.22);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+}
+
+.celebration-replay-button {
+  border: 1px solid var(--glass-border-soft);
+  background: var(--glass-surface-strong);
+}
+
+.bottom-nav--vision {
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  border-radius: 20px;
+  background: var(--glass-nav);
+  backdrop-filter: blur(32px) saturate(180%);
+  -webkit-backdrop-filter: blur(32px) saturate(180%);
+  box-shadow: var(--glass-nav-shadow);
+}
+
+.bottom-nav-item,
+.bottom-nav-scanner {
+  color: rgba(0, 0, 0, 0.72);
+  text-shadow: none;
+}
+
+.bottom-nav-item.active,
+.bottom-nav-scanner.active {
+  color: #000;
+}
+
+.bottom-nav-item.active {
+  background: rgba(255, 255, 255, 0.52);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.75);
+}
+
+.bottom-nav-scanner-ring {
+  border-color: rgba(255, 255, 255, 0.72);
+  background: rgba(255, 255, 255, 0.42);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    0 1px 4px rgba(15, 15, 35, 0.06);
+}
+
+.bottom-nav-scanner.active .bottom-nav-scanner-ring {
+  border-color: rgba(0, 0, 0, 0.18);
+  background: rgba(255, 255, 255, 0.62);
+  box-shadow:
+    inset 0 0 0 1px rgba(0, 0, 0, 0.08),
+    0 1px 4px rgba(15, 15, 35, 0.08);
+}

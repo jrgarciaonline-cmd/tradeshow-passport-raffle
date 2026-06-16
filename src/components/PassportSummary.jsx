@@ -12,6 +12,18 @@ export function PassportSummary({
       : 0,
   )
 
+  const progressMessage =
+    percent >= 100
+      ? 'Passport Complete'
+      : percent >= 75
+        ? 'Almost There'
+        : percent >= 50
+          ? 'Halfway Stamped'
+          : percent >= 25
+            ? 'Keep Exploring'
+            : 'Start Collecting'
+  const showStampTrail = requiredScanCount > 0 && requiredScanCount <= 15
+
   return (
     <section className="summary-panel">
       <img
@@ -23,12 +35,6 @@ export function PassportSummary({
         }}
       />
       <h1>{attendeeName || 'Passport Guest'}</h1>
-      <div className="points-gauge" style={{ '--percent': `${percent * 1.8}deg` }}>
-        <div>
-          <strong>{completedCount}/{requiredScanCount}</strong>
-          <span>Booths Visited</span>
-        </div>
-      </div>
       <button
         type="button"
         className="home-action-button"
@@ -36,6 +42,44 @@ export function PassportSummary({
       >
         How to Play
       </button>
+
+      <div
+        className={`drawing-card booth-visit-progress${percent >= 100 ? ' is-complete' : ''}`}
+        style={{ '--progress': `${percent}%` }}
+      >
+        <p className="booth-visit-message">{progressMessage}</p>
+        <div className="booth-visit-score">
+          <strong>{completedCount}</strong>
+          <span>/ {requiredScanCount}</span>
+        </div>
+        <p className="booth-visit-label">Grand Prize Drawing</p>
+
+        <div
+          className="booth-visit-track"
+          role="progressbar"
+          aria-valuenow={completedCount}
+          aria-valuemin={0}
+          aria-valuemax={requiredScanCount}
+          aria-label={`${completedCount} of ${requiredScanCount} booths visited`}
+        >
+          <div className="booth-visit-fill" />
+          {showStampTrail && (
+            <div className="booth-visit-stamps" aria-hidden="true">
+              {Array.from({ length: requiredScanCount }, (_, index) => (
+                <span
+                  key={index}
+                  className={`booth-visit-stamp${index < completedCount ? ' is-stamped' : ''}`}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="drawing-meta">
+          <span>Scans remaining: {Math.max(0, requiredScanCount - completedCount)}</span>
+          <span>{percent}% · Goal: {requiredScanCount}</span>
+        </div>
+      </div>
 
       <div className="home-image-frame">
         <img
@@ -46,20 +90,6 @@ export function PassportSummary({
             event.currentTarget.hidden = true
           }}
         />
-      </div>
-
-      <div className="drawing-card">
-        <div className="drawing-title">
-          <strong>Grand Prize Drawing</strong>
-          <span>{percent}%</span>
-        </div>
-        <div className="progress-track" aria-label={`${percent}% complete`}>
-          <div className="progress-fill" style={{ width: `${percent}%` }} />
-        </div>
-        <div className="drawing-meta">
-          <span>Scans remaining: {Math.max(0, requiredScanCount - completedCount)}</span>
-          <span>Goal: {requiredScanCount}</span>
-        </div>
       </div>
     </section>
   )

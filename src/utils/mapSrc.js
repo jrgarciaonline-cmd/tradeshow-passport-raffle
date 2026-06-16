@@ -15,15 +15,25 @@ export function resolveMapSrc(mapSrc) {
   return value
 }
 
+export function getUploadedAssetTimestamp(value) {
+  if (typeof value !== 'string') return 0
+
+  const match = value.match(/\/(\d{10,13})-[a-f0-9]{8}\./i)
+  return match ? Number(match[1]) : 0
+}
+
 export function withMapCacheBust(mapSrc, version = '') {
   const resolved = resolveMapSrc(mapSrc)
   if (resolved.startsWith('data:')) return resolved
-  // Remote storage URLs are already unique per upload.
-  if (/^https?:\/\//.test(resolved)) return resolved
 
   const token = String(version || '').trim()
   if (!token) return resolved
 
-  const separator = resolved.includes('?') ? '&' : '?'
-  return `${resolved}${separator}v=${encodeURIComponent(token)}`
+  const withoutVersion = resolved
+    .replace(/([?&])v=[^&]*(?=&|$)/g, (_, prefix) => (prefix === '?' ? '?' : ''))
+    .replace(/\?&/, '?')
+    .replace(/[?&]$/, '')
+
+  const separator = withoutVersion.includes('?') ? '&' : '?'
+  return `${withoutVersion}${separator}v=${encodeURIComponent(token)}`
 }
