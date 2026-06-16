@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { getBoothLogoFrameStyle } from '../utils/boothLogoStyles'
 
 function normalizeWebsiteUrl(url) {
   const trimmed = String(url ?? '').trim()
@@ -42,7 +43,7 @@ export function BoothMapPopup({ booth, onClose, onScanBooth }) {
         >
           ✕
         </button>
-        <div className="booth-map-popup__logo">
+        <div className="booth-map-popup__logo" style={getBoothLogoFrameStyle(booth)}>
           {booth.logoDataUrl ? (
             <img src={booth.logoDataUrl} alt="" />
           ) : (

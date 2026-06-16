@@ -846,6 +846,8 @@ export function usePassportStore() {
         id,
         map: booth.map || { x: 50, y: 50 },
         color: booth.color || '#007b70',
+        logoColor: booth.logoColor || booth.color || '#007b70',
+        logoBackgroundColor: booth.logoBackgroundColor || '#ffffff',
         logoDataUrl: booth.logoDataUrl || '',
       }
       const exists = current.booths.some((item) => item.id === id)

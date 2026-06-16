@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import jsQR from 'jsqr'
+import { getBoothLogoFrameStyle } from '../utils/boothLogoStyles'
 
 export function ScannerPanel({ onScan, onGoHome, onGoMap }) {
   const videoRef = useRef(null)
@@ -199,7 +200,10 @@ export function ScannerPanel({ onScan, onGoHome, onGoMap }) {
               <span />
               <span />
             </div>
-            <div className="scan-success-logo duplicate">
+            <div
+              className="scan-success-logo duplicate"
+              style={scannedBooth ? getBoothLogoFrameStyle(scannedBooth) : undefined}
+            >
               {scannedBooth?.logoDataUrl ? (
                 <img src={scannedBooth.logoDataUrl} alt="" />
               ) : (
@@ -214,7 +218,10 @@ export function ScannerPanel({ onScan, onGoHome, onGoMap }) {
           </div>
         ) : scanSuccess ? (
           <div className="scan-success" aria-live="polite">
-            <div className="scan-success-logo">
+            <div
+              className="scan-success-logo"
+              style={scannedBooth ? getBoothLogoFrameStyle(scannedBooth) : undefined}
+            >
               {scannedBooth?.logoDataUrl ? (
                 <img src={scannedBooth.logoDataUrl} alt="" />
               ) : (

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { defaultInstructions } from '../data/mockData'
 import { uploadEventAsset } from '../services/assetStorage'
 import { readOptimizedImageFile } from '../utils/imageUpload'
+import { getBoothLogoFrameStyle } from '../utils/boothLogoStyles'
 import { PinchZoomMap } from './PinchZoomMap'
 import { AdminToast } from './AdminToast'
 import { WinnerWheel } from './WinnerWheel'
@@ -16,6 +17,8 @@ const emptyBooth = {
   logoDataUrl: '',
   qrCode: '',
   color: '#007b70',
+  logoColor: '#007b70',
+  logoBackgroundColor: '#ffffff',
 }
 
 const adminSections = ['Events', 'Settings', 'Booths', 'Map', 'Signups', 'Raffle', 'Winner', 'Picked']
@@ -516,7 +519,12 @@ export function AdminPanel({
             />
           </label>
           {draft.logoDataUrl && (
-            <div className="logo-preview">
+            <div
+              className="logo-preview"
+              style={{
+                backgroundColor: draft.logoBackgroundColor || '#ffffff',
+              }}
+            >
               <img src={draft.logoDataUrl} alt={`${draft.name} logo preview`} />
               <span>Current logo attached</span>
               <button
@@ -529,7 +537,25 @@ export function AdminPanel({
             </div>
           )}
           <label className="form-field">
-            <span>Logo Color</span>
+            <span>Logo background color</span>
+            <input
+              type="color"
+              value={draft.logoBackgroundColor || '#ffffff'}
+              onChange={(event) =>
+                updateDraft('logoBackgroundColor', event.target.value)
+              }
+            />
+          </label>
+          <label className="form-field">
+            <span>Logo color</span>
+            <input
+              type="color"
+              value={draft.logoColor || draft.color || '#007b70'}
+              onChange={(event) => updateDraft('logoColor', event.target.value)}
+            />
+          </label>
+          <label className="form-field">
+            <span>Map pin color</span>
             <input
               type="color"
               value={draft.color}
@@ -605,7 +631,7 @@ export function AdminPanel({
                 <div className="admin-mobile-booth-heading">
                   <div
                     className="admin-manufacturer-logo"
-                    style={{ '--logo-bg': booth.color }}
+                    style={getBoothLogoFrameStyle(booth)}
                   >
                     {booth.logoDataUrl ? (
                       <img src={booth.logoDataUrl} alt="" />

@@ -1,3 +1,5 @@
+import { getBoothLogoFrameStyle } from '../utils/boothLogoStyles'
+
 function normalizeUrl(url) {
   if (!url) return ''
   return /^https?:\/\//i.test(url) ? url : `https://${url}`
@@ -19,7 +21,7 @@ export function BoothCard({ booth, completed, highlighted, onShowOnMap }) {
       <div className="booth-stamp__perforation">
         <div className="booth-stamp__face">
           <span className="booth-stamp__denomination">{boothLabel}</span>
-          <div className="booth-stamp__vignette" style={{ '--logo-bg': booth.color }}>
+          <div className="booth-stamp__vignette" style={getBoothLogoFrameStyle(booth)}>
             {booth.logoDataUrl ? (
               <img src={booth.logoDataUrl} alt="" />
             ) : (
