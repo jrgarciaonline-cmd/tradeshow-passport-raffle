@@ -15,7 +15,9 @@ function formatBoothLocation(location) {
 export function BoothCard({ booth, completed, highlighted, onShowOnMap }) {
   const websiteUrl = normalizeUrl(booth.websiteUrl)
   const boothLabel = formatBoothLocation(booth.location)
-  const visitedPostmark = completed ? getVisitedPostmarkLayout(booth.id) : null
+  const visitedPostmark = completed
+    ? getVisitedPostmarkLayout(booth.id, booth.logoBackgroundColor || '#ffffff')
+    : null
 
   return (
     <article

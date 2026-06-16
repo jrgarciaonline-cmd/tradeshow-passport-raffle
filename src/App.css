@@ -1862,15 +1862,15 @@ textarea {
 
 .booth-stamp__postmark {
   position: absolute;
-  right: -14%;
-  bottom: -12%;
+  right: -16%;
+  bottom: 8%;
   z-index: 2;
   display: grid;
   place-items: center;
-  border: 2.5px solid var(--postmark-ink, rgba(205, 58, 58, 0.62));
-  color: var(--postmark-text, rgba(220, 70, 70, 0.56));
-  background: var(--postmark-bg, rgba(255, 240, 240, 0.08));
-  opacity: 0.92;
+  border: 2.5px solid var(--postmark-ink, rgba(205, 58, 58, 0.72));
+  color: var(--postmark-text, rgba(188, 36, 36, 0.82));
+  background: var(--postmark-bg, rgba(255, 240, 240, 0.1));
+  opacity: 0.94;
   pointer-events: none;
   transform-origin: 72% 78%;
 }
@@ -1893,31 +1893,31 @@ textarea {
 }
 
 .booth-stamp__postmark--red {
-  --postmark-ink: rgba(205, 58, 58, 0.62);
-  --postmark-ring: rgba(196, 52, 52, 0.42);
-  --postmark-text: rgba(220, 70, 70, 0.56);
-  --postmark-bg: rgba(255, 240, 240, 0.1);
+  --postmark-ink: rgba(205, 58, 58, 0.72);
+  --postmark-ring: rgba(196, 52, 52, 0.52);
+  --postmark-text: rgba(188, 36, 36, 0.84);
+  --postmark-bg: rgba(255, 240, 240, 0.12);
 }
 
 .booth-stamp__postmark--blue {
-  --postmark-ink: rgba(42, 90, 168, 0.64);
-  --postmark-ring: rgba(36, 78, 148, 0.42);
-  --postmark-text: rgba(52, 98, 176, 0.58);
-  --postmark-bg: rgba(236, 244, 255, 0.12);
+  --postmark-ink: rgba(42, 90, 168, 0.74);
+  --postmark-ring: rgba(36, 78, 148, 0.52);
+  --postmark-text: rgba(28, 72, 156, 0.84);
+  --postmark-bg: rgba(236, 244, 255, 0.14);
 }
 
 .booth-stamp__postmark--green {
-  --postmark-ink: rgba(36, 118, 72, 0.64);
-  --postmark-ring: rgba(30, 102, 62, 0.42);
-  --postmark-text: rgba(44, 128, 82, 0.58);
-  --postmark-bg: rgba(236, 250, 242, 0.12);
+  --postmark-ink: rgba(36, 118, 72, 0.74);
+  --postmark-ring: rgba(30, 102, 62, 0.52);
+  --postmark-text: rgba(22, 98, 58, 0.84);
+  --postmark-bg: rgba(236, 250, 242, 0.14);
 }
 
 .booth-stamp__postmark--ink {
-  --postmark-ink: rgba(38, 38, 38, 0.58);
-  --postmark-ring: rgba(38, 38, 38, 0.36);
-  --postmark-text: rgba(48, 48, 48, 0.52);
-  --postmark-bg: rgba(248, 248, 248, 0.1);
+  --postmark-ink: rgba(38, 38, 38, 0.68);
+  --postmark-ring: rgba(38, 38, 38, 0.46);
+  --postmark-text: rgba(24, 24, 24, 0.82);
+  --postmark-bg: rgba(248, 248, 248, 0.12);
 }
 
 .booth-stamp__postmark::before {
@@ -1938,11 +1938,12 @@ textarea {
   position: relative;
   max-width: 88%;
   font-size: clamp(0.58rem, 2.2vw, 0.82rem);
-  font-weight: 800;
+  font-weight: 900;
   letter-spacing: 0.12em;
   line-height: 1.05;
   text-align: center;
   text-transform: uppercase;
+  -webkit-font-smoothing: antialiased;
 }
 
 .booth-stamp__postmark--wide span {
