@@ -632,6 +632,50 @@
   grid-template-rows: 36px minmax(0, 1fr);
 }
 
+.phone-shell--no-top-bar {
+  grid-template-rows: minmax(0, 1fr);
+}
+
+.phone-shell--no-top-bar.no-bottom-nav {
+  grid-template-rows: minmax(0, 1fr);
+}
+
+.phone-shell--no-top-bar .confetti-overlay {
+  inset: 0;
+}
+
+.phone-shell--no-top-bar .sync-status-badge {
+  top: 52px;
+}
+
+.app-float-actions {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 12;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.app-float-button {
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--glass-border-soft);
+  border-radius: 999px;
+  color: var(--ink);
+  background: var(--glass-surface-strong);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  box-shadow: var(--glass-shadow);
+  font-size: 1rem;
+}
+
+.sync-status-dot--float {
+  background: rgba(0, 0, 0, 0.72);
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.12);
+}
+
 .phone-shell.has-vision-nav .app-content {
   padding-bottom: 86px;
 }
@@ -1254,6 +1298,12 @@ button:disabled {
   overflow: hidden;
   overscroll-behavior: contain;
   cursor: grab;
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+.pinch-map-scroll.is-ready {
+  opacity: 1;
 }
 
 .pinch-map-scroll:active {

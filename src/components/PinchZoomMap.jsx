@@ -1,7 +1,9 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { MapMarkerLogo } from './MapMarkerLogo'
 import {
+  getMapCacheVersion,
   PLACEHOLDER_MAP_SRC,
+  resolveMapSrc,
   withMapCacheBust,
 } from '../utils/mapSrc'
 
@@ -97,14 +99,38 @@ export function PinchZoomMap({
   const hasPositionedView = useRef(false)
   const isInteracting = useRef(false)
   const loadedMapSrc = useRef('')
-  const wheelIdleTimeout = useRef(null)
+  const zoomIdleTimeout = useRef(null)
+  const onFocusHandledRef = useRef(onFocusHandled)
   const [view, setView] = useState(INITIAL_VIEW)
   const [mapSize, setMapSize] = useState(INITIAL_MAP_SIZE)
   const [failedSrc, setFailedSrc] = useState('')
-  const primaryMapSrc = withMapCacheBust(mapSrc, mapVersion)
+  const [viewReady, setViewReady] = useState(false)
+  const resolvedMapSrc = resolveMapSrc(mapSrc)
+  const primaryMapSrc = withMapCacheBust(
+    mapSrc,
+    getMapCacheVersion(mapSrc, mapVersion),
+  )
   const displayMapSrc =
     failedSrc === primaryMapSrc ? PLACEHOLDER_MAP_SRC : primaryMapSrc
   const mapLoadFailed = failedSrc === primaryMapSrc && failedSrc !== ''
+
+  onFocusHandledRef.current = onFocusHandled
+
+  const markViewReady = () => {
+    setViewReady(true)
+  }
+
+  const markViewPending = () => {
+    setViewReady(false)
+  }
+
+  const beginInteraction = (idleMs = 200) => {
+    isInteracting.current = true
+    if (zoomIdleTimeout.current) window.clearTimeout(zoomIdleTimeout.current)
+    zoomIdleTimeout.current = window.setTimeout(() => {
+      isInteracting.current = false
+    }, idleMs)
+  }
 
   const fitMapToViewport = () => {
     if (isInteracting.current) return false
@@ -125,6 +151,7 @@ export function PinchZoomMap({
     hasPositionedView.current = true
     viewRef.current = fittedView
     setView(fittedView)
+    markViewReady()
     return true
   }
 
@@ -139,6 +166,7 @@ export function PinchZoomMap({
       hasPositionedView.current = true
       viewRef.current = constrained
       setView(constrained)
+      markViewReady()
     })
   }
 
@@ -214,6 +242,7 @@ export function PinchZoomMap({
   }
 
   const zoomFromCenter = (factor) => {
+    beginInteraction()
     const rect = viewportRef.current?.getBoundingClientRect()
     if (!rect) return
 
@@ -322,18 +351,19 @@ export function PinchZoomMap({
   }, [focusBoothId, focusKey])
 
   useEffect(() => {
-    if (loadedMapSrc.current !== displayMapSrc) {
-      loadedMapSrc.current = displayMapSrc
+    if (loadedMapSrc.current !== resolvedMapSrc) {
+      loadedMapSrc.current = resolvedMapSrc
       hasPositionedView.current = false
+      markViewPending()
     }
-  }, [displayMapSrc])
+  }, [resolvedMapSrc])
 
   useEffect(() => {
     if (focusBoothIdRef.current || hasPositionedView.current) return
 
     fitMapToViewport()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mapSize, displayMapSrc])
+  }, [mapSize, resolvedMapSrc])
 
   useEffect(() => {
     const viewport = viewportRef.current
@@ -359,7 +389,7 @@ export function PinchZoomMap({
     return () => resizeObserver.disconnect()
   }, [mapSize])
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (focusBoothId) {
       pendingFocus.current = { boothId: focusBoothId, key: focusKey }
     }
@@ -368,40 +398,40 @@ export function PinchZoomMap({
     if (!focusRequest?.boothId) return
 
     const focusRequestId = `${focusRequest.boothId}:${focusRequest.key}:${mapSize.width}x${mapSize.height}`
-    if (lastFocusedBoothId.current === focusRequestId) return
+    if (lastFocusedBoothId.current === focusRequestId) {
+      markViewReady()
+      return
+    }
 
-    const frame = requestAnimationFrame(() => {
-      const booth = booths.find((item) => item.id === focusRequest.boothId)
-      const rect = viewportRef.current?.getBoundingClientRect()
-      if (!booth || !rect) return
+    const booth = booths.find((item) => item.id === focusRequest.boothId)
+    const rect = viewportRef.current?.getBoundingClientRect()
+    if (!booth || !rect?.width || !rect?.height) return
 
-      const fitScale = getFitScale(rect, mapSize)
-      const scale = clamp(
-        Math.max(fitScale * 2.4, MIN_FOCUS_SCALE),
-        fitScale,
-        MAX_FOCUS_SCALE,
-      )
-      const mapX = (booth.map.x / 100) * mapSize.width
-      const mapY = (booth.map.y / 100) * mapSize.height
-      const focusedView = constrainView(
-        {
-          scale,
-          x: rect.width / 2 - mapX * scale,
-          y: rect.height / 2 - mapY * scale,
-        },
-        rect,
-        mapSize,
-      )
+    const fitScale = getFitScale(rect, mapSize)
+    const scale = clamp(
+      Math.max(fitScale * 2.4, MIN_FOCUS_SCALE),
+      fitScale,
+      MAX_FOCUS_SCALE,
+    )
+    const mapX = (booth.map.x / 100) * mapSize.width
+    const mapY = (booth.map.y / 100) * mapSize.height
+    const focusedView = constrainView(
+      {
+        scale,
+        x: rect.width / 2 - mapX * scale,
+        y: rect.height / 2 - mapY * scale,
+      },
+      rect,
+      mapSize,
+    )
 
-      hasPositionedView.current = true
-      viewRef.current = focusedView
-      setView(focusedView)
-      lastFocusedBoothId.current = focusRequestId
-      onFocusHandled?.()
-    })
-
-    return () => cancelAnimationFrame(frame)
-  }, [booths, focusBoothId, focusKey, mapSize, onFocusHandled])
+    hasPositionedView.current = true
+    viewRef.current = focusedView
+    setView(focusedView)
+    lastFocusedBoothId.current = focusRequestId
+    markViewReady()
+    onFocusHandledRef.current?.()
+  }, [booths, focusBoothId, focusKey, mapSize])
 
   return (
     <div className={`pinch-map ${mapLocked ? 'is-locked' : ''} ${className}`}>
@@ -422,16 +452,12 @@ export function PinchZoomMap({
       </div>
       <div
         ref={viewportRef}
-        className="pinch-map-scroll"
+        className={`pinch-map-scroll${viewReady ? ' is-ready' : ''}`}
         onWheel={(event) => {
           if (mapLocked) return
           event.preventDefault()
           pendingFocus.current = null
-          isInteracting.current = true
-          if (wheelIdleTimeout.current) window.clearTimeout(wheelIdleTimeout.current)
-          wheelIdleTimeout.current = window.setTimeout(() => {
-            isInteracting.current = false
-          }, 200)
+          beginInteraction()
           const delta = -event.deltaY
           const factor = delta > 0 ? 1.14 : 0.88
           zoomAtPoint(event.clientX, event.clientY, viewRef.current.scale * factor)
@@ -453,7 +479,6 @@ export function PinchZoomMap({
             onPointerCancel={handleSurfacePointerUp}
           >
             <img
-              key={displayMapSrc}
               src={displayMapSrc}
               alt="Expo floor map"
               draggable={false}
@@ -469,9 +494,13 @@ export function PinchZoomMap({
 
                 if (
                   nextSize.width === mapSize.width &&
-                  nextSize.height === mapSize.height &&
-                  hasPositionedView.current
+                  nextSize.height === mapSize.height
                 ) {
+                  if (!hasPositionedView.current && !focusBoothIdRef.current) {
+                    fitMapToViewport()
+                  } else {
+                    markViewReady()
+                  }
                   return
                 }
 

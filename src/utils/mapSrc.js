@@ -22,9 +22,22 @@ export function getUploadedAssetTimestamp(value) {
   return match ? Number(match[1]) : 0
 }
 
+export function getMapCacheVersion(mapSrc, remoteUpdatedAt = '') {
+  const resolved = resolveMapSrc(mapSrc)
+  if (resolved.startsWith('data:')) return ''
+
+  const assetTs = getUploadedAssetTimestamp(resolved)
+  if (assetTs) return String(assetTs)
+
+  return String(remoteUpdatedAt || '').trim()
+}
+
 export function withMapCacheBust(mapSrc, version = '') {
   const resolved = resolveMapSrc(mapSrc)
   if (resolved.startsWith('data:')) return resolved
+
+  const assetTs = getUploadedAssetTimestamp(resolved)
+  if (assetTs) return resolved
 
   const token = String(version || '').trim()
   if (!token) return resolved

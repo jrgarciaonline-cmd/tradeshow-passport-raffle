@@ -114,6 +114,26 @@ function App() {
   )
   const shouldShowAuth =
     activeMode !== 'admin' && !hasValidAttendeeSession
+  const showTopBar = activeMode === 'admin' || !hasValidAttendeeSession
+
+  const handleAdminToggle = () => {
+    if (activeMode === 'admin') {
+      setMode('attendee')
+      return
+    }
+
+    if (store.adminAuthenticated) {
+      setMode('admin')
+      return
+    }
+
+    setAuthView('admin')
+  }
+
+  const handleSignOut = () => {
+    store.signOut()
+    setAuthView('signin')
+  }
 
   const handleScan = (code) => {
     const result = store.checkInByCode(code)
@@ -225,7 +245,7 @@ function App() {
           hasValidAttendeeSession && activeMode === 'attendee'
             ? 'has-vision-nav'
             : 'no-bottom-nav'
-        }`}
+        }${showTopBar ? '' : ' phone-shell--no-top-bar'}`}
         aria-label="Trade show passport app"
       >
         <ConfettiOverlay
@@ -233,36 +253,65 @@ function App() {
           active={Boolean(celebrationKey)}
           raffleCompleteImageSrc={store.settings?.raffleCompleteImageSrc}
         />
-        <header className="app-bar">
-          <button
-            type="button"
-            className={`icon-button ${
-              activeMode === 'admin' || store.adminAuthenticated ? '' : 'is-hidden'
-            }`}
-            aria-label={
-              activeMode === 'admin' ? 'Back to attendee app' : 'Open admin'
-            }
-            onClick={() => {
-              if (activeMode === 'admin') {
-                setMode('attendee')
-                return
+        {showTopBar && (
+          <header className="app-bar">
+            <button
+              type="button"
+              className={`icon-button ${
+                activeMode === 'admin' || store.adminAuthenticated ? '' : 'is-hidden'
+              }`}
+              aria-label={
+                activeMode === 'admin' ? 'Back to attendee app' : 'Open admin'
               }
+              onClick={handleAdminToggle}
+            >
+              {activeMode === 'admin' ? '‹' : '⚙'}
+            </button>
+            <div className="app-bar-title">
+              <strong>Land F/X Passport Raffle</strong>
+              {isSyncingOnline && (
+                <span
+                  className="sync-status-dot"
+                  role="status"
+                  aria-label={
+                    isBackgroundLoading
+                      ? 'Loading latest event data'
+                      : `Syncing ${pendingSyncCount} saved update${pendingSyncCount === 1 ? '' : 's'}`
+                  }
+                  title={
+                    isBackgroundLoading
+                      ? 'Loading latest event data'
+                      : 'Saved scans are syncing in the background'
+                  }
+                />
+              )}
+            </div>
+            <button
+              type="button"
+              className="icon-button"
+              aria-label="Sign out"
+              onClick={handleSignOut}
+            >
+              ⎋
+            </button>
+          </header>
+        )}
 
-              if (store.adminAuthenticated) {
-                setMode('admin')
-                return
-              }
-
-              setAuthView('admin')
-            }}
-          >
-            {activeMode === 'admin' ? '‹' : '⚙'}
-          </button>
-          <div className="app-bar-title">
-            <strong>Land F/X Passport Raffle</strong>
+        {!showTopBar && (
+          <div className="app-float-actions">
+            {store.adminAuthenticated && (
+              <button
+                type="button"
+                className="icon-button app-float-button"
+                aria-label="Open admin"
+                onClick={handleAdminToggle}
+              >
+                ⚙
+              </button>
+            )}
             {isSyncingOnline && (
               <span
-                className="sync-status-dot"
+                className="sync-status-dot sync-status-dot--float"
                 role="status"
                 aria-label={
                   isBackgroundLoading
@@ -276,19 +325,16 @@ function App() {
                 }
               />
             )}
+            <button
+              type="button"
+              className="icon-button app-float-button"
+              aria-label="Sign out"
+              onClick={handleSignOut}
+            >
+              ⎋
+            </button>
           </div>
-          <button
-            type="button"
-            className="icon-button"
-            aria-label="Sign out"
-            onClick={() => {
-              store.signOut()
-              setAuthView('signin')
-            }}
-          >
-            ⎋
-          </button>
-        </header>
+        )}
         {offlineSyncMessage && (
           <div className="sync-status-badge is-offline" role="status">
             {offlineSyncMessage}
@@ -332,7 +378,6 @@ function App() {
                   <div>
                     <p className="eyebrow">Passport Complete</p>
                     <h2>Raffle unlocked</h2>
-                    <p>Submit your contact details to enter the drawing.</p>
                   </div>
                 </section>
               )}

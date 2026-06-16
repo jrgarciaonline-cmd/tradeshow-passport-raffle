@@ -1,5 +1,6 @@
 import { BoothMapPopup } from './BoothMapPopup'
 import { PinchZoomMap } from './PinchZoomMap'
+import { resolveMapSrc } from '../utils/mapSrc'
 
 export function MapView({
   booths,
@@ -36,7 +37,7 @@ export function MapView({
       </div>
       <div className="map-panel-map">
         <PinchZoomMap
-          key={`${mapSrc ?? ''}:${mapVersion ?? ''}`}
+          key={resolveMapSrc(mapSrc)}
           booths={booths}
           completedIds={completedIds}
           focusBoothId={focusBoothId}
