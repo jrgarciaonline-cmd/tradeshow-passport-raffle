@@ -1773,8 +1773,8 @@ textarea {
 .challenge-list {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px 12px;
-  padding: 4px 2px 8px;
+  gap: 20px 14px;
+  padding: 8px 4px 12px;
   margin-inline: 0;
   border-top: 0;
 }
@@ -1789,30 +1789,6 @@ textarea {
   min-width: 0;
 }
 
-.booth-stamp:nth-child(6n + 1) {
-  transform: rotate(-1.4deg);
-}
-
-.booth-stamp:nth-child(6n + 2) {
-  transform: rotate(0.9deg);
-}
-
-.booth-stamp:nth-child(6n + 3) {
-  transform: rotate(-0.6deg);
-}
-
-.booth-stamp:nth-child(6n + 4) {
-  transform: rotate(1.2deg);
-}
-
-.booth-stamp:nth-child(6n + 5) {
-  transform: rotate(-0.8deg);
-}
-
-.booth-stamp:nth-child(6n + 6) {
-  transform: rotate(0.5deg);
-}
-
 .booth-stamp__perforation {
   --stamp-paper: #faf6ee;
   --stamp-ink: #2f2418;
@@ -1820,6 +1796,7 @@ textarea {
   padding: 3px;
   border-radius: 4px;
   background: var(--stamp-paper);
+  transform-origin: center center;
   box-shadow:
     0 1px 2px rgba(45, 32, 18, 0.07),
     0 5px 14px rgba(45, 32, 18, 0.07);
@@ -1962,15 +1939,21 @@ textarea {
 
 @keyframes stamp-highlight {
   0% {
-    transform: scale(1.02);
+    box-shadow:
+      0 0 0 2px rgba(21, 182, 93, 0.42),
+      0 6px 16px rgba(21, 182, 93, 0.2);
   }
 
   50% {
-    transform: scale(1.01);
+    box-shadow:
+      0 0 0 3px rgba(21, 182, 93, 0.28),
+      0 4px 12px rgba(21, 182, 93, 0.12);
   }
 
   100% {
-    transform: scale(1);
+    box-shadow:
+      0 1px 2px rgba(45, 32, 18, 0.07),
+      0 5px 14px rgba(45, 32, 18, 0.07);
   }
 }
 
