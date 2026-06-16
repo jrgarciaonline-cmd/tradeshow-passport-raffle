@@ -1,5 +1,6 @@
 import { getBoothLogoFrameStyle } from '../utils/boothLogoStyles'
 import { STAMP_OUTLINE_PATH, STAMP_VIEW_BOX } from '../utils/stampShape'
+import { getVisitedPostmarkLayout } from '../utils/visitedPostmark'
 
 function normalizeUrl(url) {
   if (!url) return ''
@@ -14,6 +15,7 @@ function formatBoothLocation(location) {
 export function BoothCard({ booth, completed, highlighted, onShowOnMap }) {
   const websiteUrl = normalizeUrl(booth.websiteUrl)
   const boothLabel = formatBoothLocation(booth.location)
+  const visitedPostmark = completed ? getVisitedPostmarkLayout(booth.id) : null
 
   return (
     <article
@@ -40,8 +42,12 @@ export function BoothCard({ booth, completed, highlighted, onShowOnMap }) {
               </div>
             </div>
           </div>
-          {completed && (
-            <div className="booth-stamp__postmark" aria-hidden="true">
+          {visitedPostmark && (
+            <div
+              className={visitedPostmark.className}
+              style={visitedPostmark.style}
+              aria-hidden="true"
+            >
               <span>Visited</span>
             </div>
           )}

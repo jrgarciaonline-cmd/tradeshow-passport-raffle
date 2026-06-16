@@ -1862,36 +1862,88 @@ textarea {
 
 .booth-stamp__postmark {
   position: absolute;
-  inset: 4%;
   z-index: 2;
   display: grid;
   place-items: center;
-  border: 3px solid rgba(205, 58, 58, 0.62);
-  border-radius: 50%;
-  color: rgba(220, 70, 70, 0.56);
-  background: rgba(255, 240, 240, 0.1);
-  opacity: 0.95;
-  transform: rotate(-17deg);
+  border: 2.5px solid var(--postmark-ink, rgba(205, 58, 58, 0.62));
+  color: var(--postmark-text, rgba(220, 70, 70, 0.56));
+  background: var(--postmark-bg, rgba(255, 240, 240, 0.08));
+  opacity: 0.92;
   pointer-events: none;
+}
+
+.booth-stamp__postmark--circle,
+.booth-stamp__postmark--oval {
+  border-radius: 50%;
+}
+
+.booth-stamp__postmark--rounded {
+  border-radius: 12%;
+}
+
+.booth-stamp__postmark--rect {
+  border-radius: 2px;
+}
+
+.booth-stamp__postmark--wide {
+  border-radius: 4px;
+}
+
+.booth-stamp__postmark--red {
+  --postmark-ink: rgba(205, 58, 58, 0.62);
+  --postmark-ring: rgba(196, 52, 52, 0.42);
+  --postmark-text: rgba(220, 70, 70, 0.56);
+  --postmark-bg: rgba(255, 240, 240, 0.1);
+}
+
+.booth-stamp__postmark--blue {
+  --postmark-ink: rgba(42, 90, 168, 0.64);
+  --postmark-ring: rgba(36, 78, 148, 0.42);
+  --postmark-text: rgba(52, 98, 176, 0.58);
+  --postmark-bg: rgba(236, 244, 255, 0.12);
+}
+
+.booth-stamp__postmark--green {
+  --postmark-ink: rgba(36, 118, 72, 0.64);
+  --postmark-ring: rgba(30, 102, 62, 0.42);
+  --postmark-text: rgba(44, 128, 82, 0.58);
+  --postmark-bg: rgba(236, 250, 242, 0.12);
+}
+
+.booth-stamp__postmark--ink {
+  --postmark-ink: rgba(38, 38, 38, 0.58);
+  --postmark-ring: rgba(38, 38, 38, 0.36);
+  --postmark-text: rgba(48, 48, 48, 0.52);
+  --postmark-bg: rgba(248, 248, 248, 0.1);
 }
 
 .booth-stamp__postmark::before {
   content: '';
   position: absolute;
   inset: 11%;
-  border: 2px solid rgba(196, 52, 52, 0.42);
-  border-radius: 50%;
+  border: 2px solid var(--postmark-ring, rgba(196, 52, 52, 0.42));
+  border-radius: inherit;
+}
+
+.booth-stamp__postmark--rect::before,
+.booth-stamp__postmark--wide::before {
+  inset: 14%;
+  border-width: 1.5px;
 }
 
 .booth-stamp__postmark span {
   position: relative;
-  max-width: 72%;
-  font-size: clamp(0.68rem, 2.6vw, 0.88rem);
+  max-width: 88%;
+  font-size: clamp(0.58rem, 2.2vw, 0.82rem);
   font-weight: 800;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.12em;
   line-height: 1.05;
   text-align: center;
   text-transform: uppercase;
+}
+
+.booth-stamp__postmark--wide span {
+  letter-spacing: 0.18em;
 }
 
 .booth-stamp__caption {
