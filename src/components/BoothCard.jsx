@@ -1,5 +1,4 @@
 import { getBoothLogoFrameStyle } from '../utils/boothLogoStyles'
-import { getBoothStampArtStyle } from '../utils/boothStampLayout'
 import { STAMP_OUTLINE_PATH, STAMP_VIEW_BOX } from '../utils/stampShape'
 import { getVisitedPostmarkLayout } from '../utils/visitedPostmark'
 
@@ -24,7 +23,7 @@ export function BoothCard({ booth, completed, highlighted, onShowOnMap }) {
     <article
       className={`booth-stamp ${completed ? 'is-complete' : ''} ${highlighted ? 'highlighted' : ''}`}
     >
-      <div className="booth-stamp__art" style={getBoothStampArtStyle(booth.id)}>
+      <div className="booth-stamp__art">
         <svg
           className="booth-stamp__shape"
           viewBox={STAMP_VIEW_BOX}

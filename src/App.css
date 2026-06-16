@@ -1797,7 +1797,6 @@ textarea {
   max-width: 164px;
   aspect-ratio: 1;
   overflow: visible;
-  transform-origin: center center;
 }
 
 .booth-stamp__shape {
