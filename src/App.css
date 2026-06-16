@@ -1816,7 +1816,7 @@ textarea {
 
 .booth-stamp__perforation {
   position: absolute;
-  inset: 6.5%;
+  inset: 5.6%;
   display: grid;
 }
 
@@ -1825,7 +1825,7 @@ textarea {
   z-index: 1;
   display: grid;
   height: 100%;
-  padding: 9%;
+  padding: 2%;
   background: transparent;
 }
 
@@ -1833,7 +1833,7 @@ textarea {
   display: grid;
   height: 100%;
   min-height: 0;
-  border: 2.5px solid #141414;
+  border: 2px solid #141414;
   background: #fff;
 }
 
@@ -1842,7 +1842,7 @@ textarea {
   place-items: center;
   min-height: 0;
   height: 100%;
-  padding: 10px 8px;
+  padding: 5px 4px;
 }
 
 .booth-stamp__logo img {
@@ -1862,7 +1862,7 @@ textarea {
 
 .booth-stamp__postmark {
   position: absolute;
-  inset: 10%;
+  inset: 4%;
   z-index: 2;
   display: grid;
   place-items: center;

@@ -1,5 +1,5 @@
 import { getBoothLogoFrameStyle } from '../utils/boothLogoStyles'
-import { STAMP_OUTLINE_PATH } from '../utils/stampShape'
+import { STAMP_OUTLINE_PATH, STAMP_VIEW_BOX } from '../utils/stampShape'
 
 function normalizeUrl(url) {
   if (!url) return ''
@@ -22,7 +22,7 @@ export function BoothCard({ booth, completed, highlighted, onShowOnMap }) {
       <div className="booth-stamp__art">
         <svg
           className="booth-stamp__shape"
-          viewBox="0 0 200 200"
+          viewBox={STAMP_VIEW_BOX}
           aria-hidden="true"
           focusable="false"
         >
