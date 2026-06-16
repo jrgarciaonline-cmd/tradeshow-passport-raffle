@@ -23,15 +23,4 @@ export function buildStampOutlinePath(size = 200, teeth = 11) {
   return path
 }
 
-const STAMP_MASK_URL = (() => {
-  const path = buildStampOutlinePath()
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><path fill="black" d="${path}"/></svg>`
-  return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`
-})()
-
-export function getStampMaskStyle() {
-  return {
-    WebkitMaskImage: STAMP_MASK_URL,
-    maskImage: STAMP_MASK_URL,
-  }
-}
+export const STAMP_OUTLINE_PATH = buildStampOutlinePath(200, 10)

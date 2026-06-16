@@ -1,5 +1,5 @@
 import { getBoothLogoFrameStyle } from '../utils/boothLogoStyles'
-import { getStampMaskStyle } from '../utils/stampShape'
+import { STAMP_OUTLINE_PATH } from '../utils/stampShape'
 
 function normalizeUrl(url) {
   if (!url) return ''
@@ -20,7 +20,15 @@ export function BoothCard({ booth, completed, highlighted, onShowOnMap }) {
       className={`booth-stamp ${completed ? 'is-complete' : ''} ${highlighted ? 'highlighted' : ''}`}
     >
       <div className="booth-stamp__art">
-        <div className="booth-stamp__perforation" style={getStampMaskStyle()}>
+        <svg
+          className="booth-stamp__shape"
+          viewBox="0 0 200 200"
+          aria-hidden="true"
+          focusable="false"
+        >
+          <path d={STAMP_OUTLINE_PATH} />
+        </svg>
+        <div className="booth-stamp__perforation">
           <div className="booth-stamp__face">
             <div className="booth-stamp__frame">
               <div className="booth-stamp__logo" style={getBoothLogoFrameStyle(booth)}>
