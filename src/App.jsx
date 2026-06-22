@@ -1,8 +1,11 @@
-import { useEffect, useMemo, useState } from 'react'
+import { Capacitor } from '@capacitor/core'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import './App.css'
 import './glass-theme.css'
 import './passport-background.css'
 import { defaultInstructions } from './data/mockData'
+import { useAppDeepLinks } from './hooks/useAppDeepLinks'
+import { isAdminPath } from './services/adminDeepLink'
 import { usePassportStore } from './services/usePassportStore'
 import { AdminDashboard } from './components/AdminDashboard'
 import { AdminPanel } from './components/AdminPanel'
@@ -16,6 +19,7 @@ import { ScannerPanel } from './components/ScannerPanel'
 import { NavIcon } from './components/NavIcon'
 
 const NAV_ICON_SIZE = 18
+const isNative = Capacitor.isNativePlatform()
 
 const attendeeTabs = [
   { id: 'Home', label: 'Home', icon: 'home' },
@@ -31,7 +35,16 @@ const rightNavTabs = attendeeTabs.slice(3)
 
 function App() {
   const store = usePassportStore()
-  const isAdminRoute = window.location.pathname.replace(/\/$/, '') === '/admin'
+  const [adminRouteActive, setAdminRouteActive] = useState(() =>
+    isAdminPath(window.location.pathname),
+  )
+  const isAdminRoute =
+    adminRouteActive || (!isNative && isAdminPath(window.location.pathname))
+  const openAdminRoute = useCallback(() => {
+    setAdminRouteActive(true)
+  }, [])
+
+  useAppDeepLinks({ onAdminRoute: openAdminRoute })
   const [mode, setMode] = useState('attendee')
   const [authView, setAuthView] = useState('signup')
   const [activeTab, setActiveTab] = useState('Home')
@@ -239,7 +252,7 @@ function App() {
   }
 
   return (
-    <main className="app-stage">
+    <main className={`app-stage${isNative ? ' is-native' : ''}`}>
       <section
         className={`phone-shell ${
           hasValidAttendeeSession && activeMode === 'attendee'
@@ -524,6 +537,7 @@ function App() {
               events={store.events}
               activeEvent={store.activeEvent}
               activeEventId={store.activeEventId}
+              adminAccessToken={store.adminSession?.accessToken}
               onSelectEvent={store.selectEvent}
               onSaveEvent={store.saveEvent}
               onDuplicateEvent={store.duplicateEvent}

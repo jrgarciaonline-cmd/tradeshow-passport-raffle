@@ -7,6 +7,7 @@ import {
   sendSupabaseAdminPasswordReset,
   signInAdminWithSupabase,
 } from './adminAuth'
+import { isDataUrl, uploadBoothLogo } from './assetStorage'
 import { passportRepository } from './passportRepository'
 
 function buildBoothId(name) {
@@ -65,6 +66,10 @@ function buildWinner(entry) {
     pickedAt: new Date().toISOString(),
   }
 }
+
+const ACTIVE_SYNC_MS = 5000
+const IDLE_SYNC_MS = 60000
+const IDLE_AFTER_MS = 30000
 
 export function usePassportStore() {
   const [state, setState] = useState(() => passportRepository.load())
@@ -190,18 +195,67 @@ export function usePassportStore() {
       })
     }
 
-    syncSharedStateRef.current = syncSharedState
-    syncSharedState()
-    const intervalId = window.setInterval(syncSharedState, 5000)
-    const syncWhenVisible = () => {
-      if (document.visibilityState === 'visible') syncSharedState()
-    }
-    const syncOnPageShow = (event) => {
-      if (event.persisted || document.visibilityState === 'visible') syncSharedState()
+    let lastActivityAt = Date.now()
+    let syncTimeoutId = null
+
+    const isAppIdle = () => {
+      const { pendingCount } = passportRepository.getOfflineQueueStatus()
+      return (
+        Date.now() - lastActivityAt >= IDLE_AFTER_MS &&
+        !sharedSavePending.current &&
+        pendingCount === 0
+      )
     }
 
-    window.addEventListener('focus', syncSharedState)
-    window.addEventListener('online', syncSharedState)
+    const getSyncDelay = () => (isAppIdle() ? IDLE_SYNC_MS : ACTIVE_SYNC_MS)
+
+    const scheduleNextSync = () => {
+      syncTimeoutId = window.setTimeout(async () => {
+        await syncSharedState()
+        if (!cancelled) scheduleNextSync()
+      }, getSyncDelay())
+    }
+
+    const markActivity = () => {
+      const wasIdle = isAppIdle()
+      lastActivityAt = Date.now()
+      if (wasIdle && !cancelled) {
+        window.clearTimeout(syncTimeoutId)
+        syncSharedState().finally(() => {
+          if (!cancelled) scheduleNextSync()
+        })
+      }
+    }
+
+    syncSharedStateRef.current = syncSharedState
+    syncSharedState().finally(() => {
+      if (!cancelled) scheduleNextSync()
+    })
+
+    const syncWhenVisible = () => {
+      if (document.visibilityState === 'visible') {
+        markActivity()
+        syncSharedState()
+      }
+    }
+    const syncOnPageShow = (event) => {
+      if (event.persisted || document.visibilityState === 'visible') {
+        markActivity()
+        syncSharedState()
+      }
+    }
+    const syncOnFocus = () => {
+      markActivity()
+      syncSharedState()
+    }
+
+    const activityEvents = ['pointerdown', 'keydown', 'touchstart']
+    activityEvents.forEach((eventName) => {
+      window.addEventListener(eventName, markActivity, { passive: true })
+    })
+
+    window.addEventListener('focus', syncOnFocus)
+    window.addEventListener('online', syncOnFocus)
     window.addEventListener('offline', refreshSyncStatus)
     window.addEventListener('pageshow', syncOnPageShow)
     document.addEventListener('visibilitychange', syncWhenVisible)
@@ -209,9 +263,12 @@ export function usePassportStore() {
     return () => {
       cancelled = true
       syncSharedStateRef.current = null
-      window.clearInterval(intervalId)
-      window.removeEventListener('focus', syncSharedState)
-      window.removeEventListener('online', syncSharedState)
+      window.clearTimeout(syncTimeoutId)
+      activityEvents.forEach((eventName) => {
+        window.removeEventListener(eventName, markActivity)
+      })
+      window.removeEventListener('focus', syncOnFocus)
+      window.removeEventListener('online', syncOnFocus)
       window.removeEventListener('offline', refreshSyncStatus)
       window.removeEventListener('pageshow', syncOnPageShow)
       document.removeEventListener('visibilitychange', syncWhenVisible)
@@ -838,9 +895,24 @@ export function usePassportStore() {
     })
   }
 
-  const saveBooth = (booth) => {
+  const saveBooth = async (booth) => {
+    const id = booth.id || buildBoothId(booth.name) || crypto.randomUUID()
+    let logoDataUrl = booth.logoDataUrl || ''
+
+    if (isDataUrl(logoDataUrl) && activeEventIdRef.current) {
+      try {
+        logoDataUrl = await uploadBoothLogo({
+          eventId: activeEventIdRef.current,
+          boothId: id,
+          dataUrl: logoDataUrl,
+          accessToken: state.adminSession?.accessToken,
+        })
+      } catch (error) {
+        console.warn(error)
+      }
+    }
+
     updateState((current) => {
-      const id = booth.id || buildBoothId(booth.name) || crypto.randomUUID()
       const nextBooth = {
         ...booth,
         id,
@@ -848,7 +920,7 @@ export function usePassportStore() {
         color: booth.color || '#007b70',
         logoColor: booth.logoColor || booth.color || '#007b70',
         logoBackgroundColor: booth.logoBackgroundColor || '#ffffff',
-        logoDataUrl: booth.logoDataUrl || '',
+        logoDataUrl,
       }
       const exists = current.booths.some((item) => item.id === id)
 

@@ -621,7 +621,11 @@ async function requestSupabase(path, options = {}) {
     }
 
     if (response.status === 204) return null
-    return response.json()
+
+    const text = await response.text()
+    if (!text.trim()) return null
+
+    return JSON.parse(text)
   } catch (error) {
     if (error.name === 'AbortError') {
       const timeoutError = new Error('Supabase request timed out.')

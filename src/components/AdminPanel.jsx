@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { defaultInstructions } from '../data/mockData'
-import { uploadEventAsset } from '../services/assetStorage'
+import { uploadBoothLogo, uploadEventAsset } from '../services/assetStorage'
 import { readOptimizedImageFile } from '../utils/imageUpload'
 import { getBoothLogoFrameStyle } from '../utils/boothLogoStyles'
 import { PinchZoomMap } from './PinchZoomMap'
@@ -42,6 +42,7 @@ export function AdminPanel({
   events,
   activeEvent,
   activeEventId,
+  adminAccessToken,
   onSelectEvent,
   onSaveEvent,
   onDuplicateEvent,
@@ -95,14 +96,37 @@ export function AdminPanel({
   }
   const updateDraft = (field, value) =>
     setDraft((current) => ({ ...current, [field]: value }))
-  const uploadLogo = (file) => {
+  const resolveBoothId = (booth) =>
+    booth.id ||
+    booth.name
+      ?.toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '') ||
+    crypto.randomUUID()
+
+  const uploadLogo = async (file) => {
     if (!file) return
 
-    const reader = new FileReader()
-    reader.addEventListener('load', () => {
-      updateDraft('logoDataUrl', reader.result)
+    let imageDataUrl = await readOptimizedImageFile(file, {
+      maxWidth: 512,
+      maxHeight: 512,
+      preferJpeg: true,
+      quality: 0.84,
     })
-    reader.readAsDataURL(file)
+
+    try {
+      imageDataUrl = await uploadBoothLogo({
+        eventId: activeEventId,
+        boothId: resolveBoothId(draft),
+        dataUrl: imageDataUrl,
+        accessToken: adminAccessToken,
+      })
+    } catch (error) {
+      console.warn(error)
+    }
+
+    updateDraft('logoDataUrl', imageDataUrl)
   }
   const uploadSettingsImage = async (field, file) => {
     if (!file) return
@@ -443,9 +467,9 @@ export function AdminPanel({
           ref={formRef}
           className="booth-form"
           hidden={activeAdminSection !== 'Booths'}
-          onSubmit={(event) => {
+          onSubmit={async (event) => {
             event.preventDefault()
-            onSaveBooth(draft)
+            await onSaveBooth(draft)
             setDraft(emptyBooth)
           }}
         >

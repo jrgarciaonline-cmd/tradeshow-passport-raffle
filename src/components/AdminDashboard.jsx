@@ -1,10 +1,14 @@
 import { useEffect, useMemo, useState } from 'react'
 import { defaultInstructions } from '../data/mockData'
 import {
+  ADMIN_AUTH_LINK_EVENT,
+  getInviteAccessToken,
+} from '../services/adminDeepLink'
+import {
   getSupabaseUser,
   updateSupabasePassword,
 } from '../services/adminAuth'
-import { uploadEventAsset } from '../services/assetStorage'
+import { uploadBoothLogo, uploadEventAsset } from '../services/assetStorage'
 import { readOptimizedImageFile } from '../utils/imageUpload'
 import { getBoothLogoFrameStyle } from '../utils/boothLogoStyles'
 import { PinchZoomMap } from './PinchZoomMap'
@@ -81,18 +85,6 @@ function StatCard({ label, value }) {
       <strong>{value}</strong>
     </article>
   )
-}
-
-function getInviteAccessToken() {
-  const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''))
-  const searchParams = new URLSearchParams(window.location.search)
-  const hashType = hashParams.get('type')
-  const searchType = searchParams.get('type')
-  const type = hashType || searchType
-  const accessToken = hashParams.get('access_token') || searchParams.get('access_token')
-
-  if (!accessToken || !['invite', 'recovery'].includes(type)) return ''
-  return accessToken
 }
 
 export function AdminDashboard({ store }) {
@@ -205,30 +197,38 @@ export function AdminDashboard({ store }) {
   )
 
   useEffect(() => {
-    const accessToken = getInviteAccessToken()
-    if (!accessToken) return undefined
-
     let cancelled = false
 
-    getSupabaseUser(accessToken)
-      .then((user) => {
-        if (cancelled) return
-        const email = user?.email ?? ''
-        setInviteSession({ accessToken, email })
-        setLogin((current) => ({ ...current, username: email }))
-        setInviteMessage('Create a password to finish your admin setup.')
-      })
-      .catch((error) => {
-        console.warn(error)
-        if (!cancelled) {
-          setInviteMessage(
-            'This admin invitation link is invalid or expired. Ask a super admin to resend it.',
-          )
-        }
-      })
+    const loadInviteSession = () => {
+      const accessToken = getInviteAccessToken()
+      if (!accessToken) return
+
+      setInviteMessage('Loading your admin invitation...')
+
+      getSupabaseUser(accessToken)
+        .then((user) => {
+          if (cancelled) return
+          const email = user?.email ?? ''
+          setInviteSession({ accessToken, email })
+          setLogin((current) => ({ ...current, username: email }))
+          setInviteMessage('Create a password to finish your admin setup.')
+        })
+        .catch((error) => {
+          console.warn(error)
+          if (!cancelled) {
+            setInviteMessage(
+              'This admin invitation link is invalid or expired. Ask a super admin to resend it.',
+            )
+          }
+        })
+    }
+
+    loadInviteSession()
+    window.addEventListener(ADMIN_AUTH_LINK_EVENT, loadInviteSession)
 
     return () => {
       cancelled = true
+      window.removeEventListener(ADMIN_AUTH_LINK_EVENT, loadInviteSession)
     }
   }, [])
 
@@ -262,14 +262,37 @@ export function AdminDashboard({ store }) {
     setDraft((current) => ({ ...current, [field]: value }))
   }
 
-  const uploadLogo = (file) => {
+  const resolveBoothId = (booth) =>
+    booth.id ||
+    booth.name
+      ?.toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '') ||
+    crypto.randomUUID()
+
+  const uploadLogo = async (file) => {
     if (!file) return
 
-    const reader = new FileReader()
-    reader.addEventListener('load', () => {
-      updateDraft('logoDataUrl', reader.result)
+    let imageDataUrl = await readOptimizedImageFile(file, {
+      maxWidth: 512,
+      maxHeight: 512,
+      preferJpeg: true,
+      quality: 0.84,
     })
-    reader.readAsDataURL(file)
+
+    try {
+      imageDataUrl = await uploadBoothLogo({
+        eventId: store.activeEventId,
+        boothId: resolveBoothId(draft),
+        dataUrl: imageDataUrl,
+        accessToken: store.adminSession?.accessToken,
+      })
+    } catch (error) {
+      console.warn(error)
+    }
+
+    updateDraft('logoDataUrl', imageDataUrl)
   }
 
   const uploadSettingsImage = async (field, file) => {
@@ -330,8 +353,8 @@ export function AdminDashboard({ store }) {
     setSettingsMessage('Settings saved.')
   }
 
-  const saveDraft = () => {
-    store.saveBooth(draft)
+  const saveDraft = async () => {
+    await store.saveBooth(draft)
     setDraft(emptyBooth)
   }
 
@@ -796,9 +819,9 @@ export function AdminDashboard({ store }) {
             <div className="admin-booth-column">
             <form
               className="desktop-card admin-editor-form"
-              onSubmit={(event) => {
+              onSubmit={async (event) => {
                 event.preventDefault()
-                saveDraft()
+                await saveDraft()
               }}
             >
               <div>

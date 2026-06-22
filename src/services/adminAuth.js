@@ -1,3 +1,5 @@
+import { resolveApiUrl } from './apiBaseUrl'
+
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY
 
@@ -170,7 +172,7 @@ export async function inviteSupabaseAdmin(accessToken, adminUser) {
     return { ok: false, message: 'Enter a valid admin email.' }
   }
 
-  const response = await fetch('/api/invite-admin', {
+  const response = await fetch(resolveApiUrl('/api/invite-admin'), {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${accessToken}`,
@@ -200,7 +202,7 @@ export async function sendSupabaseAdminPasswordReset(accessToken, email) {
     return { ok: false, message: 'Enter a valid admin email.' }
   }
 
-  const response = await fetch('/api/reset-admin-password', {
+  const response = await fetch(resolveApiUrl('/api/reset-admin-password'), {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${accessToken}`,

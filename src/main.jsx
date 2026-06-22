@@ -1,7 +1,10 @@
+import { Capacitor } from '@capacitor/core'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.jsx'
+
+const isNative = Capacitor.isNativePlatform()
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
@@ -9,13 +12,13 @@ createRoot(document.getElementById('root')).render(
   </StrictMode>,
 )
 
-if ('serviceWorker' in navigator && import.meta.env.PROD) {
+if ('serviceWorker' in navigator && import.meta.env.PROD && !isNative) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js')
   })
 }
 
-if ('serviceWorker' in navigator && import.meta.env.DEV) {
+if ('serviceWorker' in navigator && (import.meta.env.DEV || isNative)) {
   navigator.serviceWorker
     .getRegistrations()
     .then((registrations) =>

@@ -1,16 +1,23 @@
-# React + Vite
+# Tradeshow Passport Raffle
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A React + Vite PWA for tradeshow passport stamp collection and raffle entry.
 
-Currently, two official plugins are available:
+## Environment variables
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+Copy `.env.example` to `.env` for local development:
 
-## React Compiler
+```bash
+cp .env.example .env
+```
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+| Variable | Where | Purpose |
+|----------|-------|---------|
+| `VITE_SUPABASE_URL` | Client | Supabase project URL |
+| `VITE_SUPABASE_ANON_KEY` | Client | Supabase anon/public key |
+| `VITE_CLOUD_FIRST` | Client | Set to `false` for local-only mode |
+| `VITE_API_BASE_URL` | Client | Optional API host override for native builds |
+| `SUPABASE_SERVICE_ROLE_KEY` | Vercel server | Admin invite/reset API routes |
+| `ADMIN_INVITE_REDIRECT_URL` | Vercel server | Redirect target for invite/reset emails |
+| `ADMIN_INVITE_DEEP_LINK_URL` | Vercel server | Optional native app deep link for invites |
 
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+See [ADMIN_LOGIN_SETUP.md](./ADMIN_LOGIN_SETUP.md) for admin auth setup and Supabase SQL migrations.

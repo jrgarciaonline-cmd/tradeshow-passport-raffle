@@ -4,6 +4,7 @@ const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL
 const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
 const ADMIN_INVITE_REDIRECT_URL = process.env.ADMIN_INVITE_REDIRECT_URL
+const ADMIN_INVITE_DEEP_LINK_URL = process.env.ADMIN_INVITE_DEEP_LINK_URL
 const SUPABASE_REQUEST_TIMEOUT_MS = 8000
 
 function sendJson(response, status, body) {
@@ -77,6 +78,7 @@ async function getAdminUser(email) {
 }
 
 function getAdminRedirectUrl(request) {
+  if (ADMIN_INVITE_DEEP_LINK_URL) return ADMIN_INVITE_DEEP_LINK_URL
   if (ADMIN_INVITE_REDIRECT_URL) return ADMIN_INVITE_REDIRECT_URL
 
   const fallbackOrigin = request.headers.origin || `https://${request.headers.host}`

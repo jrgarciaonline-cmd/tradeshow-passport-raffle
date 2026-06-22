@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Land F/X Passport</string>
+    <string name="title_activity_main">Land F/X Passport</string>
+    <string name="package_name">com.landfx.passport</string>
+    <string name="custom_url_scheme">com.landfx.passport</string>
+</resources>

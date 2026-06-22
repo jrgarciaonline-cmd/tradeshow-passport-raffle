@@ -33,14 +33,12 @@ export function isRemoteAssetUrl(value) {
   return typeof value === 'string' && /^https?:\/\//.test(value)
 }
 
-export async function uploadEventAsset({ eventId, assetType, dataUrl }) {
-  if (!isAssetStorageConfigured()) {
-    return dataUrl
-  }
+export function isDataUrl(value) {
+  return typeof value === 'string' && value.startsWith('data:')
+}
 
-  const blob = dataUrlToBlob(dataUrl)
-  const extension = getExtension(blob.type)
-  const path = `${eventId}/${assetType}/${Date.now()}-${crypto.randomUUID().slice(0, 8)}.${extension}`
+async function uploadBlobToStorage({ path, blob, accessToken }) {
+  const bearer = accessToken || SUPABASE_ANON_KEY
 
   const response = await fetch(
     `${SUPABASE_URL}/storage/v1/object/${ASSET_BUCKET}/${path}`,
@@ -48,7 +46,7 @@ export async function uploadEventAsset({ eventId, assetType, dataUrl }) {
       method: 'POST',
       headers: {
         apikey: SUPABASE_ANON_KEY,
-        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+        Authorization: `Bearer ${bearer}`,
         'Content-Type': blob.type,
         'x-upsert': 'true',
       },
@@ -62,4 +60,29 @@ export async function uploadEventAsset({ eventId, assetType, dataUrl }) {
   }
 
   return getPublicAssetUrl(path)
+}
+
+export async function uploadEventAsset({ eventId, assetType, dataUrl, accessToken }) {
+  if (!isAssetStorageConfigured()) {
+    return dataUrl
+  }
+
+  const blob = dataUrlToBlob(dataUrl)
+  const extension = getExtension(blob.type)
+  const path = `${eventId}/${assetType}/${Date.now()}-${crypto.randomUUID().slice(0, 8)}.${extension}`
+
+  return uploadBlobToStorage({ path, blob, accessToken })
+}
+
+export async function uploadBoothLogo({ eventId, boothId, dataUrl, accessToken }) {
+  if (!isAssetStorageConfigured() || !isDataUrl(dataUrl)) {
+    return dataUrl
+  }
+
+  const blob = dataUrlToBlob(dataUrl)
+  const extension = getExtension(blob.type)
+  const safeBoothId = String(boothId || 'booth').replace(/[^a-zA-Z0-9_-]/g, '-')
+  const path = `${eventId}/booth-logos/${safeBoothId}-${Date.now()}-${crypto.randomUUID().slice(0, 8)}.${extension}`
+
+  return uploadBlobToStorage({ path, blob, accessToken })
 }
