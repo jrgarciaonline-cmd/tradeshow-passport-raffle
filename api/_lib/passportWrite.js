@@ -319,7 +319,12 @@ export async function applyValidatedPatch({
       throw error
     }
   } else {
-    validatePublicPatch(patch, sharedState ?? {}, { scanToken, eventId })
+    try {
+      validatePublicPatch(patch, sharedState ?? {}, { scanToken, eventId })
+    } catch (error) {
+      if (!error.status) error.status = 400
+      throw error
+    }
   }
 
   const nextSharedState = mergeSharedPatch(sharedState, patch)
