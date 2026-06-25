@@ -1,5 +1,6 @@
 import { defaultBoothCategories, defaultBooths, defaultInstructions } from '../data/mockData'
 import { resolveApiUrl } from './apiBaseUrl'
+import { readAttendeeAuthSession } from './attendeeAuth'
 import { getUploadedAssetTimestamp } from '../utils/mapSrc'
 
 const STORAGE_KEY = 'tradeshow-passport-raffle-v2'
@@ -282,10 +283,23 @@ function isWriteProxyEnabled() {
   return isCloudFirstEnabled() && import.meta.env.VITE_DIRECT_SUPABASE_WRITES !== 'true'
 }
 
+function isNormalizedReadsEnabled() {
+  return isCloudFirstEnabled() && import.meta.env.VITE_NORMALIZED_READS === 'true'
+}
+
 let adminAccessTokenGetter = () => null
 
 export function setAdminAccessTokenGetter(getter) {
   adminAccessTokenGetter = typeof getter === 'function' ? getter : () => null
+}
+
+async function getReadContext(overrides = {}) {
+  const adminAccessToken =
+    overrides.adminAccessToken ?? (await adminAccessTokenGetter()) ?? null
+  const attendeeAccessToken =
+    overrides.attendeeAccessToken ?? readAttendeeAuthSession()?.accessToken ?? null
+
+  return { adminAccessToken, attendeeAccessToken }
 }
 
 async function requestWriteProxy(body, options = {}) {
@@ -407,6 +421,22 @@ function loadLocalShell() {
 
 async function loadRemoteEventIndex() {
   try {
+    if (isNormalizedReadsEnabled()) {
+      const rows = await requestSupabase(
+        'events?select=id,name,status,created_at&order=created_at.asc',
+      )
+      if (rows?.length) {
+        return normalizeEvents(
+          rows.map((row) => ({
+            id: row.id,
+            name: row.name,
+            status: row.status,
+            createdAt: row.created_at,
+          })),
+        )
+      }
+    }
+
     const rows = await requestSupabase(
       `${SUPABASE_TABLE}?id=eq.${EVENTS_ROW_ID}&select=data&limit=1`,
     )
@@ -707,19 +737,22 @@ function mergeSharedPatch(sharedState, patch) {
 async function requestSupabase(path, options = {}) {
   if (!isSupabaseConfigured()) return null
 
+  const { accessToken, headers, ...fetchOptions } = options
   const controller = new AbortController()
   const timeout = window.setTimeout(() => controller.abort(), SUPABASE_REQUEST_TIMEOUT_MS)
 
   try {
     const response = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
-      ...options,
+      ...fetchOptions,
       cache: 'no-store',
       signal: controller.signal,
       headers: {
         apikey: SUPABASE_ANON_KEY,
-        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+        Authorization: accessToken
+          ? `Bearer ${accessToken}`
+          : `Bearer ${SUPABASE_ANON_KEY}`,
         'Content-Type': 'application/json',
-        ...options.headers,
+        ...headers,
       },
     })
 
@@ -748,7 +781,139 @@ async function requestSupabase(path, options = {}) {
   }
 }
 
-async function loadRemoteShared(eventId = DEFAULT_EVENT_ID) {
+function boothRowToClient(row) {
+  return {
+    id: row.id,
+    name: row.name ?? '',
+    category: row.category ?? '',
+    location: row.location ?? '',
+    description: row.description ?? '',
+    websiteUrl: row.website_url ?? '',
+    logoDataUrl: row.logo_url ?? '',
+    qrCode: row.qr_code ?? '',
+    color: row.color ?? '#6b7280',
+    map: {
+      x: Number(row.map_x ?? 50),
+      y: Number(row.map_y ?? 50),
+    },
+  }
+}
+
+function settingsRowToClient(row) {
+  if (!row) return null
+
+  return {
+    requiredScanCount: row.required_scan_count ?? 1,
+    instructions: row.instructions ?? [],
+    mapSrc: row.map_src ?? '',
+    homeImageSrc: row.home_image_src ?? '',
+    raffleCompleteImageSrc: row.raffle_complete_image_src ?? '',
+    boothCategories: row.booth_categories ?? [],
+    termsText: row.terms_text ?? '',
+  }
+}
+
+function mergeBoothQrCodes(publicBooths, adminBooths) {
+  const qrById = new Map((adminBooths ?? []).map((booth) => [booth.id, booth.qrCode]))
+  return publicBooths.map((booth) => ({
+    ...booth,
+    qrCode: qrById.get(booth.id) ?? booth.qrCode ?? '',
+  }))
+}
+
+async function loadPublicEventData(eventId) {
+  const [boothRows, settingsRows] = await Promise.all([
+    requestSupabase(
+      `public_event_booths?event_id=eq.${encodeURIComponent(eventId)}&select=*`,
+    ),
+    requestSupabase(
+      `public_event_settings?event_id=eq.${encodeURIComponent(eventId)}&select=*&limit=1`,
+    ),
+  ])
+
+  return {
+    booths: (boothRows ?? []).map(boothRowToClient),
+    settings: settingsRowToClient(settingsRows?.[0]) ?? getEventBaseState(eventId).settings,
+    entries: [],
+    winners: [],
+    attendees: [],
+    attendeeProgress: {},
+    attendeeLocation: {},
+  }
+}
+
+async function loadAttendeeScopedData(eventId, accessToken) {
+  const attendees = await requestSupabase(
+    `attendees?event_id=eq.${encodeURIComponent(eventId)}&select=*`,
+    { accessToken },
+  )
+
+  if (!attendees?.length) return null
+
+  const attendee = attendees[0]
+  const [scans, locations, entries] = await Promise.all([
+    requestSupabase(
+      `scans?attendee_id=eq.${encodeURIComponent(attendee.id)}&select=booth_id,scanned_at&order=scanned_at.asc`,
+      { accessToken },
+    ),
+    requestSupabase(
+      `attendee_locations?attendee_id=eq.${encodeURIComponent(attendee.id)}&select=booth_id&limit=1`,
+      { accessToken },
+    ),
+    requestSupabase(
+      `entries?event_id=eq.${encodeURIComponent(eventId)}&select=*`,
+      { accessToken },
+    ),
+  ])
+
+  const completedIds = (scans ?? []).map((scan) => scan.booth_id)
+
+  return {
+    attendees: [
+      {
+        id: attendee.id,
+        name: attendee.name,
+        email: attendee.email,
+        phone: attendee.phone,
+        role: attendee.role,
+        acceptedTermsAt: attendee.terms_accepted_at,
+        createdAt: attendee.created_at,
+      },
+    ],
+    attendeeProgress: {
+      [attendee.id]: completedIds,
+    },
+    attendeeLocation: locations?.[0]?.booth_id
+      ? { [attendee.id]: locations[0].booth_id }
+      : {},
+    entries: (entries ?? []).map((entry) => ({
+      id: entry.id,
+      attendeeId: entry.attendee_id ?? '',
+      name: entry.name,
+      email: entry.email,
+      phone: entry.phone,
+      role: entry.role,
+      chances: entry.chances,
+      submittedAt: entry.submitted_at,
+      manual: entry.is_manual,
+    })),
+    winners: [],
+  }
+}
+
+async function loadAdminSharedData(eventId, adminAccessToken) {
+  const result = await requestWriteProxy(
+    {
+      action: 'load_shared',
+      eventId,
+    },
+    { adminAccessToken },
+  )
+
+  return result.data ?? null
+}
+
+async function loadRemoteSharedLegacy(eventId = DEFAULT_EVENT_ID) {
   const eventRowPromise = requestSupabase(
     `${SUPABASE_TABLE}?id=eq.${getSharedRowId(eventId)}&select=data,updated_at&limit=1`,
   )
@@ -777,6 +942,49 @@ async function loadRemoteShared(eventId = DEFAULT_EVENT_ID) {
 
   if (eventData) return attachRemoteMeta(eventData, remoteUpdatedAt)
   return null
+}
+
+async function loadRemoteShared(eventId = DEFAULT_EVENT_ID, readContext = {}) {
+  if (!isNormalizedReadsEnabled()) {
+    return loadRemoteSharedLegacy(eventId)
+  }
+
+  try {
+    const context = await getReadContext(readContext)
+    const publicData = await loadPublicEventData(eventId)
+    let merged = { ...publicData }
+
+    if (context.adminAccessToken) {
+      const adminData = await loadAdminSharedData(eventId, context.adminAccessToken)
+      if (adminData) {
+        merged = {
+          ...merged,
+          booths: adminData.booths?.length
+            ? mergeBoothQrCodes(publicData.booths, adminData.booths)
+            : merged.booths,
+          settings: { ...merged.settings, ...adminData.settings },
+          entries: adminData.entries ?? [],
+          winners: adminData.winners ?? [],
+          attendees: adminData.attendees ?? [],
+          attendeeProgress: adminData.attendeeProgress ?? {},
+          attendeeLocation: adminData.attendeeLocation ?? {},
+        }
+      }
+    } else if (context.attendeeAccessToken) {
+      const attendeeData = await loadAttendeeScopedData(eventId, context.attendeeAccessToken)
+      if (attendeeData) {
+        merged = {
+          ...merged,
+          ...attendeeData,
+        }
+      }
+    }
+
+    return attachRemoteMeta(merged, new Date().toISOString())
+  } catch (error) {
+    console.warn(error)
+    return loadRemoteSharedLegacy(eventId)
+  }
 }
 
 export const passportRepository = {
@@ -824,14 +1032,15 @@ export const passportRepository = {
       console.warn(error)
     }
   },
-  async loadShared(eventId = DEFAULT_EVENT_ID) {
+  async loadShared(eventId = DEFAULT_EVENT_ID, readContext = {}) {
     try {
-      return loadRemoteShared(eventId)
+      return loadRemoteShared(eventId, readContext)
     } catch (error) {
       console.warn(error)
       return null
     }
   },
+  isNormalizedReadsEnabled,
   async saveShared(state) {
     try {
       if (isWriteProxyEnabled()) {

@@ -348,6 +348,74 @@ export async function applyValidatedPatch({
   return nextSharedState
 }
 
+export async function getAuthUser(accessToken) {
+  if (!accessToken) return null
+
+  const user = await requestSupabase('/auth/v1/user', SUPABASE_ANON_KEY, {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  })
+
+  if (!user?.id) return null
+  return user
+}
+
+async function linkAttendeeAuthUserRecord({ eventId, attendeeId, authUserId }) {
+  try {
+    await requestSupabase(
+      `/rest/v1/attendees?id=eq.${encodeURIComponent(attendeeId)}&event_id=eq.${encodeURIComponent(eventId)}`,
+      SUPABASE_SERVICE_ROLE_KEY,
+      {
+        method: 'PATCH',
+        headers: { Prefer: 'return=minimal' },
+        body: JSON.stringify({ auth_user_id: authUserId }),
+      },
+    )
+  } catch (error) {
+    console.warn('Attendee auth link skipped:', error.message)
+  }
+}
+
+export async function completeAttendeeAuth({ eventId, accessToken }) {
+  const user = await getAuthUser(accessToken)
+  if (!user?.email) {
+    const error = new Error('Valid attendee authentication is required.')
+    error.status = 403
+    throw error
+  }
+
+  const email = user.email.trim().toLowerCase()
+  const sharedState = await loadSharedState(eventId)
+  const attendee = sharedState?.attendees?.find((item) => item.email === email)
+
+  if (!attendee) {
+    const error = new Error('No passport found for this email. Please sign up first.')
+    error.status = 404
+    throw error
+  }
+
+  await linkAttendeeAuthUserRecord({
+    eventId,
+    attendeeId: attendee.id,
+    authUserId: user.id,
+  })
+
+  const completedIds = sharedState?.attendeeProgress?.[attendee.id] ?? []
+
+  return {
+    attendee,
+    completedIds,
+    attendeeProgress: {
+      [attendee.id]: completedIds,
+    },
+    attendeeLocation: sharedState?.attendeeLocation?.[attendee.id]
+      ? { [attendee.id]: sharedState.attendeeLocation[attendee.id] }
+      : {},
+  }
+}
+
 export async function recordScan({
   eventId,
   attendeeId,

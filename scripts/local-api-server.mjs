@@ -12,6 +12,9 @@ const routes = {
   'POST /api/reset-admin-password': () => import('../api/reset-admin-password.js'),
   'POST /api/invite-admin': () => import('../api/invite-admin.js'),
   'POST /api/passport-write': () => import('../api/passport-write.js'),
+  'POST /api/record-scan': () => import('../api/record-scan.js'),
+  'POST /api/sign-scan-token': () => import('../api/sign-scan-token.js'),
+  'POST /api/gdpr-request': () => import('../api/gdpr-request.js'),
 }
 
 async function readJsonBody(request) {

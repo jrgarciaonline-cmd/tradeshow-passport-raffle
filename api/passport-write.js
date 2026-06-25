@@ -1,6 +1,7 @@
 import { handleCors } from './_lib/cors.js'
 import {
   applyValidatedPatch,
+  completeAttendeeAuth,
   getRequestingAdmin,
   loadEventIndex,
   loadSharedState,
@@ -18,6 +19,11 @@ const WRITE_RATE_LIMIT = {
 
 const PUBLIC_WRITE_RATE_LIMIT = {
   limit: 60,
+  windowMs: 60 * 1000,
+}
+
+const ATTENDEE_AUTH_RATE_LIMIT = {
+  limit: 20,
   windowMs: 60 * 1000,
 }
 
@@ -90,6 +96,32 @@ export default async function handler(request, response) {
       })
 
       sendJson(response, 200, { ok: true })
+      return
+    }
+
+    if (action === 'complete_attendee_auth') {
+      const eventId = String(body.eventId ?? '').trim()
+      const accessToken = getAccessToken(request, body)
+
+      if (!eventId || !accessToken) {
+        sendJson(response, 400, {
+          ok: false,
+          message: 'eventId and attendee access token are required.',
+        })
+        return
+      }
+
+      if (
+        !enforceRateLimit(response, {
+          key: `complete-attendee-auth:${clientIp}`,
+          ...ATTENDEE_AUTH_RATE_LIMIT,
+        })
+      ) {
+        return
+      }
+
+      const result = await completeAttendeeAuth({ eventId, accessToken })
+      sendJson(response, 200, { ok: true, ...result })
       return
     }
 

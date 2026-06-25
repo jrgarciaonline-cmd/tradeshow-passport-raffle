@@ -362,8 +362,10 @@ function App() {
               activeEvents={store.activeEvents}
               key={authView}
               initialView={authView}
+              attendeeMagicLinkEnabled={store.isAttendeeMagicLinkEnabled?.()}
               onRegister={store.registerAttendee}
               onSignIn={store.signInAttendee}
+              onSendMagicLink={store.requestAttendeeMagicLink}
               onSelectEvent={store.selectEvent}
               termsText={store.settings?.termsText}
               onAdminSignIn={async (credentials) => {

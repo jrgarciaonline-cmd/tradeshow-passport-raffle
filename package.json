@@ -8,6 +8,8 @@
     "dev:api": "vercel dev",
     "api:local": "node scripts/local-api-server.mjs",
     "preview:local": "node scripts/run-preview-local.mjs",
+    "backfill:normalized": "node scripts/backfill-normalized-schema.mjs",
+    "load-test:scans": "node scripts/load-test-scans.mjs",
     "build": "vite build",
     "build:mobile": "vite build && cap sync",
     "open:android": "cap open android",

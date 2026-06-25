@@ -35,9 +35,5 @@ from public.event_settings;
 grant select on public.public_event_booths to anon, authenticated;
 grant select on public.public_event_settings to anon, authenticated;
 
--- Tighten passport_state reads after client migration (manual step — do NOT run until ready):
---
--- drop policy if exists "Allow public passport state reads" on public.passport_state;
--- create policy "Admins read passport state"
--- on public.passport_state for select to authenticated
--- using (public.is_authorized_admin(auth.jwt() ->> 'email'));
+-- Tighten passport_state reads after client migration:
+-- Run supabase-plan3-read-lockdown.sql (separate file — do NOT run until VITE_NORMALIZED_READS is live).

@@ -25,11 +25,14 @@ export function AuthScreen({
   activeEvent,
   activeEvents = [],
   initialView = 'signup',
+  attendeeMagicLinkEnabled = false,
   onRegister,
   onSignIn,
+  onSendMagicLink,
   onAdminSignIn,
   onSelectEvent,
   termsText = '',
+  privacyPolicyUrl = '/privacy-policy.html',
 }) {
   const [view, setView] = useState(initialView)
   const [registration, setRegistration] = useState(emptyRegistration)
@@ -250,6 +253,12 @@ export function AuthScreen({
           className="auth-form"
           onSubmit={async (event) => {
             event.preventDefault()
+            if (attendeeMagicLinkEnabled) {
+              setSubmitting(true)
+              await submitResult(onSendMagicLink?.(signIn.email))
+              setSubmitting(false)
+              return
+            }
             await submitResult(onSignIn(signIn))
           }}
         >
@@ -264,19 +273,30 @@ export function AuthScreen({
               }
             />
           </label>
-          <label className="form-field">
-            <span>Phone Number</span>
-            <input
-              required
-              type="tel"
-              value={signIn.phone}
-              onChange={(event) =>
-                setSignIn((current) => ({ ...current, phone: event.target.value }))
-              }
-            />
-          </label>
-          <button type="submit" className="primary">
-            Open Passport
+          {!attendeeMagicLinkEnabled && (
+            <label className="form-field">
+              <span>Phone Number</span>
+              <input
+                required
+                type="tel"
+                value={signIn.phone}
+                onChange={(event) =>
+                  setSignIn((current) => ({ ...current, phone: event.target.value }))
+                }
+              />
+            </label>
+          )}
+          {attendeeMagicLinkEnabled && (
+            <p className="admin-muted">
+              We will email you a secure sign-in link. No password required.
+            </p>
+          )}
+          <button type="submit" className="primary" disabled={submitting}>
+            {attendeeMagicLinkEnabled
+              ? submitting
+                ? 'Sending link...'
+                : 'Email Me a Sign-In Link'
+              : 'Open Passport'}
           </button>
         </form>
       )}
@@ -321,6 +341,14 @@ export function AuthScreen({
       )}
 
       {message && <p className="status-note">{message}</p>}
+
+      {!noAvailableEvents && currentView !== 'admin' && (
+        <p className="admin-muted auth-privacy-note">
+          <a href={privacyPolicyUrl} target="_blank" rel="noreferrer">
+            Privacy Policy
+          </a>
+        </p>
+      )}
     </section>
   )
 }

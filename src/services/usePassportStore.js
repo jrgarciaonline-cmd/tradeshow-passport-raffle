@@ -9,6 +9,16 @@ import {
   signInAdminWithAccessToken,
 } from './adminAuth'
 import { isDataUrl, isRemoteAssetUrl, uploadBoothLogo } from './assetStorage'
+import {
+  clearAttendeeAuthSession,
+  completeAttendeeAuthSession,
+  isAttendeeAuthEnabled,
+  parseAuthHashFromUrl,
+  readAttendeeAuthSession,
+  refreshAttendeeSession,
+  sendAttendeeMagicLink,
+  writeAttendeeAuthSession,
+} from './attendeeAuth'
 import { passportRepository, setAdminAccessTokenGetter } from './passportRepository'
 import { parseScanInput } from '../utils/scanToken'
 
@@ -484,10 +494,27 @@ export function usePassportStore() {
       completedIds: current.attendeeProgress[attendee.id] ?? [],
     }), { sharedPatch: { attendees: [attendee] } })
 
+    if (isAttendeeAuthEnabled()) {
+      sendAttendeeMagicLink(email, state.activeEventId).catch((error) => {
+        console.warn(error)
+      })
+      return {
+        ok: true,
+        message: `Welcome, ${attendee.name}. Check your email to verify your sign-in.`,
+      }
+    }
+
     return { ok: true, message: `Welcome, ${attendee.name}.` }
   }
 
   const signInAttendee = ({ email, phone }) => {
+    if (isAttendeeAuthEnabled()) {
+      return {
+        ok: false,
+        message: 'Use the email magic link to sign in.',
+      }
+    }
+
     const normalizedEmail = normalizeEmail(email)
     const attendee = state.attendees.find(
       (item) =>
@@ -510,6 +537,94 @@ export function usePassportStore() {
 
     return { ok: true, message: `Welcome back, ${attendee.name}.` }
   }
+
+  const requestAttendeeMagicLink = async (email) => {
+    return sendAttendeeMagicLink(email, state.activeEventId)
+  }
+
+  const getActiveAttendeeSession = async () => {
+    const session = readAttendeeAuthSession()
+    if (!session?.accessToken) return null
+
+    const isExpired = session.expiresAt ? Date.now() >= session.expiresAt - 30000 : false
+    if (!isExpired) return session
+
+    if (!session.refreshToken) {
+      clearAttendeeAuthSession()
+      return null
+    }
+
+    try {
+      const refreshed = await refreshAttendeeSession(session.refreshToken)
+      if (!refreshed) {
+        clearAttendeeAuthSession()
+        return null
+      }
+      writeAttendeeAuthSession(refreshed)
+      return refreshed
+    } catch {
+      clearAttendeeAuthSession()
+      return null
+    }
+  }
+
+  const completeAttendeeMagicLink = async (accessToken, authSession = null) => {
+    const params = new URLSearchParams(window.location.search)
+    const eventId = params.get('event_id') || state.activeEventId
+    const token = accessToken || (await getActiveAttendeeSession())?.accessToken
+
+    if (!token) {
+      return { ok: false, message: 'Magic link session was not found.' }
+    }
+
+    if (authSession) {
+      writeAttendeeAuthSession(authSession)
+    }
+
+    const result = await completeAttendeeAuthSession({
+      eventId,
+      accessToken: token,
+    })
+
+    if (!result.ok) return result
+
+    updateState((current) => ({
+      ...current,
+      activeEventId: eventId,
+      attendees: [
+        ...current.attendees.filter((item) => item.id !== result.attendee.id),
+        result.attendee,
+      ],
+      session: { type: 'attendee', attendeeId: result.attendee.id },
+      completedIds: result.completedIds ?? [],
+      attendeeProgress: {
+        ...current.attendeeProgress,
+        ...result.attendeeProgress,
+      },
+      attendeeLocation: {
+        ...current.attendeeLocation,
+        ...result.attendeeLocation,
+      },
+    }))
+
+    return {
+      ok: true,
+      message: `Welcome back, ${result.attendee.name}.`,
+    }
+  }
+
+  useEffect(() => {
+    if (!isAttendeeAuthEnabled()) return undefined
+
+    const hashSession = parseAuthHashFromUrl()
+    if (!hashSession?.accessToken) return undefined
+
+    writeAttendeeAuthSession(hashSession)
+    window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}`)
+    completeAttendeeMagicLink(hashSession.accessToken, hashSession)
+
+    return undefined
+  }, [])
 
   const signInAdmin = async ({ username, password }) => {
     const result = await signInAdminWithSupabase({ username, password })
@@ -562,6 +677,7 @@ export function usePassportStore() {
   }
 
   const signOut = () => {
+    clearAttendeeAuthSession()
     updateState((current) => ({
       ...current,
       session: null,
@@ -1210,6 +1326,9 @@ export function usePassportStore() {
     unarchiveEvent,
     registerAttendee,
     signInAttendee,
+    requestAttendeeMagicLink,
+    completeAttendeeMagicLink,
+    isAttendeeMagicLinkEnabled: isAttendeeAuthEnabled,
     signInAdmin,
     signInAdminWithAuthLink,
     signOut,
