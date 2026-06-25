@@ -6,8 +6,9 @@ import {
   refreshSupabaseSession,
   sendSupabaseAdminPasswordReset,
   signInAdminWithSupabase,
+  signInAdminWithAccessToken,
 } from './adminAuth'
-import { isDataUrl, uploadBoothLogo } from './assetStorage'
+import { isDataUrl, isRemoteAssetUrl, uploadBoothLogo } from './assetStorage'
 import { passportRepository } from './passportRepository'
 
 function buildBoothId(name) {
@@ -533,6 +534,31 @@ export function usePassportStore() {
     return result
   }
 
+  const signInAdminWithAuthLink = async (authLink) => {
+    const result = await signInAdminWithAccessToken(authLink)
+
+    if (!result.ok) return result
+    const adminUsers = await listSupabaseAdmins(result.session.accessToken).catch(() => [])
+
+    updateState((current) => {
+      const attendeeId = current.session?.attendeeId ?? 'admin-user'
+
+      return {
+        ...current,
+        attendees: current.attendees.some((attendee) => attendee.id === 'admin-user')
+          ? current.attendees
+          : [...current.attendees, getAdminAttendee(result.user)],
+        session: current.session ?? { type: 'attendee', attendeeId },
+        completedIds: current.attendeeProgress[attendeeId] ?? current.completedIds,
+        adminAuthenticated: true,
+        adminSession: result.session,
+        adminUsers,
+      }
+    })
+
+    return result
+  }
+
   const signOut = () => {
     updateState((current) => ({
       ...current,
@@ -898,17 +924,27 @@ export function usePassportStore() {
   const saveBooth = async (booth) => {
     const id = booth.id || buildBoothId(booth.name) || crypto.randomUUID()
     let logoDataUrl = booth.logoDataUrl || ''
+    const boothLabel = (booth.name || 'Booth').trim() || 'Booth'
+    let message = `${boothLabel} saved.`
 
     if (isDataUrl(logoDataUrl) && activeEventIdRef.current) {
       try {
-        logoDataUrl = await uploadBoothLogo({
+        const session = await getActiveAdminSession()
+        const uploadedUrl = await uploadBoothLogo({
           eventId: activeEventIdRef.current,
           boothId: id,
           dataUrl: logoDataUrl,
-          accessToken: state.adminSession?.accessToken,
+          accessToken: session?.accessToken,
         })
+
+        if (isRemoteAssetUrl(uploadedUrl)) {
+          logoDataUrl = uploadedUrl
+        } else {
+          message = `${boothLabel} saved, but logo upload failed. Check Supabase Storage setup.`
+        }
       } catch (error) {
         console.warn(error)
+        message = `${boothLabel} saved, but logo upload failed. Check Supabase Storage setup.`
       }
     }
 
@@ -936,6 +972,73 @@ export function usePassportStore() {
       }),
     })
     preserveLocalUntil.current.booths = Date.now() + 15000
+
+    return { ok: true, message }
+  }
+
+  const migrateEmbeddedBoothLogos = async () => {
+    const session = await getActiveAdminSession()
+    const eventId = activeEventIdRef.current
+    const embeddedBooths = state.booths.filter((booth) => isDataUrl(booth.logoDataUrl))
+
+    if (!embeddedBooths.length) {
+      return { ok: true, message: 'No embedded booth logos need migration.' }
+    }
+
+    let migrated = 0
+    let failed = 0
+    const logoByBoothId = new Map()
+
+    for (const booth of embeddedBooths) {
+      try {
+        const url = await uploadBoothLogo({
+          eventId,
+          boothId: booth.id,
+          dataUrl: booth.logoDataUrl,
+          accessToken: session?.accessToken,
+        })
+
+        if (isRemoteAssetUrl(url)) {
+          logoByBoothId.set(booth.id, url)
+          migrated += 1
+        } else {
+          failed += 1
+        }
+      } catch (error) {
+        console.warn(error)
+        failed += 1
+      }
+    }
+
+    if (migrated === 0) {
+      return {
+        ok: false,
+        message: `Could not migrate booth logos${failed ? ` (${failed} failed)` : ''}. Check Supabase Storage setup.`,
+      }
+    }
+
+    updateState(
+      (current) => ({
+        ...current,
+        booths: current.booths.map((booth) =>
+          logoByBoothId.has(booth.id)
+            ? { ...booth, logoDataUrl: logoByBoothId.get(booth.id) }
+            : booth,
+        ),
+      }),
+      {
+        sharedPatch: (next) => ({ booths: next.booths }),
+      },
+    )
+    preserveLocalUntil.current.booths = Date.now() + 15000
+
+    return {
+      ok: failed === 0,
+      message:
+        failed === 0
+          ? `Migrated ${migrated} booth logo${migrated === 1 ? '' : 's'} to Storage.`
+          : `Migrated ${migrated} logo${migrated === 1 ? '' : 's'}; ${failed} failed.`,
+    }
   }
 
   const deleteBooth = (boothId) => {
@@ -1056,6 +1159,7 @@ export function usePassportStore() {
     registerAttendee,
     signInAttendee,
     signInAdmin,
+    signInAdminWithAuthLink,
     signOut,
     signOutAdmin,
     refreshAdminUsers,
@@ -1072,6 +1176,7 @@ export function usePassportStore() {
     recordWinner,
     resetWinners,
     saveBooth,
+    migrateEmbeddedBoothLogos,
     deleteBooth,
     placeBoothOnMap,
     saveSettings,

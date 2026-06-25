@@ -1,4 +1,4 @@
-const CACHE_NAME = 'passport-raffle-v5'
+const CACHE_NAME = 'passport-raffle-v6'
 const APP_SHELL = ['/', '/index.html', '/manifest.webmanifest', '/pwa-icon.svg']
 
 function isStaticAssetPath(pathname) {
@@ -8,6 +8,10 @@ function isStaticAssetPath(pathname) {
     pathname.startsWith('/home/') ||
     /\.(png|jpe?g|webp|svg|gif)$/i.test(pathname)
   )
+}
+
+function isBundledAssetPath(pathname) {
+  return pathname.startsWith('/assets/') && /\.(js|css|map)$/i.test(pathname)
 }
 
 self.addEventListener('install', (event) => {
@@ -55,12 +59,20 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(
     fetch(event.request)
       .then((response) => {
+        if (!response.ok && isBundledAssetPath(url.pathname)) {
+          return response
+        }
         const copy = response.clone()
         caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy))
         return response
       })
-      .catch(() =>
-        caches.match(event.request).then((cached) => cached || caches.match('/index.html')),
-      ),
+      .catch(() => {
+        if (isBundledAssetPath(url.pathname)) {
+          return caches.match(event.request)
+        }
+        return caches
+          .match(event.request)
+          .then((cached) => cached || caches.match('/index.html'))
+      }),
   )
 })

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { defaultInstructions } from '../data/mockData'
-import { uploadBoothLogo, uploadEventAsset } from '../services/assetStorage'
+import { isDataUrl, uploadBoothLogo, uploadEventAsset } from '../services/assetStorage'
 import { readOptimizedImageFile } from '../utils/imageUpload'
 import { getBoothLogoFrameStyle } from '../utils/boothLogoStyles'
 import { PinchZoomMap } from './PinchZoomMap'
@@ -49,6 +49,7 @@ export function AdminPanel({
   onArchiveEvent,
   onUnarchiveEvent,
   onSaveBooth,
+  onMigrateEmbeddedBoothLogos,
   onDeleteBooth,
   onPlaceBooth,
   onAddRaffleEntry,
@@ -69,6 +70,13 @@ export function AdminPanel({
   const [eventDraft, setEventDraft] = useState(emptyEventDraft)
   const [eventMessage, setEventMessage] = useState('')
   const [settingsMessage, setSettingsMessage] = useState('')
+  const [boothMessage, setBoothMessage] = useState('')
+  const [logoUploadPending, setLogoUploadPending] = useState(false)
+  const [migrateLogosPending, setMigrateLogosPending] = useState(false)
+  const embeddedLogoCount = useMemo(
+    () => booths.filter((booth) => isDataUrl(booth.logoDataUrl)).length,
+    [booths],
+  )
   const instructionsText = (
     settings?.instructions?.length ? settings.instructions : defaultInstructions
   ).join('\n')
@@ -85,6 +93,7 @@ export function AdminPanel({
 
   useEffect(() => {
     setSettingsMessage('')
+    setBoothMessage('')
   }, [activeEventId])
 
   const editBooth = (booth) => {
@@ -108,25 +117,31 @@ export function AdminPanel({
   const uploadLogo = async (file) => {
     if (!file) return
 
-    let imageDataUrl = await readOptimizedImageFile(file, {
-      maxWidth: 512,
-      maxHeight: 512,
-      preferJpeg: true,
-      quality: 0.84,
-    })
-
+    setLogoUploadPending(true)
     try {
-      imageDataUrl = await uploadBoothLogo({
-        eventId: activeEventId,
-        boothId: resolveBoothId(draft),
-        dataUrl: imageDataUrl,
-        accessToken: adminAccessToken,
+      let imageDataUrl = await readOptimizedImageFile(file, {
+        maxWidth: 512,
+        maxHeight: 512,
+        preferJpeg: true,
+        quality: 0.84,
       })
-    } catch (error) {
-      console.warn(error)
-    }
 
-    updateDraft('logoDataUrl', imageDataUrl)
+      try {
+        imageDataUrl = await uploadBoothLogo({
+          eventId: activeEventId,
+          boothId: resolveBoothId(draft),
+          dataUrl: imageDataUrl,
+          accessToken: adminAccessToken,
+        })
+      } catch (error) {
+        console.warn(error)
+        setBoothMessage('Logo upload failed. Check Supabase Storage setup.')
+      }
+
+      updateDraft('logoDataUrl', imageDataUrl)
+    } finally {
+      setLogoUploadPending(false)
+    }
   }
   const uploadSettingsImage = async (field, file) => {
     if (!file) return
@@ -143,6 +158,7 @@ export function AdminPanel({
         eventId: activeEventId,
         assetType: field,
         dataUrl: imageDataUrl,
+        accessToken: adminAccessToken,
       })
     } catch (error) {
       console.warn(error)
@@ -469,8 +485,9 @@ export function AdminPanel({
           hidden={activeAdminSection !== 'Booths'}
           onSubmit={async (event) => {
             event.preventDefault()
-            await onSaveBooth(draft)
-            setDraft(emptyBooth)
+            const result = await onSaveBooth(draft)
+            setBoothMessage(result.message)
+            if (result.ok) setDraft(emptyBooth)
           }}
         >
           {draft.id && (
@@ -531,6 +548,7 @@ export function AdminPanel({
             <span>
               Booth Logo
               {draft.logoDataUrl ? ' - logo attached' : ''}
+              {logoUploadPending ? ' - uploading…' : ''}
             </span>
             <input
               key={draft.logoDataUrl ? 'logo-attached' : 'logo-empty'}
@@ -650,6 +668,31 @@ export function AdminPanel({
             hidden={activeAdminSection !== 'Booths'}
           >
             <h3>Expo booths</h3>
+            {embeddedLogoCount > 0 && (
+              <div className="admin-inline-actions">
+                <p className="muted">
+                  {embeddedLogoCount} booth logo{embeddedLogoCount === 1 ? '' : 's'}{' '}
+                  still stored inline in event data.
+                </p>
+                <button
+                  type="button"
+                  className="secondary"
+                  disabled={migrateLogosPending}
+                  onClick={async () => {
+                    setMigrateLogosPending(true)
+                    try {
+                      const result = await onMigrateEmbeddedBoothLogos()
+                      setBoothMessage(result.message)
+                    } finally {
+                      setMigrateLogosPending(false)
+                    }
+                  }}
+                >
+                  {migrateLogosPending ? 'Migrating logos…' : 'Migrate logos to Storage'}
+                </button>
+              </div>
+            )}
+            {boothMessage && <p className="muted">{boothMessage}</p>}
             {booths.map((booth) => (
               <article className="entry-card" key={booth.id}>
                 <div className="admin-mobile-booth-heading">

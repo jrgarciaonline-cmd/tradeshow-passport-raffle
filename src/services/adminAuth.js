@@ -2,9 +2,48 @@ import { resolveApiUrl } from './apiBaseUrl'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY
+const ADMIN_API_UNAVAILABLE_MESSAGE =
+  'Unable to reach the admin API. Deploy the latest backend or run `npm run dev:api` locally.'
 
 function isSupabaseConfigured() {
   return Boolean(SUPABASE_URL && SUPABASE_ANON_KEY)
+}
+
+async function postAdminApi(path, { body, headers = {}, fallbackMessage }) {
+  try {
+    const response = await fetch(resolveApiUrl(path), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...headers,
+      },
+      body: JSON.stringify(body),
+    })
+    const result = await response.json().catch(() => ({
+      ok: false,
+      message: fallbackMessage,
+    }))
+
+    if (!response.ok || !result.ok) {
+      const message =
+        response.status === 405
+          ? 'Admin API is not available yet. Run `npm run preview:local` locally or deploy the latest backend to Vercel.'
+          : result.message || fallbackMessage
+
+      return {
+        ok: false,
+        message,
+      }
+    }
+
+    return result
+  } catch (error) {
+    console.warn(error)
+    return {
+      ok: false,
+      message: ADMIN_API_UNAVAILABLE_MESSAGE,
+    }
+  }
 }
 
 async function requestSupabaseAuth(path, options = {}) {
@@ -53,19 +92,34 @@ async function requestSupabaseRest(path, accessToken, options = {}) {
   return response.json()
 }
 
-export async function signInAdminWithSupabase({ username, password }) {
-  const email = username.trim().toLowerCase()
+async function completeAdminSignIn({ session, user }) {
+  return {
+    ok: true,
+    user: {
+      email: user.email,
+      name: user.name || user.email,
+      role: user.role || 'admin',
+    },
+    session,
+    message: `Admin signed in as ${user.name || user.email}.`,
+  }
+}
 
-  if (!email || !password) {
-    return { ok: false, message: 'Enter admin email and password.' }
+export async function signInAdminWithAccessToken(authLink) {
+  const accessToken = authLink?.accessToken
+
+  if (!accessToken) {
+    return { ok: false, message: 'This admin sign-in link is invalid or expired.' }
   }
 
   try {
-    const authResult = await requestSupabaseAuth('token?grant_type=password', {
-      method: 'POST',
-      body: JSON.stringify({ email, password }),
-    })
-    const accessToken = authResult.access_token
+    const user = await getSupabaseUser(accessToken)
+    const email = user?.email?.trim().toLowerCase()
+
+    if (!email) {
+      return { ok: false, message: 'This admin sign-in link is invalid or expired.' }
+    }
+
     const adminRows = await requestSupabaseRest(
       `admin_users?email=eq.${encodeURIComponent(email)}&select=email,name,role`,
       accessToken,
@@ -79,27 +133,42 @@ export async function signInAdminWithSupabase({ username, password }) {
       }
     }
 
-    return {
-      ok: true,
-      user: {
-        email: adminUser.email,
-        name: adminUser.name || adminUser.email,
-        role: adminUser.role || 'admin',
-      },
+    return completeAdminSignIn({
+      user: adminUser,
       session: {
         accessToken,
-        refreshToken: authResult.refresh_token,
-        expiresAt: Date.now() + Number(authResult.expires_in || 3600) * 1000,
+        refreshToken: authLink.refreshToken || '',
+        expiresAt:
+          Date.now() + Number(authLink.expiresIn || 3600) * 1000,
       },
-      message: `Admin signed in as ${adminUser.name || adminUser.email}.`,
-    }
+    })
   } catch (error) {
     console.warn(error)
     return {
       ok: false,
-      message: 'Admin email or password is incorrect, or the user is not authorized.',
+      message: 'This admin sign-in link is invalid or expired.',
     }
   }
+}
+
+export async function signInAdminWithSupabase({ username, password }) {
+  const email = username.trim().toLowerCase()
+
+  if (!email || !password) {
+    return { ok: false, message: 'Enter admin email and password.' }
+  }
+
+  const result = await postAdminApi('/api/admin-login', {
+    body: { email, password },
+    fallbackMessage: 'Invalid admin email or password.',
+  })
+
+  if (!result.ok) return result
+
+  return completeAdminSignIn({
+    user: result.user,
+    session: result.session,
+  })
 }
 
 export async function refreshSupabaseSession(refreshToken) {
@@ -172,27 +241,24 @@ export async function inviteSupabaseAdmin(accessToken, adminUser) {
     return { ok: false, message: 'Enter a valid admin email.' }
   }
 
-  const response = await fetch(resolveApiUrl('/api/invite-admin'), {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ email, name, role }),
+  return postAdminApi('/api/invite-admin', {
+    headers: { Authorization: `Bearer ${accessToken}` },
+    body: { email, name, role },
+    fallbackMessage: 'Unable to invite admin.',
   })
-  const result = await response.json().catch(() => ({
-    ok: false,
-    message: 'Unable to invite admin.',
-  }))
+}
 
-  if (!response.ok || !result.ok) {
-    return {
-      ok: false,
-      message: result.message || 'Unable to invite admin.',
-    }
+export async function requestAdminPasswordReset(email) {
+  const normalizedEmail = String(email ?? '').trim().toLowerCase()
+
+  if (!normalizedEmail || !normalizedEmail.includes('@')) {
+    return { ok: false, message: 'Enter a valid admin email.' }
   }
 
-  return result
+  return postAdminApi('/api/request-admin-password-reset', {
+    body: { email: normalizedEmail },
+    fallbackMessage: 'Unable to send password reset email.',
+  })
 }
 
 export async function sendSupabaseAdminPasswordReset(accessToken, email) {
@@ -202,27 +268,11 @@ export async function sendSupabaseAdminPasswordReset(accessToken, email) {
     return { ok: false, message: 'Enter a valid admin email.' }
   }
 
-  const response = await fetch(resolveApiUrl('/api/reset-admin-password'), {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ email: normalizedEmail }),
+  return postAdminApi('/api/reset-admin-password', {
+    headers: { Authorization: `Bearer ${accessToken}` },
+    body: { email: normalizedEmail },
+    fallbackMessage: 'Unable to send password reset email.',
   })
-  const result = await response.json().catch(() => ({
-    ok: false,
-    message: 'Unable to send password reset email.',
-  }))
-
-  if (!response.ok || !result.ok) {
-    return {
-      ok: false,
-      message: result.message || 'Unable to send password reset email.',
-    }
-  }
-
-  return result
 }
 
 export async function addSupabaseAdmin(accessToken, adminUser) {

@@ -1,5 +1,6 @@
 -- Run in Supabase SQL Editor after supabase-setup.sql
--- Creates a public bucket for event maps, home images, and booth logos.
+-- Creates a public bucket for event maps, home images, raffle images, and booth logos.
+-- Booth logos are stored under: {eventId}/booth-logos/{boothId}-{timestamp}.{ext}
 
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values (

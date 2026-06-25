@@ -23,6 +23,27 @@
   </head>
   <body>
     <div id="root"></div>
+    <script>
+      ;(() => {
+        const pathname = window.location.pathname.replace(/\/$/, '') || '/'
+        if (pathname === '/admin') return
+
+        const readAuth = (params) => {
+          const type = params.get('type')
+          const accessToken = params.get('access_token')
+          if (!accessToken || !['invite', 'recovery', 'magiclink'].includes(type)) {
+            return null
+          }
+          return `#${params.toString()}`
+        }
+
+        const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''))
+        const hash = readAuth(hashParams) || readAuth(new URLSearchParams(window.location.search))
+        if (hash) {
+          window.history.replaceState(null, '', `/admin${hash}`)
+        }
+      })()
+    </script>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

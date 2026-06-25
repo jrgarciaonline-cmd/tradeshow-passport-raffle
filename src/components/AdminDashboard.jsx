@@ -2,13 +2,15 @@ import { useEffect, useMemo, useState } from 'react'
 import { defaultInstructions } from '../data/mockData'
 import {
   ADMIN_AUTH_LINK_EVENT,
-  getInviteAccessToken,
+  clearAdminAuthHash,
+  getAdminAuthFromLocation,
 } from '../services/adminDeepLink'
 import {
   getSupabaseUser,
+  requestAdminPasswordReset,
   updateSupabasePassword,
 } from '../services/adminAuth'
-import { uploadBoothLogo, uploadEventAsset } from '../services/assetStorage'
+import { isDataUrl, uploadBoothLogo, uploadEventAsset } from '../services/assetStorage'
 import { readOptimizedImageFile } from '../utils/imageUpload'
 import { getBoothLogoFrameStyle } from '../utils/boothLogoStyles'
 import { PinchZoomMap } from './PinchZoomMap'
@@ -109,15 +111,31 @@ export function AdminDashboard({ store }) {
   const [adminUserDraft, setAdminUserDraft] = useState(emptyAdminUser)
   const [adminUserMessage, setAdminUserMessage] = useState('')
   const [inviteSession, setInviteSession] = useState(null)
+  const [authLinkType, setAuthLinkType] = useState('')
   const [invitePassword, setInvitePassword] = useState('')
   const [inviteConfirmPassword, setInviteConfirmPassword] = useState('')
-  const [inviteMessage, setInviteMessage] = useState(() =>
-    getInviteAccessToken() ? 'Loading your admin invitation...' : '',
-  )
+  const [inviteMessage, setInviteMessage] = useState(() => {
+    const authLink = getAdminAuthFromLocation()
+    if (!authLink) return ''
+    if (authLink.type === 'recovery') return 'Loading your password reset link...'
+    if (authLink.type === 'magiclink') return 'Signing you in...'
+    return 'Loading your admin invitation...'
+  })
   const [invitePending, setInvitePending] = useState(false)
+  const [loginView, setLoginView] = useState('signin')
+  const [forgotEmail, setForgotEmail] = useState('')
+  const [forgotMessage, setForgotMessage] = useState('')
+  const [forgotPending, setForgotPending] = useState(false)
   const [eventDraft, setEventDraft] = useState(emptyEventDraft)
   const [eventMessage, setEventMessage] = useState('')
   const [settingsMessage, setSettingsMessage] = useState('')
+  const [boothMessage, setBoothMessage] = useState('')
+  const [logoUploadPending, setLogoUploadPending] = useState(false)
+  const [migrateLogosPending, setMigrateLogosPending] = useState(false)
+  const embeddedLogoCount = useMemo(
+    () => store.booths.filter((booth) => isDataUrl(booth.logoDataUrl)).length,
+    [store.booths],
+  )
 
   const instructionsText = (
     store.settings?.instructions?.length
@@ -199,38 +217,70 @@ export function AdminDashboard({ store }) {
   useEffect(() => {
     let cancelled = false
 
-    const loadInviteSession = () => {
-      const accessToken = getInviteAccessToken()
-      if (!accessToken) return
+    const loadAuthLinkSession = async () => {
+      const authLink = getAdminAuthFromLocation()
+      if (!authLink) return
 
-      setInviteMessage('Loading your admin invitation...')
+      setAuthLinkType(authLink.type)
 
-      getSupabaseUser(accessToken)
+      if (authLink.type === 'magiclink') {
+        setInviteMessage('Signing you in...')
+        const result = await store.signInAdminWithAuthLink(authLink)
+        if (cancelled) return
+
+        if (result.ok) {
+          clearAdminAuthHash()
+          setInviteMessage('')
+          return
+        }
+
+        setInviteMessage(result.message)
+        return
+      }
+
+      setInviteMessage(
+        authLink.type === 'recovery'
+          ? 'Loading your password reset link...'
+          : 'Loading your admin invitation...',
+      )
+
+      getSupabaseUser(authLink.accessToken)
         .then((user) => {
           if (cancelled) return
           const email = user?.email ?? ''
-          setInviteSession({ accessToken, email })
+          setInviteSession({
+            accessToken: authLink.accessToken,
+            email,
+            refreshToken: authLink.refreshToken,
+            expiresIn: authLink.expiresIn,
+          })
           setLogin((current) => ({ ...current, username: email }))
-          setInviteMessage('Create a password to finish your admin setup.')
+          setInviteMessage(
+            authLink.type === 'recovery'
+              ? 'Choose a new password for your admin account.'
+              : 'Create a password to finish your admin setup.',
+          )
         })
         .catch((error) => {
           console.warn(error)
           if (!cancelled) {
             setInviteMessage(
-              'This admin invitation link is invalid or expired. Ask a super admin to resend it.',
+              authLink.type === 'recovery'
+                ? 'This password reset link is invalid or expired. Request a new one below.'
+                : 'This admin invitation link is invalid or expired. Ask a super admin to resend it.',
             )
           }
         })
     }
 
-    loadInviteSession()
-    window.addEventListener(ADMIN_AUTH_LINK_EVENT, loadInviteSession)
+    loadAuthLinkSession()
+    window.addEventListener(ADMIN_AUTH_LINK_EVENT, loadAuthLinkSession)
 
     return () => {
       cancelled = true
-      window.removeEventListener(ADMIN_AUTH_LINK_EVENT, loadInviteSession)
+      window.removeEventListener(ADMIN_AUTH_LINK_EVENT, loadAuthLinkSession)
     }
-  }, [])
+  }, [store])
 
   const wheelGradient = useMemo(() => {
     if (!wheelEntries.length) {
@@ -274,25 +324,31 @@ export function AdminDashboard({ store }) {
   const uploadLogo = async (file) => {
     if (!file) return
 
-    let imageDataUrl = await readOptimizedImageFile(file, {
-      maxWidth: 512,
-      maxHeight: 512,
-      preferJpeg: true,
-      quality: 0.84,
-    })
-
+    setLogoUploadPending(true)
     try {
-      imageDataUrl = await uploadBoothLogo({
-        eventId: store.activeEventId,
-        boothId: resolveBoothId(draft),
-        dataUrl: imageDataUrl,
-        accessToken: store.adminSession?.accessToken,
+      let imageDataUrl = await readOptimizedImageFile(file, {
+        maxWidth: 512,
+        maxHeight: 512,
+        preferJpeg: true,
+        quality: 0.84,
       })
-    } catch (error) {
-      console.warn(error)
-    }
 
-    updateDraft('logoDataUrl', imageDataUrl)
+      try {
+        imageDataUrl = await uploadBoothLogo({
+          eventId: store.activeEventId,
+          boothId: resolveBoothId(draft),
+          dataUrl: imageDataUrl,
+          accessToken: store.adminSession?.accessToken,
+        })
+      } catch (error) {
+        console.warn(error)
+        setBoothMessage('Logo upload failed. Check Supabase Storage setup.')
+      }
+
+      updateDraft('logoDataUrl', imageDataUrl)
+    } finally {
+      setLogoUploadPending(false)
+    }
   }
 
   const uploadSettingsImage = async (field, file) => {
@@ -310,6 +366,7 @@ export function AdminDashboard({ store }) {
         eventId: store.activeEventId,
         assetType: field,
         dataUrl: imageDataUrl,
+        accessToken: store.adminSession?.accessToken,
       })
     } catch (error) {
       console.warn(error)
@@ -354,8 +411,9 @@ export function AdminDashboard({ store }) {
   }
 
   const saveDraft = async () => {
-    await store.saveBooth(draft)
-    setDraft(emptyBooth)
+    const result = await store.saveBooth(draft)
+    setBoothMessage(result.message)
+    if (result.ok) setDraft(emptyBooth)
   }
 
   const spinWinner = () => {
@@ -397,8 +455,12 @@ export function AdminDashboard({ store }) {
             <h1>Land F/X Passport Raffle</h1>
             <p>
               {inviteSession
-                ? 'Finish setting up your invited admin account.'
-                : 'Sign in with your Supabase admin account.'}
+                ? authLinkType === 'recovery'
+                  ? 'Reset your admin password.'
+                  : 'Finish setting up your invited admin account.'
+                : loginView === 'forgot'
+                  ? 'Request a password reset link for your admin account.'
+                  : 'Sign in with your Supabase admin account.'}
             </p>
           </div>
           {inviteSession ? (
@@ -423,7 +485,7 @@ export function AdminDashboard({ store }) {
                     inviteSession.accessToken,
                     invitePassword,
                   )
-                  window.history.replaceState(null, '', '/admin')
+                  clearAdminAuthHash()
                   const result = await store.signInAdmin({
                     username: inviteSession.email,
                     password: invitePassword,
@@ -457,7 +519,7 @@ export function AdminDashboard({ store }) {
                 />
               </label>
               <label className="form-field">
-                <span>Create Password</span>
+                <span>{authLinkType === 'recovery' ? 'New Password' : 'Create Password'}</span>
                 <input
                   required
                   type="password"
@@ -477,7 +539,46 @@ export function AdminDashboard({ store }) {
                 />
               </label>
               <button type="submit" className="primary" disabled={invitePending}>
-                {invitePending ? 'Saving...' : 'Create Password'}
+                {invitePending
+                  ? 'Saving...'
+                  : authLinkType === 'recovery'
+                    ? 'Update Password'
+                    : 'Create Password'}
+              </button>
+            </form>
+          ) : loginView === 'forgot' ? (
+            <form
+              className="admin-login-form"
+              onSubmit={async (event) => {
+                event.preventDefault()
+                setForgotPending(true)
+                const result = await requestAdminPasswordReset(forgotEmail)
+                setForgotMessage(result.message)
+                setForgotPending(false)
+              }}
+            >
+              <label className="form-field">
+                <span>Admin Email</span>
+                <input
+                  required
+                  autoCapitalize="none"
+                  type="email"
+                  value={forgotEmail}
+                  onChange={(event) => setForgotEmail(event.target.value)}
+                />
+              </label>
+              <button type="submit" className="primary" disabled={forgotPending}>
+                {forgotPending ? 'Sending...' : 'Send Reset Link'}
+              </button>
+              <button
+                type="button"
+                className="button-link"
+                onClick={() => {
+                  setLoginView('signin')
+                  setForgotMessage('')
+                }}
+              >
+                Back to sign in
               </button>
             </form>
           ) : (
@@ -523,10 +624,22 @@ export function AdminDashboard({ store }) {
               <button type="submit" className="primary" disabled={loginPending}>
                 {loginPending ? 'Checking...' : 'Open Dashboard'}
               </button>
+              <button
+                type="button"
+                className="button-link"
+                onClick={() => {
+                  setLoginView('forgot')
+                  setForgotEmail(login.username)
+                  setLoginMessage('')
+                }}
+              >
+                Forgot password?
+              </button>
             </form>
           )}
           {inviteMessage && <p className="status-note">{inviteMessage}</p>}
           {loginMessage && <p className="status-note">{loginMessage}</p>}
+          {forgotMessage && <p className="status-note">{forgotMessage}</p>}
         </section>
       </main>
     )
@@ -913,7 +1026,10 @@ export function AdminDashboard({ store }) {
                   />
                 </label>
                 <label className="form-field">
-                  <span>Logo{draft.logoDataUrl ? ' - logo attached' : ''}</span>
+                  <span>
+                    Logo{draft.logoDataUrl ? ' - logo attached' : ''}
+                    {logoUploadPending ? ' - uploading…' : ''}
+                  </span>
                   <input
                     key={draft.logoDataUrl ? 'logo-attached' : 'logo-empty'}
                     type="file"
@@ -977,6 +1093,31 @@ export function AdminDashboard({ store }) {
             <div className="desktop-card">
               <div className="table-toolbar">
                 <h3>Expo Booths</h3>
+                {embeddedLogoCount > 0 && (
+                  <div className="admin-inline-actions">
+                    <p className="muted">
+                      {embeddedLogoCount} booth logo{embeddedLogoCount === 1 ? '' : 's'}{' '}
+                      still stored inline in event data.
+                    </p>
+                    <button
+                      type="button"
+                      className="secondary"
+                      disabled={migrateLogosPending}
+                      onClick={async () => {
+                        setMigrateLogosPending(true)
+                        try {
+                          const result = await store.migrateEmbeddedBoothLogos()
+                          setBoothMessage(result.message)
+                        } finally {
+                          setMigrateLogosPending(false)
+                        }
+                      }}
+                    >
+                      {migrateLogosPending ? 'Migrating logos…' : 'Migrate logos to Storage'}
+                    </button>
+                  </div>
+                )}
+                {boothMessage && <p className="muted">{boothMessage}</p>}
                 <input
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}

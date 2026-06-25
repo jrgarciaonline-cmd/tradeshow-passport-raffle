@@ -5,7 +5,7 @@ import './glass-theme.css'
 import './passport-background.css'
 import { defaultInstructions } from './data/mockData'
 import { useAppDeepLinks } from './hooks/useAppDeepLinks'
-import { isAdminPath } from './services/adminDeepLink'
+import { ensureAdminAuthRoute, isAdminPath } from './services/adminDeepLink'
 import { usePassportStore } from './services/usePassportStore'
 import { AdminDashboard } from './components/AdminDashboard'
 import { AdminPanel } from './components/AdminPanel'
@@ -35,9 +35,10 @@ const rightNavTabs = attendeeTabs.slice(3)
 
 function App() {
   const store = usePassportStore()
-  const [adminRouteActive, setAdminRouteActive] = useState(() =>
-    isAdminPath(window.location.pathname),
-  )
+  const [adminRouteActive, setAdminRouteActive] = useState(() => {
+    ensureAdminAuthRoute()
+    return isAdminPath(window.location.pathname)
+  })
   const isAdminRoute =
     adminRouteActive || (!isNative && isAdminPath(window.location.pathname))
   const openAdminRoute = useCallback(() => {
@@ -544,6 +545,7 @@ function App() {
               onArchiveEvent={store.archiveEvent}
               onUnarchiveEvent={store.unarchiveEvent}
               onSaveBooth={store.saveBooth}
+              onMigrateEmbeddedBoothLogos={store.migrateEmbeddedBoothLogos}
               onDeleteBooth={store.deleteBooth}
               onPlaceBooth={store.placeBoothOnMap}
               onAddRaffleEntry={store.addRaffleEntry}

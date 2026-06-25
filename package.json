@@ -5,6 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:api": "vercel dev",
+    "api:local": "node scripts/local-api-server.mjs",
+    "preview:local": "node scripts/run-preview-local.mjs",
     "build": "vite build",
     "build:mobile": "vite build && cap sync",
     "open:android": "cap open android",
