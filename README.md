@@ -48,4 +48,18 @@ If booths were saved before this change, logos may still be base64 inside `passp
 - Confirm `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` are set in `.env`
 - Confirm `event-assets` bucket exists (run `supabase-storage-setup.sql`)
 - Check browser devtools → Network for failed `storage/v1/object/event-assets/...` requests
-- Current policies allow anonymous upload (Plan 2 will restrict this to admins)
+- Uploads require a signed-in admin JWT after Plan 2 storage lockdown
+
+## Plan 2 security rollout (manual steps)
+
+Deploy the code first, then apply Supabase SQL in this order:
+
+1. **Secret hygiene** — confirm `.env` was never committed: `git log --all -- .env`. If it was, rotate Supabase keys in the dashboard.
+2. **Storage lockdown** — run the updated `supabase-storage-setup.sql` in Supabase SQL Editor (admin-only upload/update).
+3. **Deploy to Vercel** — ensure `SUPABASE_SERVICE_ROLE_KEY` is set for `/api/passport-write`.
+4. **Verify the write proxy** — registration, scans, raffle entry, and admin booth/settings edits should all work.
+5. **Lock passport_state writes** — run `supabase-passport-state-rls-lockdown.sql` only after step 4 passes.
+6. **Rotate anon key** — Supabase Dashboard → Settings → API → rotate anon key, update Vercel env + local `.env`, redeploy.
+7. **Smoke test** — anonymous `curl` upload to `event-assets` and direct `POST` to `passport_state` should fail (403).
+
+To bypass the write proxy during local debugging only, set `VITE_DIRECT_SUPABASE_WRITES=true` in `.env`.

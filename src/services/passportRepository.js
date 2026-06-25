@@ -1,4 +1,5 @@
 import { defaultBoothCategories, defaultBooths, defaultInstructions } from '../data/mockData'
+import { resolveApiUrl } from './apiBaseUrl'
 import { getUploadedAssetTimestamp } from '../utils/mapSrc'
 
 const STORAGE_KEY = 'tradeshow-passport-raffle-v2'
@@ -230,6 +231,61 @@ function isCloudFirstEnabled() {
   return isSupabaseConfigured() && import.meta.env.VITE_CLOUD_FIRST !== 'false'
 }
 
+function isWriteProxyEnabled() {
+  return isCloudFirstEnabled() && import.meta.env.VITE_DIRECT_SUPABASE_WRITES !== 'true'
+}
+
+let adminAccessTokenGetter = () => null
+
+export function setAdminAccessTokenGetter(getter) {
+  adminAccessTokenGetter = typeof getter === 'function' ? getter : () => null
+}
+
+async function requestWriteProxy(body, options = {}) {
+  const adminAccessToken = options.adminAccessToken ?? (await adminAccessTokenGetter())
+  const headers = {
+    'Content-Type': 'application/json',
+  }
+
+  if (adminAccessToken) {
+    headers.Authorization = `Bearer ${adminAccessToken}`
+  }
+
+  const controller = new AbortController()
+  const timeout = window.setTimeout(() => controller.abort(), SUPABASE_REQUEST_TIMEOUT_MS)
+
+  try {
+    const response = await fetch(resolveApiUrl('/api/passport-write'), {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    })
+
+    const result = await response.json().catch(() => ({
+      ok: false,
+      message: 'Write proxy returned an invalid response.',
+    }))
+
+    if (!response.ok || !result.ok) {
+      const error = new Error(result.message || `Write proxy failed: ${response.status}`)
+      error.status = response.status
+      throw error
+    }
+
+    return result
+  } catch (error) {
+    if (error.name === 'AbortError') {
+      const timeoutError = new Error('Write proxy request timed out.')
+      timeoutError.status = 408
+      throw timeoutError
+    }
+    throw error
+  } finally {
+    window.clearTimeout(timeout)
+  }
+}
+
 function readSessionSlice() {
   try {
     const stored = window.localStorage.getItem(SESSION_STORAGE_KEY)
@@ -248,13 +304,20 @@ function readSessionSlice() {
 }
 
 function writeSessionSlice(state) {
+  const adminSession = state.adminSession
+    ? {
+        accessToken: state.adminSession.accessToken,
+        expiresAt: state.adminSession.expiresAt,
+      }
+    : null
+
   window.localStorage.setItem(
     SESSION_STORAGE_KEY,
     JSON.stringify({
       session: state.session,
       activeEventId: state.activeEventId,
       adminAuthenticated: state.adminAuthenticated,
-      adminSession: state.adminSession,
+      adminSession,
     }),
   )
 }
@@ -691,6 +754,14 @@ export const passportRepository = {
   },
   async saveEventIndex(events) {
     try {
+      if (isWriteProxyEnabled()) {
+        await requestWriteProxy({
+          action: 'save_events',
+          events: normalizeEvents(events),
+        })
+        return
+      }
+
       await requestSupabase(`${SUPABASE_TABLE}?on_conflict=id`, {
         method: 'POST',
         headers: {
@@ -716,6 +787,15 @@ export const passportRepository = {
   },
   async saveShared(state) {
     try {
+      if (isWriteProxyEnabled()) {
+        await requestWriteProxy({
+          action: 'replace',
+          eventId: state.activeEventId,
+          data: getSharedState(state),
+        })
+        return
+      }
+
       await requestSupabase(`${SUPABASE_TABLE}?on_conflict=id`, {
         method: 'POST',
         headers: {
@@ -733,6 +813,15 @@ export const passportRepository = {
   },
   async saveSharedPatch(patch, eventId = DEFAULT_EVENT_ID) {
     try {
+      if (isWriteProxyEnabled()) {
+        await requestWriteProxy({
+          action: 'patch',
+          eventId,
+          patch,
+        })
+        return { ok: true, queued: false }
+      }
+
       const sharedState = await loadRemoteShared(eventId)
       const nextSharedState = mergeSharedPatch(sharedState, patch)
 
@@ -767,6 +856,15 @@ export const passportRepository = {
 
     for (const queuedPatch of queue) {
       try {
+        if (isWriteProxyEnabled()) {
+          await requestWriteProxy({
+            action: 'patch',
+            eventId: queuedPatch.eventId,
+            patch: queuedPatch.patch,
+          })
+          continue
+        }
+
         const sharedState = await loadRemoteShared(queuedPatch.eventId)
         const nextSharedState = mergeSharedPatch(sharedState, queuedPatch.patch)
 

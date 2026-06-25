@@ -1,4 +1,6 @@
 import { handleCors } from './_lib/cors.js'
+import { logAdminAction } from './_lib/auditLog.js'
+import { enforceBodySize } from './_lib/requestBody.js'
 import { enforceRateLimit, getClientIp } from './_lib/rateLimit.js'
 import {
   getAdminRedirectUrl,
@@ -41,6 +43,8 @@ export default async function handler(request, response) {
     return
   }
 
+  if (!enforceBodySize(request, response)) return
+
   const clientIp = getClientIp(request)
   if (
     !enforceRateLimit(response, {
@@ -53,13 +57,13 @@ export default async function handler(request, response) {
 
   const authHeader = request.headers.authorization || ''
   const accessToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : ''
+  const email = String(request.body?.email ?? '').trim().toLowerCase()
 
   if (!accessToken) {
+    logAdminAction('admin_reset', { email, outcome: 'unauthorized' })
     sendJson(response, 401, { ok: false, message: 'Admin session is required.' })
     return
   }
-
-  const email = String(request.body?.email ?? '').trim().toLowerCase()
 
   if (!email || !email.includes('@')) {
     sendJson(response, 400, { ok: false, message: 'Enter a valid admin email.' })
@@ -74,6 +78,7 @@ export default async function handler(request, response) {
       : null
 
     if (requestingAdmin?.role !== 'super_admin') {
+      logAdminAction('admin_reset', { email, outcome: 'forbidden' })
       sendJson(response, 403, {
         ok: false,
         message: 'Only a super admin can send password reset links.',
@@ -83,6 +88,7 @@ export default async function handler(request, response) {
 
     const targetAdmin = await getAdminUser(email)
     if (!targetAdmin) {
+      logAdminAction('admin_reset', { email, outcome: 'not_found' })
       sendJson(response, 404, {
         ok: false,
         message: 'That email is not authorized as an admin.',
@@ -95,12 +101,14 @@ export default async function handler(request, response) {
       redirectTo: getAdminRedirectUrl(request),
     })
 
+    logAdminAction('admin_reset', { email, outcome: 'sent' })
     sendJson(response, 200, {
       ok: true,
       message: `Password reset email sent to ${email}.`,
     })
   } catch (error) {
     console.warn(error)
+    logAdminAction('admin_reset', { email, outcome: 'error' })
     sendJson(response, 500, {
       ok: false,
       message: error.message || 'Unable to send password reset email.',

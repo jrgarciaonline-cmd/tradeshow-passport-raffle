@@ -1,4 +1,6 @@
 import { handleCors } from './_lib/cors.js'
+import { logAdminAction } from './_lib/auditLog.js'
+import { enforceBodySize } from './_lib/requestBody.js'
 import { enforceRateLimit, getClientIp } from './_lib/rateLimit.js'
 import {
   getAdminRedirectUrl,
@@ -72,6 +74,8 @@ export default async function handler(request, response) {
     return
   }
 
+  if (!enforceBodySize(request, response)) return
+
   const clientIp = getClientIp(request)
   if (
     !enforceRateLimit(response, {
@@ -84,15 +88,15 @@ export default async function handler(request, response) {
 
   const authHeader = request.headers.authorization || ''
   const accessToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : ''
-
-  if (!accessToken) {
-    sendJson(response, 401, { ok: false, message: 'Admin session is required.' })
-    return
-  }
-
   const email = String(request.body?.email ?? '').trim().toLowerCase()
   const name = String(request.body?.name ?? '').trim()
   const role = request.body?.role === 'super_admin' ? 'super_admin' : 'admin'
+
+  if (!accessToken) {
+    logAdminAction('admin_invite', { email, outcome: 'unauthorized' })
+    sendJson(response, 401, { ok: false, message: 'Admin session is required.' })
+    return
+  }
 
   if (!email || !email.includes('@')) {
     sendJson(response, 400, { ok: false, message: 'Enter a valid admin email.' })
@@ -107,6 +111,7 @@ export default async function handler(request, response) {
       : null
 
     if (requestingAdmin?.role !== 'super_admin') {
+      logAdminAction('admin_invite', { email, outcome: 'forbidden' })
       sendJson(response, 403, {
         ok: false,
         message: 'Only a super admin can invite admins.',
@@ -128,6 +133,11 @@ export default async function handler(request, response) {
       if (!isExistingUserError(inviteError)) throw inviteError
 
       await sendRecoveryEmail({ email, redirectTo })
+      logAdminAction('admin_invite', {
+        email,
+        outcome: 'recovery_sent',
+        detail: 'existing_user',
+      })
       sendJson(response, 200, {
         ok: true,
         message: `${email} already has an account. Password setup/reset email sent instead.`,
@@ -135,12 +145,14 @@ export default async function handler(request, response) {
       return
     }
 
+    logAdminAction('admin_invite', { email, outcome: 'invited', detail: role })
     sendJson(response, 200, {
       ok: true,
       message: `${email} was invited and authorized as ${role}.`,
     })
   } catch (error) {
     console.warn(error)
+    logAdminAction('admin_invite', { email, outcome: 'error' })
     sendJson(response, 500, {
       ok: false,
       message: error.message || 'Unable to invite admin.',

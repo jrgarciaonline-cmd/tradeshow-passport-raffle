@@ -11,12 +11,19 @@ const routes = {
     import('../api/request-admin-password-reset.js'),
   'POST /api/reset-admin-password': () => import('../api/reset-admin-password.js'),
   'POST /api/invite-admin': () => import('../api/invite-admin.js'),
+  'POST /api/passport-write': () => import('../api/passport-write.js'),
 }
 
 async function readJsonBody(request) {
   const chunks = []
+  const maxBytes = 10 * 1024
+  let totalBytes = 0
 
   for await (const chunk of request) {
+    totalBytes += chunk.length
+    if (totalBytes > maxBytes) {
+      throw new Error('Request body too large.')
+    }
     chunks.push(chunk)
   }
 

@@ -1,6 +1,8 @@
 -- Run in Supabase SQL Editor after supabase-setup.sql
 -- Creates a public bucket for event maps, home images, raffle images, and booth logos.
 -- Booth logos are stored under: {eventId}/booth-logos/{boothId}-{timestamp}.{ext}
+--
+-- Plan 2B: public read; only authorized admins may upload or overwrite files.
 
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values (
@@ -23,16 +25,27 @@ to public
 using (bucket_id = 'event-assets');
 
 drop policy if exists "Public upload event assets" on storage.objects;
-create policy "Public upload event assets"
+drop policy if exists "Admin upload event assets" on storage.objects;
+create policy "Admin upload event assets"
 on storage.objects
 for insert
-to public
-with check (bucket_id = 'event-assets');
+to authenticated
+with check (
+  bucket_id = 'event-assets'
+  and public.is_authorized_admin(auth.jwt() ->> 'email')
+);
 
 drop policy if exists "Public update event assets" on storage.objects;
-create policy "Public update event assets"
+drop policy if exists "Admin update event assets" on storage.objects;
+create policy "Admin update event assets"
 on storage.objects
 for update
-to public
-using (bucket_id = 'event-assets')
-with check (bucket_id = 'event-assets');
+to authenticated
+using (
+  bucket_id = 'event-assets'
+  and public.is_authorized_admin(auth.jwt() ->> 'email')
+)
+with check (
+  bucket_id = 'event-assets'
+  and public.is_authorized_admin(auth.jwt() ->> 'email')
+);

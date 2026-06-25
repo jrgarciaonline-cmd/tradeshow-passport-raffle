@@ -9,7 +9,7 @@ import {
   signInAdminWithAccessToken,
 } from './adminAuth'
 import { isDataUrl, isRemoteAssetUrl, uploadBoothLogo } from './assetStorage'
-import { passportRepository } from './passportRepository'
+import { passportRepository, setAdminAccessTokenGetter } from './passportRepository'
 
 function buildBoothId(name) {
   return name
@@ -84,6 +84,7 @@ export function usePassportStore() {
   const preserveLocalUntil = useRef({})
   const activeEventIdRef = useRef(state.activeEventId)
   const syncSharedStateRef = useRef(null)
+  const getActiveAdminSessionRef = useRef(async () => null)
 
   const refreshSyncStatus = () => {
     setSyncStatus(passportRepository.getOfflineQueueStatus())
@@ -615,6 +616,21 @@ export function usePassportStore() {
       return null
     }
   }
+
+  useEffect(() => {
+    getActiveAdminSessionRef.current = getActiveAdminSession
+  })
+
+  useEffect(() => {
+    setAdminAccessTokenGetter(async () => {
+      const session = await getActiveAdminSessionRef.current()
+      return session?.accessToken ?? null
+    })
+
+    return () => {
+      setAdminAccessTokenGetter(() => null)
+    }
+  }, [])
 
   const refreshAdminUsers = async () => {
     const activeSession = await getActiveAdminSession()
