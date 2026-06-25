@@ -171,17 +171,64 @@ function getOfflineQueueStatus() {
   }
 }
 
-function queueSharedPatch(patch, eventId) {
+function queueSharedPatch(patch, eventId, meta = {}) {
   const queue = readOfflineQueue()
   const queuedPatch = {
     id: crypto.randomUUID(),
     eventId,
     patch,
+    recordScan: Boolean(meta.recordScan),
+    attendeeId: meta.attendeeId ?? null,
+    boothId: meta.boothId ?? null,
+    scanToken: meta.scanToken ?? null,
+    idempotencyKey: meta.idempotencyKey ?? crypto.randomUUID(),
     queuedAt: new Date().toISOString(),
   }
 
   writeOfflineQueue([...queue, queuedPatch])
   return queuedPatch
+}
+
+function isSignedScanEnabled() {
+  return import.meta.env.VITE_SIGNED_QR_CODES === 'true'
+}
+
+async function requestRecordScan(body, options = {}) {
+  const headers = {
+    'Content-Type': 'application/json',
+  }
+
+  if (options.adminAccessToken) {
+    headers.Authorization = `Bearer ${options.adminAccessToken}`
+  }
+
+  const controller = new AbortController()
+  const timeout = window.setTimeout(() => controller.abort(), SUPABASE_REQUEST_TIMEOUT_MS)
+
+  try {
+    const response = await fetch(resolveApiUrl('/api/record-scan'), {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    })
+
+    const result = await response.json().catch(() => ({
+      ok: false,
+      message: 'Record scan returned an invalid response.',
+    }))
+
+    if (!response.ok || !result.ok) {
+      const error = new Error(result.message || `Record scan failed: ${response.status}`)
+      error.status = response.status
+      error.duplicate = result.duplicate
+      throw error
+    }
+
+    return result
+  } finally {
+    window.clearTimeout(timeout)
+  }
 }
 
 function shouldQueueSupabaseError(error) {
@@ -811,13 +858,15 @@ export const passportRepository = {
       console.warn(error)
     }
   },
-  async saveSharedPatch(patch, eventId = DEFAULT_EVENT_ID) {
+  async saveSharedPatch(patch, eventId = DEFAULT_EVENT_ID, options = {}) {
     try {
       if (isWriteProxyEnabled()) {
         await requestWriteProxy({
           action: 'patch',
           eventId,
           patch,
+          scanToken: options.scanToken,
+          idempotencyKey: options.idempotencyKey,
         })
         return { ok: true, queued: false }
       }
@@ -840,12 +889,51 @@ export const passportRepository = {
     } catch (error) {
       console.warn(error)
       if (shouldQueueSupabaseError(error)) {
-        queueSharedPatch(patch, eventId)
+        queueSharedPatch(patch, eventId, {
+          scanToken: options.scanToken,
+          idempotencyKey: options.idempotencyKey,
+        })
         return { ok: false, queued: true }
       }
       return { ok: false, queued: false }
     }
   },
+  async recordScan({
+    eventId = DEFAULT_EVENT_ID,
+    attendeeId,
+    boothId,
+    scanToken,
+    idempotencyKey,
+  }) {
+    if (!isWriteProxyEnabled() || !isSignedScanEnabled()) {
+      return { ok: false, message: 'Signed scan recording is not enabled.' }
+    }
+
+    try {
+      const result = await requestRecordScan({
+        eventId,
+        attendeeId,
+        boothId,
+        scanToken,
+        idempotencyKey: idempotencyKey ?? crypto.randomUUID(),
+      })
+      return { ok: true, ...result }
+    } catch (error) {
+      console.warn(error)
+      if (shouldQueueSupabaseError(error)) {
+        queueSharedPatch(null, eventId, {
+          recordScan: true,
+          attendeeId,
+          boothId,
+          scanToken,
+          idempotencyKey,
+        })
+        return { ok: false, queued: true, duplicate: error.duplicate }
+      }
+      return { ok: false, queued: false, message: error.message, duplicate: error.duplicate }
+    }
+  },
+  isSignedScanEnabled,
   getOfflineQueueStatus,
   async flushOfflineQueue() {
     const queue = readOfflineQueue()
@@ -856,11 +944,28 @@ export const passportRepository = {
 
     for (const queuedPatch of queue) {
       try {
+        if (queuedPatch.recordScan && isSignedScanEnabled()) {
+          await requestRecordScan({
+            eventId: queuedPatch.eventId,
+            attendeeId: queuedPatch.attendeeId,
+            boothId: queuedPatch.boothId,
+            scanToken: queuedPatch.scanToken,
+            idempotencyKey: queuedPatch.idempotencyKey,
+          })
+          continue
+        }
+
+        if (!queuedPatch.patch) {
+          continue
+        }
+
         if (isWriteProxyEnabled()) {
           await requestWriteProxy({
             action: 'patch',
             eventId: queuedPatch.eventId,
             patch: queuedPatch.patch,
+            scanToken: queuedPatch.scanToken,
+            idempotencyKey: queuedPatch.idempotencyKey,
           })
           continue
         }

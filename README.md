@@ -22,6 +22,8 @@ cp .env.example .env
 
 See [ADMIN_LOGIN_SETUP.md](./ADMIN_LOGIN_SETUP.md) for admin auth setup and Supabase SQL migrations.
 
+For Plan 3 (normalized schema, signed scans, compliance), see [PLAN3_SETUP.md](./PLAN3_SETUP.md).
+
 ## Supabase Storage (booth logos and event images)
 
 Booth logos, floor maps, and home/raffle images upload to the `event-assets` bucket. Run once per project:

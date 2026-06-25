@@ -1083,6 +1083,11 @@ export function AdminDashboard({ store }) {
               booths={store.booths}
               selectedBoothId={draft.id}
               qrCode={draft.qrCode}
+              eventId={store.activeEventId}
+              getAdminAccessToken={async () => {
+                const session = await store.getActiveAdminSession()
+                return session?.accessToken ?? null
+              }}
               onSelectBooth={(boothId) => {
                 const booth = store.booths.find((item) => item.id === boothId)
                 if (booth) setDraft({ ...emptyBooth, ...booth })

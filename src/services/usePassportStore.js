@@ -10,6 +10,7 @@ import {
 } from './adminAuth'
 import { isDataUrl, isRemoteAssetUrl, uploadBoothLogo } from './assetStorage'
 import { passportRepository, setAdminAccessTokenGetter } from './passportRepository'
+import { parseScanInput } from '../utils/scanToken'
 
 function buildBoothId(name) {
   return name
@@ -102,7 +103,7 @@ export function usePassportStore() {
         if (!patch) return next
         sharedSavePending.current = true
         passportRepository
-          .saveSharedPatch(patch, next.activeEventId)
+          .saveSharedPatch(patch, next.activeEventId, options.sharedPatchMeta ?? {})
           .then(refreshSyncStatus)
           .finally(() => {
             sharedSavePending.current = false
@@ -678,7 +679,7 @@ export function usePassportStore() {
     return sendSupabaseAdminPasswordReset(activeSession.accessToken, email)
   }
 
-  const checkInBooth = (boothId) => {
+  const checkInBooth = (boothId, options = {}) => {
     updateState((current) => {
       const completedIds = current.completedIds.includes(boothId)
         ? current.completedIds
@@ -704,17 +705,20 @@ export function usePassportStore() {
             : current.attendeeProgress,
       }
     }, {
-      sharedPatch: (next) =>
-        next.session?.type === 'attendee'
-          ? {
-              attendeeProgress: {
-                [next.session.attendeeId]: next.completedIds,
-              },
-              attendeeLocation: {
-                [next.session.attendeeId]: boothId,
-              },
-            }
-          : null,
+      sharedPatch: options.skipSharedPatch
+        ? null
+        : (next) =>
+            next.session?.type === 'attendee'
+              ? {
+                  attendeeProgress: {
+                    [next.session.attendeeId]: next.completedIds,
+                  },
+                  attendeeLocation: {
+                    [next.session.attendeeId]: boothId,
+                  },
+                }
+              : null,
+      sharedPatchMeta: options.sharedPatchMeta,
     })
   }
 
@@ -745,9 +749,17 @@ export function usePassportStore() {
   }
 
   const checkInByCode = (code) => {
-    const match = state.booths.find(
-      (booth) => booth.qrCode.toLowerCase() === code.trim().toLowerCase(),
-    )
+    const parsed = parseScanInput(code)
+
+    if (!parsed.legacy && parsed.eventId && parsed.eventId !== state.activeEventId) {
+      return { ok: false, message: 'This QR code belongs to a different event.' }
+    }
+
+    const match = !parsed.legacy
+      ? state.booths.find((booth) => booth.id === parsed.boothId)
+      : state.booths.find(
+          (booth) => booth.qrCode.toLowerCase() === code.trim().toLowerCase(),
+        )
 
     if (!match) {
       return { ok: false, message: 'No booth matches that QR code.' }
@@ -764,10 +776,34 @@ export function usePassportStore() {
       }
     }
 
-    checkInBooth(match.id)
+    const useSignedScan =
+      passportRepository.isSignedScanEnabled() && state.session?.type === 'attendee'
+
+    if (useSignedScan) {
+      const idempotencyKey = crypto.randomUUID()
+      passportRepository
+        .recordScan({
+          eventId: state.activeEventId,
+          attendeeId: state.session.attendeeId,
+          boothId: match.id,
+          scanToken: parsed.raw,
+          idempotencyKey,
+        })
+        .then(refreshSyncStatus)
+        .catch((error) => console.warn(error))
+
+      checkInBooth(match.id, { skipSharedPatch: true })
+    } else {
+      checkInBooth(match.id, {
+        sharedPatchMeta: parsed.legacy
+          ? {}
+          : { scanToken: parsed.raw, idempotencyKey: crypto.randomUUID() },
+      })
+    }
+
     return {
       ok: true,
-      message: `${match.name} checked in.`,
+      message: `${match.name} scanned successfully.`,
       id: match.id,
       booth: match,
     }
@@ -1178,6 +1214,7 @@ export function usePassportStore() {
     signInAdminWithAuthLink,
     signOut,
     signOutAdmin,
+    getActiveAdminSession,
     refreshAdminUsers,
     addAdminUser,
     removeAdminUser,

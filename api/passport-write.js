@@ -85,6 +85,8 @@ export default async function handler(request, response) {
         eventId,
         patch,
         adminAccessToken: getAccessToken(request, body),
+        scanToken: body.scanToken,
+        idempotencyKey: body.idempotencyKey,
       })
 
       sendJson(response, 200, { ok: true })
@@ -114,7 +116,7 @@ export default async function handler(request, response) {
         return
       }
 
-      await saveSharedState(eventId, data)
+      await saveSharedState(eventId, data, { dualWriteFull: true })
       sendJson(response, 200, { ok: true })
       return
     }

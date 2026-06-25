@@ -1,4 +1,11 @@
 import {
+  dualWriteEventIndex,
+  dualWriteFullState,
+  dualWritePatch,
+  recordNormalizedScan,
+} from './normalizedWrite.js'
+import { assertValidScanToken } from './scanToken.js'
+import {
   getAdminUser,
   requestSupabase,
   SUPABASE_ANON_KEY,
@@ -121,7 +128,7 @@ function validateAttendeeRecord(attendee) {
   }
 }
 
-function validatePublicPatch(patch, sharedState) {
+function validatePublicPatch(patch, sharedState, options = {}) {
   const keys = Object.keys(patch).filter(
     (key) => !['entriesReplace', 'winnersReplace'].includes(key),
   )
@@ -187,6 +194,14 @@ function validatePublicPatch(patch, sharedState) {
     if (progress.some((boothId) => !boothIds.has(boothId))) {
       throw new Error('Scan progress includes an unknown booth.')
     }
+
+    if (options.scanToken) {
+      const latestBoothId = progress.at(-1)
+      assertValidScanToken(options.scanToken, {
+        eventId: options.eventId,
+        boothId: latestBoothId,
+      })
+    }
   }
 
   if (patch.attendeeLocation) {
@@ -233,7 +248,7 @@ export async function loadSharedState(eventId) {
   return rows?.[0]?.data ?? null
 }
 
-export async function saveSharedState(eventId, data) {
+export async function saveSharedState(eventId, data, options = {}) {
   await requestSupabase(`/rest/v1/${PASSPORT_TABLE}?on_conflict=id`, SUPABASE_SERVICE_ROLE_KEY, {
     method: 'POST',
     headers: {
@@ -245,6 +260,12 @@ export async function saveSharedState(eventId, data) {
       updated_at: new Date().toISOString(),
     }),
   })
+
+  if (options.dualWriteFull) {
+    await dualWriteFullState(eventId, data).catch((error) => {
+      console.warn('Normalized dual-write failed:', error.message)
+    })
+  }
 }
 
 export async function loadEventIndex() {
@@ -268,9 +289,19 @@ export async function saveEventIndex(events) {
       updated_at: new Date().toISOString(),
     }),
   })
+
+  await dualWriteEventIndex(events).catch((error) => {
+    console.warn('Normalized event index dual-write failed:', error.message)
+  })
 }
 
-export async function applyValidatedPatch({ eventId, patch, adminAccessToken }) {
+export async function applyValidatedPatch({
+  eventId,
+  patch,
+  adminAccessToken,
+  scanToken,
+  idempotencyKey,
+}) {
   const patchType = classifyPatch(patch)
 
   if (patchType === 'invalid') {
@@ -288,11 +319,83 @@ export async function applyValidatedPatch({ eventId, patch, adminAccessToken }) 
       throw error
     }
   } else {
-    validatePublicPatch(patch, sharedState ?? {})
+    validatePublicPatch(patch, sharedState ?? {}, { scanToken, eventId })
   }
 
   const nextSharedState = mergeSharedPatch(sharedState, patch)
   await saveSharedState(eventId, nextSharedState)
 
+  await dualWritePatch(eventId, patch, nextSharedState).catch((error) => {
+    console.warn('Normalized patch dual-write failed:', error.message)
+  })
+
+  if (patch.attendeeProgress) {
+    const attendeeId = Object.keys(patch.attendeeProgress)[0]
+    const boothId = patch.attendeeProgress[attendeeId]?.at(-1)
+
+    if (attendeeId && boothId) {
+      await recordNormalizedScan({
+        eventId,
+        attendeeId,
+        boothId,
+        idempotencyKey,
+      }).catch((error) => {
+        console.warn('Normalized scan record failed:', error.message)
+      })
+    }
+  }
+
   return nextSharedState
+}
+
+export async function recordScan({
+  eventId,
+  attendeeId,
+  boothId,
+  scanToken,
+  idempotencyKey,
+}) {
+  const sharedState = await loadSharedState(eventId)
+  const boothIds = new Set((sharedState?.booths ?? []).map((booth) => booth.id))
+
+  if (!boothIds.has(boothId)) {
+    throw new Error('Scan references an unknown booth.')
+  }
+
+  const attendee = sharedState?.attendees?.find((item) => item.id === attendeeId)
+  if (!attendee) {
+    throw new Error('Attendee must register before scanning.')
+  }
+
+  assertValidScanToken(scanToken, { eventId, boothId })
+
+  const currentProgress = sharedState?.attendeeProgress?.[attendeeId] ?? []
+  if (currentProgress.includes(boothId)) {
+    return {
+      duplicate: true,
+      completedIds: currentProgress,
+    }
+  }
+
+  const completedIds = [...currentProgress, boothId]
+  const patch = {
+    attendeeProgress: {
+      [attendeeId]: completedIds,
+    },
+    attendeeLocation: {
+      [attendeeId]: boothId,
+    },
+  }
+
+  await applyValidatedPatch({
+    eventId,
+    patch,
+    scanToken,
+    idempotencyKey,
+  })
+
+  return {
+    duplicate: false,
+    completedIds,
+  }
 }
