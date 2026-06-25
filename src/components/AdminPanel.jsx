@@ -22,7 +22,16 @@ const emptyBooth = {
 }
 
 const adminSections = ['Events', 'Settings', 'Booths', 'Map', 'Signups', 'Raffle', 'Winner', 'Picked']
-const emptyEventDraft = { id: '', name: '', status: 'hidden', createdAt: '', duplicateFromId: '' }
+const emptyEventDraft = {
+  id: '',
+  name: '',
+  status: 'hidden',
+  createdAt: '',
+  duplicateFromId: '',
+  signupCode: '',
+  experientActCode: '0000000000000000',
+  experientBadgeId: '0',
+}
 
 function confirmWinnerReset() {
   return (
@@ -276,6 +285,45 @@ export function AdminPanel({
                 <option value="active">Live / Show in app</option>
                 <option value="archived">Archived</option>
               </select>
+            </label>
+            <label className="form-field">
+              <span>Signup access code</span>
+              <input
+                value={eventDraft.signupCode ?? ''}
+                onChange={(event) =>
+                  setEventDraft((current) => ({
+                    ...current,
+                    signupCode: event.target.value,
+                  }))
+                }
+                placeholder="lfxrocks"
+              />
+            </label>
+            <label className="form-field">
+              <span>Experient activation code</span>
+              <input
+                value={eventDraft.experientActCode ?? ''}
+                onChange={(event) =>
+                  setEventDraft((current) => ({
+                    ...current,
+                    experientActCode: event.target.value,
+                  }))
+                }
+                placeholder="16-digit activation code"
+              />
+            </label>
+            <label className="form-field">
+              <span>Experient badge station ID</span>
+              <input
+                value={eventDraft.experientBadgeId ?? '0'}
+                onChange={(event) =>
+                  setEventDraft((current) => ({
+                    ...current,
+                    experientBadgeId: event.target.value,
+                  }))
+                }
+                placeholder="0"
+              />
             </label>
             {!eventDraft.id && (
               <label className="form-field">

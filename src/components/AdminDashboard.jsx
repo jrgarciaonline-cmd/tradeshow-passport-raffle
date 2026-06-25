@@ -59,6 +59,9 @@ const emptyEventDraft = {
   status: 'hidden',
   createdAt: '',
   duplicateFromId: '',
+  signupCode: '',
+  experientActCode: '0000000000000000',
+  experientBadgeId: '0',
 }
 
 function confirmWinnerReset() {
@@ -773,6 +776,45 @@ export function AdminDashboard({ store }) {
                   <option value="active">Live / Show in app</option>
                   <option value="archived">Archived</option>
                 </select>
+              </label>
+              <label className="form-field">
+                <span>Signup Access Code</span>
+                <input
+                  value={eventDraft.signupCode ?? ''}
+                  onChange={(event) =>
+                    setEventDraft((current) => ({
+                      ...current,
+                      signupCode: event.target.value,
+                    }))
+                  }
+                  placeholder="lfxrocks"
+                />
+              </label>
+              <label className="form-field">
+                <span>Experient Activation Code</span>
+                <input
+                  value={eventDraft.experientActCode ?? ''}
+                  onChange={(event) =>
+                    setEventDraft((current) => ({
+                      ...current,
+                      experientActCode: event.target.value,
+                    }))
+                  }
+                  placeholder="16-digit activation code"
+                />
+              </label>
+              <label className="form-field">
+                <span>Experient Badge Station ID</span>
+                <input
+                  value={eventDraft.experientBadgeId ?? '0'}
+                  onChange={(event) =>
+                    setEventDraft((current) => ({
+                      ...current,
+                      experientBadgeId: event.target.value,
+                    }))
+                  }
+                  placeholder="0"
+                />
               </label>
               {!eventDraft.id && (
                 <label className="form-field">

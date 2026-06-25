@@ -19,8 +19,41 @@ import {
   sendAttendeeMagicLink,
   writeAttendeeAuthSession,
 } from './attendeeAuth'
+import { lookupBadgeLead } from './badgeLookup'
 import { passportRepository, setAdminAccessTokenGetter } from './passportRepository'
 import { parseScanInput } from '../utils/scanToken'
+
+function normalizeSignupCode(value) {
+  return String(value ?? '').trim().toLowerCase()
+}
+
+function validateEventSignupCode(event, signupCode) {
+  const expectedCode = normalizeSignupCode(event?.signupCode)
+  if (!expectedCode) return { ok: true }
+
+  if (normalizeSignupCode(signupCode) !== expectedCode) {
+    return { ok: false, message: 'Invalid event access code.' }
+  }
+
+  return { ok: true }
+}
+
+function createAttendeeRecord(profile) {
+  const acceptedTermsAt = new Date().toISOString()
+
+  return {
+    id: crypto.randomUUID(),
+    name: profile.name.trim(),
+    email: profile.email,
+    phone: profile.phone.trim(),
+    role: profile.role,
+    acceptedTermsAt,
+    createdAt: acceptedTermsAt,
+    ...(profile.registrantId ? { registrantId: profile.registrantId } : {}),
+    ...(profile.badgeBarcode ? { badgeBarcode: profile.badgeBarcode } : {}),
+    ...(profile.signupMethod ? { signupMethod: profile.signupMethod } : {}),
+  }
+}
 
 function buildBoothId(name) {
   return name
@@ -376,6 +409,9 @@ export function usePassportStore() {
         ? draft.status
         : 'hidden',
       createdAt: new Date().toISOString(),
+      signupCode: String(sourceEvent.signupCode ?? '').trim(),
+      experientActCode: String(sourceEvent.experientActCode ?? '0000000000000000').trim(),
+      experientBadgeId: String(sourceEvent.experientBadgeId ?? '0').trim() || '0',
     }
 
     let savedEvents = state.events
@@ -418,6 +454,9 @@ export function usePassportStore() {
         ? eventDraft.status
         : 'hidden',
       createdAt: eventDraft.createdAt || new Date().toISOString(),
+      signupCode: String(eventDraft.signupCode ?? '').trim(),
+      experientActCode: String(eventDraft.experientActCode ?? '0000000000000000').trim(),
+      experientBadgeId: String(eventDraft.experientBadgeId ?? '0').trim() || '0',
     }
     let savedEvents = state.events
 
@@ -465,6 +504,9 @@ export function usePassportStore() {
     const role =
       profile.role === 'Other' ? profile.otherRole.trim() : profile.role.trim()
 
+    const signupValidation = validateEventSignupCode(activeEvent, profile.signupCode)
+    if (!signupValidation.ok) return signupValidation
+
     if (!profile.name.trim() || !email || !profile.phone.trim() || !role) {
       return { ok: false, message: 'Please complete every required field.' }
     }
@@ -473,16 +515,13 @@ export function usePassportStore() {
       return { ok: false, message: 'Please accept the terms of service to continue.' }
     }
 
-    const acceptedTermsAt = new Date().toISOString()
-    const attendee = {
-      id: crypto.randomUUID(),
-      name: profile.name.trim(),
+    const attendee = createAttendeeRecord({
+      name: profile.name,
       email,
-      phone: profile.phone.trim(),
+      phone: profile.phone,
       role,
-      acceptedTermsAt,
-      createdAt: acceptedTermsAt,
-    }
+      signupMethod: 'manual',
+    })
 
     updateState((current) => ({
       ...current,
@@ -505,6 +544,46 @@ export function usePassportStore() {
     }
 
     return { ok: true, message: `Welcome, ${attendee.name}.` }
+  }
+
+  const registerAttendeeFromBadge = (profile) => {
+    const email = normalizeEmail(profile.email)
+    const signupValidation = validateEventSignupCode(activeEvent, profile.signupCode)
+    if (!signupValidation.ok) return signupValidation
+
+    if (!profile.name.trim() || !email) {
+      return { ok: false, message: 'Please complete your name and email.' }
+    }
+
+    if (!profile.acceptedTerms) {
+      return { ok: false, message: 'Please accept the terms of service to continue.' }
+    }
+
+    const attendee = createAttendeeRecord({
+      name: profile.name,
+      email,
+      phone: profile.phone ?? '',
+      role: 'Landscape Architect',
+      registrantId: profile.registrantId,
+      badgeBarcode: profile.badgeBarcode,
+      signupMethod: 'badge',
+    })
+
+    updateState((current) => ({
+      ...current,
+      attendees: [
+        ...current.attendees.filter((item) => item.email !== email),
+        attendee,
+      ],
+      session: { type: 'attendee', attendeeId: attendee.id },
+      completedIds: current.attendeeProgress[attendee.id] ?? [],
+    }), { sharedPatch: { attendees: [attendee] } })
+
+    return { ok: true, message: `Welcome, ${attendee.name}.` }
+  }
+
+  const lookupBadgeAttendee = async ({ eventId, signupCode, barcode }) => {
+    return lookupBadgeLead({ eventId, signupCode, barcode })
   }
 
   const signInAttendee = ({ email, phone }) => {
@@ -1325,6 +1404,8 @@ export function usePassportStore() {
     archiveEvent,
     unarchiveEvent,
     registerAttendee,
+    registerAttendeeFromBadge,
+    lookupBadgeAttendee,
     signInAttendee,
     requestAttendeeMagicLink,
     completeAttendeeMagicLink,

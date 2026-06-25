@@ -23,6 +23,9 @@ const defaultEvent = {
   name: 'ASLA Los Angeles 2026',
   status: 'active',
   createdAt: new Date().toISOString(),
+  signupCode: 'lfxrocks',
+  experientActCode: '0000000000000000',
+  experientBadgeId: '0',
 }
 
 function getInitialEventState() {
@@ -102,6 +105,9 @@ function normalizeEvents(events) {
     name: event.name || 'Untitled Event',
     status: allowedStatuses.has(event.status) ? event.status : 'active',
     createdAt: event.createdAt || new Date().toISOString(),
+    signupCode: String(event.signupCode ?? '').trim(),
+    experientActCode: String(event.experientActCode ?? '0000000000000000').trim(),
+    experientBadgeId: String(event.experientBadgeId ?? '0').trim() || '0',
   }))
 }
 

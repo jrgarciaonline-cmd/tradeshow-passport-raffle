@@ -47,7 +47,7 @@ function App() {
 
   useAppDeepLinks({ onAdminRoute: openAdminRoute })
   const [mode, setMode] = useState('attendee')
-  const [authView, setAuthView] = useState('signup')
+  const [authView, setAuthView] = useState('scan')
   const [activeTab, setActiveTab] = useState('Home')
   const [challengeView, setChallengeView] = useState('Active')
   const [selectedMapBoothId, setSelectedMapBoothId] = useState('')
@@ -364,6 +364,8 @@ function App() {
               initialView={authView}
               attendeeMagicLinkEnabled={store.isAttendeeMagicLinkEnabled?.()}
               onRegister={store.registerAttendee}
+              onRegisterFromBadge={store.registerAttendeeFromBadge}
+              onLookupBadge={store.lookupBadgeAttendee}
               onSignIn={store.signInAttendee}
               onSendMagicLink={store.requestAttendeeMagicLink}
               onSelectEvent={store.selectEvent}

@@ -11,6 +11,7 @@ const routes = {
     import('../api/request-admin-password-reset.js'),
   'POST /api/reset-admin-password': () => import('../api/reset-admin-password.js'),
   'POST /api/invite-admin': () => import('../api/invite-admin.js'),
+  'POST /api/badge-lookup': () => import('../api/badge-lookup.js'),
   'POST /api/passport-write': () => import('../api/passport-write.js'),
   'POST /api/record-scan': () => import('../api/record-scan.js'),
   'POST /api/sign-scan-token': () => import('../api/sign-scan-token.js'),
