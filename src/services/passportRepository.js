@@ -798,6 +798,8 @@ function boothRowToClient(row) {
     logoDataUrl: row.logo_url ?? '',
     qrCode: row.qr_code ?? '',
     color: row.color ?? '#6b7280',
+    logoColor: row.logo_color ?? row.color ?? '#007b70',
+    logoBackgroundColor: row.logo_background_color ?? '#ffffff',
     map: {
       x: Number(row.map_x ?? 50),
       y: Number(row.map_y ?? 50),
@@ -820,11 +822,19 @@ function settingsRowToClient(row) {
 }
 
 function mergeBoothQrCodes(publicBooths, adminBooths) {
-  const qrById = new Map((adminBooths ?? []).map((booth) => [booth.id, booth.qrCode]))
-  return publicBooths.map((booth) => ({
-    ...booth,
-    qrCode: qrById.get(booth.id) ?? booth.qrCode ?? '',
-  }))
+  const adminById = new Map((adminBooths ?? []).map((booth) => [booth.id, booth]))
+
+  return publicBooths.map((booth) => {
+    const admin = adminById.get(booth.id)
+    if (!admin) return booth
+
+    return {
+      ...booth,
+      qrCode: admin.qrCode ?? booth.qrCode ?? '',
+      logoColor: booth.logoColor || admin.logoColor || admin.color || booth.color,
+      logoBackgroundColor: booth.logoBackgroundColor || admin.logoBackgroundColor,
+    }
+  })
 }
 
 async function loadPublicEventData(eventId) {

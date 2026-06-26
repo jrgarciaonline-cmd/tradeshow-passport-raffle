@@ -70,6 +70,8 @@ function boothToRow(eventId, booth) {
     logo_url: booth.logoDataUrl ?? '',
     qr_code: booth.qrCode ?? '',
     color: booth.color ?? '#6b7280',
+    logo_color: booth.logoColor || booth.color || '#007b70',
+    logo_background_color: booth.logoBackgroundColor || '#ffffff',
     map_x: booth.map?.x ?? 50,
     map_y: booth.map?.y ?? 50,
     updated_at: new Date().toISOString(),

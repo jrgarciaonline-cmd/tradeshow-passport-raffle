@@ -44,6 +44,15 @@ const icons = {
       <path d="M12 5.6v10.7" {...stroke} />
     </>
   ),
+  profile: (
+    <>
+      <circle cx="12" cy="8.5" r="3.25" {...stroke} />
+      <path
+        d="M5.5 19.5c0-3.2 2.9-5.5 6.5-5.5s6.5 2.3 6.5 5.5"
+        {...stroke}
+      />
+    </>
+  ),
 }
 
 export function NavIcon({ name, size = 18 }) {

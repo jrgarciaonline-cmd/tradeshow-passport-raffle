@@ -14,11 +14,12 @@ import { BoothCard } from './components/BoothCard'
 import { ConfettiOverlay } from './components/ConfettiOverlay'
 import { MapView } from './components/MapView'
 import { PassportSummary } from './components/PassportSummary'
+import { ProfilePanel } from './components/ProfilePanel'
 import { RaffleEntryPanel } from './components/RaffleEntryPanel'
 import { ScannerPanel } from './components/ScannerPanel'
 import { NavIcon } from './components/NavIcon'
 
-const NAV_ICON_SIZE = 18
+const NAV_ICON_SIZE = 22
 const isNative = Capacitor.isNativePlatform()
 
 const attendeeTabs = [
@@ -342,10 +343,10 @@ function App() {
             <button
               type="button"
               className="icon-button app-float-button"
-              aria-label="Sign out"
-              onClick={handleSignOut}
+              aria-label="Open profile"
+              onClick={() => setActiveTab('Profile')}
             >
-              ⎋
+              <NavIcon name="profile" size={18} />
             </button>
           </div>
         )}
@@ -507,6 +508,15 @@ function App() {
                 setSelectedMapBoothId(boothId)
                 setActiveTab('QR Scanner')
               }}
+            />
+          )}
+
+          {hasValidAttendeeSession &&
+            activeMode === 'attendee' &&
+            activeTab === 'Profile' && (
+            <ProfilePanel
+              attendee={store.currentAttendee}
+              onSignOut={handleSignOut}
             />
           )}
 

@@ -677,7 +677,7 @@
 }
 
 .phone-shell.has-vision-nav .app-content {
-  padding-bottom: 86px;
+  padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px));
 }
 
 .phone-shell.has-vision-nav::before {
@@ -687,7 +687,7 @@
   bottom: 0;
   left: 0;
   z-index: 1;
-  height: 90px;
+  height: calc(76px + env(safe-area-inset-bottom, 0px));
   pointer-events: none;
 }
 
@@ -748,7 +748,7 @@
   padding: 4px 10px;
   color: #000;
   background: rgba(255, 245, 224, 0.94);
-  font-size: 0.62rem;
+  font-size: var(--text-xs);
   font-weight: 500;
   text-align: right;
   pointer-events: none;
@@ -804,18 +804,19 @@
 
 .bottom-nav {
   position: absolute;
-  right: 10px;
-  bottom: 10px;
-  left: 10px;
+  right: 0;
+  bottom: 0;
+  left: 0;
   z-index: 20;
   pointer-events: none;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 .bottom-nav--vision {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
   align-items: end;
-  padding: 5px 8px 7px;
+  padding: 6px 10px calc(8px + env(safe-area-inset-bottom, 0px));
   pointer-events: auto;
 }
 
@@ -825,15 +826,15 @@
   justify-self: center;
   justify-items: center;
   width: 100%;
-  max-width: 56px;
-  gap: 2px;
-  min-height: 0;
-  padding: 2px 0 0;
+  max-width: none;
+  gap: 3px;
+  min-height: 48px;
+  padding: 4px 2px 2px;
   border: 0;
   border-radius: 12px;
   color: rgba(0, 0, 0, 0.72);
   background: transparent;
-  font-size: 0.5rem;
+  font-size: var(--text-xs);
   font-weight: 500;
   letter-spacing: 0.01em;
   transition: background 0.2s ease, color 0.2s ease, transform 0.15s ease;
@@ -882,15 +883,15 @@
 
 .bottom-nav-icon-slot {
   display: grid;
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   place-items: center;
 }
 
 .bottom-nav .nav-icon {
   display: block;
-  width: 18px;
-  height: 18px;
+  width: 22px;
+  height: 22px;
 }
 
 button {
@@ -915,7 +916,7 @@ button {
   padding: 0 12px;
   color: #000;
   background: #fff;
-  font-size: 0.72rem;
+  font-size: var(--text-sm);
   font-weight: 500;
   text-decoration: none;
 }
@@ -989,7 +990,7 @@ button:disabled {
 .points-gauge span {
   display: block;
   margin-top: 3px;
-  font-size: 0.68rem;
+  font-size: var(--text-xs);
 }
 
 .booth-visit-progress {
@@ -1019,7 +1020,7 @@ button:disabled {
 .booth-visit-message {
   margin: 0;
   color: #ff5a18;
-  font-size: 0.62rem;
+  font-size: var(--text-xs);
   font-weight: 600;
   letter-spacing: 0.12em;
 }
@@ -1051,7 +1052,7 @@ button:disabled {
 .booth-visit-label {
   margin: -2px 0 0;
   color: #000;
-  font-size: 0.62rem;
+  font-size: var(--text-xs);
   font-weight: 500;
   letter-spacing: 0.08em;
 }
@@ -1105,7 +1106,7 @@ button:disabled {
   right: 4px;
   transform: translateY(-50%);
   color: rgba(255, 255, 255, 0.95);
-  font-size: 0.62rem;
+  font-size: var(--text-xs);
   line-height: 1;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
 }
@@ -1209,7 +1210,7 @@ button:disabled {
 .home-image-frame::before {
   content: 'HOME_IMAGE.png';
   color: var(--ink-muted);;
-  font-size: 0.72rem;
+  font-size: var(--text-sm);
   font-weight: 500;
   letter-spacing: 0.04em;
 }
@@ -1236,7 +1237,7 @@ button:disabled {
   gap: 8px;
   margin-top: 2px;
   color: var(--ink-muted);
-  font-size: 0.58rem;
+  font-size: var(--text-xs);
   font-weight: 500;
 }
 
@@ -1258,7 +1259,7 @@ button:disabled {
   padding: 7px 9px;
   color: #000;
   border-bottom: 1px solid var(--line);
-  font-size: 0.74rem;
+  font-size: var(--text-sm);
 }
 
 .pinch-map-header:has(strong) {
@@ -1271,7 +1272,7 @@ button:disabled {
 
 .pinch-map-header span {
   color: var(--ink-muted);;
-  font-size: 0.62rem;
+  font-size: var(--text-xs);
   font-weight: 500;
   text-transform: uppercase;
 }
@@ -1287,7 +1288,7 @@ button:disabled {
   min-height: 28px;
   padding: 0 8px;
   border-radius: 4px;
-  font-size: 0.68rem;
+  font-size: var(--text-xs);
   line-height: 1;
 }
 
@@ -1406,7 +1407,7 @@ button:disabled {
   border-radius: 50%;
   color: #050505;
   background: #fff;
-  font-size: 0.52rem;
+  font-size: var(--text-xs);
   font-weight: 600;
   line-height: 1;
   letter-spacing: -0.03em;
@@ -1452,7 +1453,7 @@ button:disabled {
   max-width: 100%;
   overflow: hidden;
   color: #fff;
-  font-size: 0.45rem;
+  font-size: var(--text-xs);
   font-weight: 600;
   line-height: 1;
   text-overflow: ellipsis;
@@ -1475,7 +1476,7 @@ button:disabled {
   box-shadow:
     0 0 0 2px rgba(18, 168, 79, 0.32),
     0 4px 9px rgba(0, 0, 0, 0.24);
-  font-size: 0.72rem;
+  font-size: var(--text-sm);
   font-weight: 600;
 }
 
@@ -1530,7 +1531,7 @@ button:disabled {
   border-radius: 999px;
   color: #fff;
   background: #0b7cff;
-  font-size: 0.58rem;
+  font-size: var(--text-xs);
   white-space: nowrap;
 }
 
@@ -1538,6 +1539,7 @@ button:disabled {
 .content-stack,
 .scanner-panel,
 .instructions-screen,
+.profile-panel,
 .auth-screen,
 .raffle-panel,
 .admin-panel,
@@ -1635,7 +1637,7 @@ button:disabled {
   border: 0;
   border-radius: 0;
   padding: 0 6px;
-  font-size: 0.72rem;
+  font-size: var(--text-sm);
 }
 
 .auth-tabs .active {
@@ -1695,7 +1697,7 @@ button:disabled {
   padding: 10px;
   color: var(--ink-muted);
   background: #f8f8ff;
-  font-size: 0.74rem;
+  font-size: var(--text-sm);
   font-weight: 500;
   line-height: 1.45;
 }
@@ -1706,7 +1708,7 @@ button:disabled {
   align-items: start;
   gap: 8px;
   color: #000;
-  font-size: 0.76rem;
+  font-size: var(--text-sm);
   font-weight: 600;
   line-height: 1.35;
 }
@@ -1724,7 +1726,7 @@ button:disabled {
   border-radius: 5px;
   color: #000;
   background: #eeeefe;
-  font-size: 0.7rem;
+  font-size: var(--text-xs);
   font-weight: 500;
   text-align: center;
 }
@@ -1732,21 +1734,21 @@ button:disabled {
 .segmented-control {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  width: min(100%, 220px);
-  justify-self: center;
+  width: calc(100% + 24px);
+  margin-inline: -12px;
   border: 1px solid #d5d5d5;
-  border-radius: 4px;
+  border-radius: 0;
   overflow: hidden;
   background: #fff;
 }
 
 .segmented-control button {
-  min-height: 32px;
+  min-height: 48px;
   border: 0;
   border-radius: 0;
-  padding: 0 12px;
-  font-size: 0.72rem;
-  font-weight: 500;
+  padding: 0 16px;
+  font-size: var(--text-sm);
+  font-weight: 600;
 }
 
 .segmented-control .active {
@@ -1766,7 +1768,7 @@ button:disabled {
   display: grid;
   gap: 4px;
   color: var(--ink-muted);
-  font-size: 0.65rem;
+  font-size: var(--text-xs);
   font-weight: 500;
   text-transform: uppercase;
 }
@@ -1989,7 +1991,7 @@ textarea {
 
 .booth-stamp__number {
   color: #2f2418;
-  font-size: 0.62rem;
+  font-size: var(--text-xs);
   font-weight: 800;
   letter-spacing: 0.08em;
   line-height: 1.2;
@@ -1999,7 +2001,7 @@ textarea {
 .booth-stamp__name {
   margin: 0;
   color: #2f2418;
-  font-size: 0.72rem;
+  font-size: var(--text-sm);
   font-weight: 700;
   line-height: 1.25;
 }
@@ -2013,7 +2015,7 @@ textarea {
 .booth-stamp__action {
   min-height: 30px;
   padding-inline: 6px;
-  font-size: 0.62rem;
+  font-size: var(--text-xs);
 }
 
 .booth-stamp__action.primary {
@@ -2081,7 +2083,7 @@ textarea {
 
 .booth-details dt {
   color: var(--ink-muted);;
-  font-size: 0.62rem;
+  font-size: var(--text-xs);
   font-weight: 600;
   text-transform: uppercase;
 }
@@ -2089,7 +2091,7 @@ textarea {
 .booth-details dd {
   margin: 0;
   color: #000;
-  font-size: 0.72rem;
+  font-size: var(--text-sm);
   font-weight: 500;
 }
 
@@ -2103,7 +2105,7 @@ textarea {
 .booth-actions button,
 .booth-actions .button-link {
   min-height: 31px;
-  font-size: 0.72rem;
+  font-size: var(--text-sm);
 }
 
 .logo-preview {
@@ -2125,7 +2127,7 @@ textarea {
 
 .logo-preview span {
   color: var(--ink-muted);;
-  font-size: 0.72rem;
+  font-size: var(--text-sm);
   font-weight: 600;
 }
 
@@ -2135,7 +2137,7 @@ textarea {
   gap: 8px;
   margin-top: 2px;
   color: #000;
-  font-size: 0.68rem;
+  font-size: var(--text-xs);
   font-style: italic;
   font-weight: 500;
 }
@@ -2172,8 +2174,58 @@ textarea {
 
 .instructions-screen p {
   color: #000;
-  font-size: 0.9rem;
+  font-size: var(--text-sm);
   line-height: 1.45;
+}
+
+.profile-panel {
+  padding: 24px 22px;
+  align-content: start;
+}
+
+.profile-panel h2 {
+  margin: 0 0 8px;
+  color: #000;
+  font-size: 1.2rem;
+  text-align: left;
+}
+
+.profile-details {
+  margin: 0;
+  display: grid;
+  gap: 16px;
+}
+
+.profile-details > div {
+  display: grid;
+  gap: 4px;
+}
+
+.profile-details dt {
+  margin: 0;
+  color: var(--ink-muted);
+  font-size: var(--text-xs);
+  font-weight: 500;
+}
+
+.profile-details dd {
+  margin: 0;
+  color: #000;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0.01em;
+}
+
+.profile-sign-out {
+  margin-top: 12px;
+  width: 100%;
+  min-height: 48px;
+  font-size: var(--text-sm);
+}
+
+.app-float-button .nav-icon {
+  display: block;
 }
 
 .scanner-panel {
@@ -2248,7 +2300,7 @@ textarea {
 .scan-start-prompt small {
   max-width: 180px;
   color: var(--ink-muted);;
-  font-size: 0.76rem;
+  font-size: var(--text-sm);
   font-weight: 500;
 }
 
@@ -2420,7 +2472,7 @@ textarea {
   max-width: 205px;
   justify-self: center;
   color: #5f5523;
-  font-size: 0.76rem;
+  font-size: var(--text-sm);
   font-weight: 600;
   line-height: 1.25;
 }
@@ -2442,7 +2494,7 @@ textarea {
   border-color: #d8d8d8;
   color: #222;
   background: #f3f3f3;
-  font-size: 0.74rem;
+  font-size: var(--text-sm);
 }
 
 @keyframes scan-logo-pop {
@@ -2535,7 +2587,7 @@ textarea {
 .manual-scan-toggle small,
 .asset-upload-field small {
   color: var(--ink-muted);;
-  font-size: 0.72rem;
+  font-size: var(--text-sm);
   font-weight: 500;
 }
 
@@ -2593,7 +2645,7 @@ textarea {
   border-radius: 5px;
   background: #f7f7f7;
   color: #000;
-  font-size: 0.78rem;
+  font-size: var(--text-sm);
   text-align: center;
 }
 
@@ -2714,7 +2766,7 @@ textarea {
 
 .mobile-wheel-center small {
   color: var(--ink-muted);;
-  font-size: 0.58rem;
+  font-size: var(--text-xs);
   font-weight: 600;
   text-transform: uppercase;
 }
@@ -2739,7 +2791,7 @@ textarea {
 
 .mobile-winner-result span {
   color: #21a66b;
-  font-size: 0.66rem;
+  font-size: var(--text-xs);
   font-weight: 600;
   text-transform: uppercase;
 }
@@ -2775,7 +2827,7 @@ textarea {
 
 .eligible-toggle span {
   color: var(--ink-muted);;
-  font-size: 0.68rem;
+  font-size: var(--text-xs);
 }
 
 .mobile-entry-row {
@@ -2784,7 +2836,7 @@ textarea {
   gap: 12px;
   padding: 9px 12px;
   border-bottom: 1px solid var(--line);
-  font-size: 0.78rem;
+  font-size: var(--text-sm);
 }
 
 .mobile-entry-row:last-child {
@@ -2826,7 +2878,7 @@ textarea {
 .eyebrow {
   margin: 0;
   color: #000;
-  font-size: 0.62rem;
+  font-size: var(--text-xs);
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -2848,7 +2900,7 @@ textarea {
   border-radius: 5px;
   color: #000;
   background: #eeeefe;
-  font-size: 0.78rem;
+  font-size: var(--text-sm);
   font-weight: 500;
 }
 
@@ -2944,13 +2996,13 @@ textarea {
 .map-title-row button {
   min-height: 30px;
   padding: 0 10px;
-  font-size: 0.68rem;
+  font-size: var(--text-xs);
 }
 
 .map-focus-note {
   margin-top: -4px;
   color: var(--ink-muted);;
-  font-size: 0.72rem;
+  font-size: var(--text-sm);
   font-weight: 500;
   text-align: center;
 }
@@ -2989,7 +3041,7 @@ textarea {
 .admin-quick-actions .button-link,
 .admin-quick-actions button {
   justify-content: center;
-  font-size: 0.72rem;
+  font-size: var(--text-sm);
 }
 
 .mobile-admin-tabs {
@@ -3013,7 +3065,7 @@ textarea {
   border-radius: 999px;
   padding: 0 10px;
   white-space: nowrap;
-  font-size: 0.7rem;
+  font-size: var(--text-xs);
 }
 
 .mobile-admin-tabs button.active {
@@ -3061,7 +3113,7 @@ textarea {
   border-radius: 5px;
   color: #fff;
   background: var(--app-blue);
-  font-size: 0.78rem;
+  font-size: var(--text-sm);
   font-weight: 500;
 }
 
@@ -3087,7 +3139,7 @@ textarea {
 
 .admin-section-heading button {
   min-height: 31px;
-  font-size: 0.72rem;
+  font-size: var(--text-sm);
 }
 
 .entry-card {
@@ -3095,7 +3147,7 @@ textarea {
   border-radius: 8px;
   padding: 11px;
   background: #fff;
-  font-size: 0.78rem;
+  font-size: var(--text-sm);
 }
 
 .muted {
@@ -3249,7 +3301,7 @@ button.danger {
 
 .admin-stat-card span {
   color: var(--ink-muted);;
-  font-size: 0.75rem;
+  font-size: var(--text-xs);
   font-weight: 600;
   text-transform: uppercase;
 }
@@ -3367,7 +3419,7 @@ button.danger {
   z-index: 1;
   color: var(--ink-muted);;
   background: #f7f7f7;
-  font-size: 0.7rem;
+  font-size: var(--text-xs);
   text-transform: uppercase;
 }
 
@@ -3375,7 +3427,7 @@ button.danger {
   display: block;
   margin-top: 2px;
   color: var(--ink-muted);;
-  font-size: 0.72rem;
+  font-size: var(--text-sm);
   font-weight: 500;
 }
 
@@ -3568,7 +3620,7 @@ button.danger {
 
 .wheel-center span {
   color: var(--ink-muted);;
-  font-size: 0.72rem;
+  font-size: var(--text-sm);
   font-weight: 600;
   text-transform: uppercase;
 }
@@ -3596,7 +3648,7 @@ button.danger {
 
 .winner-result span {
   color: #21a66b;
-  font-size: 0.75rem;
+  font-size: var(--text-xs);
   font-weight: 600;
   text-transform: uppercase;
 }
@@ -3695,6 +3747,20 @@ button.danger {
 }
 
 @media (max-width: 900px) {
+  .bottom-nav--vision {
+    margin: 0;
+    border-radius: 0;
+    border-right: 0;
+    border-bottom: 0;
+    border-left: 0;
+    padding: 4px 6px calc(6px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .bottom-nav-item,
+  .bottom-nav-scanner {
+    font-size: var(--text-sm);
+  }
+
   .app-stage {
     padding: 0;
     background: #f7f7f7;
@@ -3759,17 +3825,26 @@ button.danger {
 
 /* Safe-area: bottom nav */
 .app-stage.is-native .bottom-nav {
-  right: calc(10px + env(safe-area-inset-right, 0px));
-  bottom: calc(10px + env(safe-area-inset-bottom, 0px));
-  left: calc(10px + env(safe-area-inset-left, 0px));
+  right: 0;
+  bottom: 0;
+  left: 0;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.app-stage.is-native .bottom-nav--vision {
+  margin: 0;
+  border-radius: 0;
+  border-right: 0;
+  border-bottom: 0;
+  border-left: 0;
 }
 
 .app-stage.is-native .phone-shell.has-vision-nav .app-content {
-  padding-bottom: calc(86px + env(safe-area-inset-bottom, 0px));
+  padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px));
 }
 
 .app-stage.is-native .phone-shell.has-vision-nav::before {
-  height: calc(90px + env(safe-area-inset-bottom, 0px));
+  height: calc(76px + env(safe-area-inset-bottom, 0px));
 }
 
 /* Safe-area: map overlays */

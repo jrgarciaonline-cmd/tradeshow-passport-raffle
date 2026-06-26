@@ -28,6 +28,8 @@ create table if not exists public.booths (
   logo_url text not null default '',
   qr_code text not null default '',
   color text not null default '#6b7280',
+  logo_color text not null default '#007b70',
+  logo_background_color text not null default '#ffffff',
   map_x numeric not null default 50,
   map_y numeric not null default 50,
   created_at timestamptz not null default now(),

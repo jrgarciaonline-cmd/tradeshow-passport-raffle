@@ -31,6 +31,8 @@
     radial-gradient(circle at 84% 88%, rgba(15, 28, 65, 0.05), transparent 40%),
     linear-gradient(165deg, #f5efe6 0%, #ece3d6 48%, #f2ebe2 100%);
   --sans: 'DM Sans', ui-sans-serif, system-ui, sans-serif;
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
 
   color: var(--ink);
   background: var(--shell-gradient);
@@ -107,4 +109,11 @@ p {
 .admin-sidebar * {
   text-transform: uppercase;
   letter-spacing: inherit;
+}
+
+@media (max-width: 900px) {
+  :root {
+    --text-xs: 0.8125rem;
+    --text-sm: 0.9375rem;
+  }
 }

@@ -2,6 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import jsQR from 'jsqr'
 import { getBoothLogoFrameStyle } from '../utils/boothLogoStyles'
 
+const CAMERA_GRANTED_KEY = 'passport-camera-granted'
+
 export function ScannerPanel({ onScan, onGoHome, onGoMap }) {
   const videoRef = useRef(null)
   const canvasRef = useRef(document.createElement('canvas'))
@@ -45,7 +47,7 @@ export function ScannerPanel({ onScan, onGoHome, onGoMap }) {
     [onScan],
   )
 
-  const startCamera = async () => {
+  const startCamera = useCallback(async () => {
     setScanSuccess(false)
     setDuplicateScan(false)
     setScannedBooth(null)
@@ -81,6 +83,7 @@ export function ScannerPanel({ onScan, onGoHome, onGoMap }) {
         await videoRef.current.play()
       }
       setCameraActive(true)
+      sessionStorage.setItem(CAMERA_GRANTED_KEY, '1')
       setMessage(
         'Camera ready. Point it at a partner QR code. ' +
           ('BarcodeDetector' in window
@@ -89,6 +92,7 @@ export function ScannerPanel({ onScan, onGoHome, onGoMap }) {
       )
     } catch (error) {
       if (error.name === 'NotAllowedError') {
+        sessionStorage.removeItem(CAMERA_GRANTED_KEY)
         setMessage('Camera permission was not granted.')
       } else if (error.name === 'NotFoundError') {
         setMessage('No camera was found on this device.')
@@ -99,7 +103,36 @@ export function ScannerPanel({ onScan, onGoHome, onGoMap }) {
         )
       }
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+
+    const tryAutoStart = async () => {
+      if (!navigator.mediaDevices?.getUserMedia) return
+
+      let mayAutoStart = sessionStorage.getItem(CAMERA_GRANTED_KEY) === '1'
+
+      if (!mayAutoStart && navigator.permissions?.query) {
+        try {
+          const status = await navigator.permissions.query({ name: 'camera' })
+          mayAutoStart = status.state === 'granted'
+        } catch {
+          // Permissions API unavailable — rely on session flag only
+        }
+      }
+
+      if (!cancelled && mayAutoStart) {
+        startCamera()
+      }
+    }
+
+    tryAutoStart()
+
+    return () => {
+      cancelled = true
+    }
+  }, [startCamera])
 
   useEffect(() => {
     if (!cameraActive) return undefined

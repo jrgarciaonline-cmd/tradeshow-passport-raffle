@@ -14,6 +14,8 @@ select
   website_url,
   logo_url,
   color,
+  logo_color,
+  logo_background_color,
   map_x,
   map_y
 from public.booths;
