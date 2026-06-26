@@ -24,6 +24,34 @@ See [ADMIN_LOGIN_SETUP.md](./ADMIN_LOGIN_SETUP.md) for admin auth setup and Supa
 
 For Plan 3 (normalized schema, signed scans, compliance), see [PLAN3_SETUP.md](./PLAN3_SETUP.md).
 
+### Web vs mobile env
+
+**Web (Vercel):** Set `VITE_*` and server vars in the Vercel project dashboard. They are injected when Vercel runs `vite build` for the PWA.
+
+**Mobile (Capacitor):** Vercel env vars are **not** used. Native builds run locally with `npm run build:mobile`, and Vite bakes `VITE_*` values into the bundle at compile time. Before every native run or store archive:
+
+```bash
+cp .env.example .env.production   # first time only
+# fill in VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, etc.
+
+# or, if .env already has client vars:
+npm run env:mobile                  # copies VITE_* from .env → .env.production
+
+npm run build:mobile
+npx cap open ios      # or android
+```
+
+`.env.production` must include at least:
+
+```bash
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_ANON_KEY=your-anon-key
+VITE_CLOUD_FIRST=true
+VITE_API_BASE_URL=https://tradeshow-passport-raffle.vercel.app
+```
+
+`npm run build:mobile` fails fast with a clear error if those client vars are missing. Server-only vars (`SUPABASE_SERVICE_ROLE_KEY`, etc.) stay in Vercel — native attendee flows call that API via `VITE_API_BASE_URL`.
+
 ## Supabase Storage (booth logos and event images)
 
 Booth logos, floor maps, and home/raffle images upload to the `event-assets` bucket. Run once per project:

@@ -6,6 +6,10 @@ const ALLOWED_ORIGINS = new Set([
   'http://127.0.0.1:4173',
   'http://127.0.0.1:5173',
   'https://tradeshow-passport-raffle.vercel.app',
+  // Capacitor WebView origins (native iOS/Android)
+  'https://localhost',
+  'capacitor://localhost',
+  'http://localhost',
 ])
 
 function isAllowedOrigin(origin) {

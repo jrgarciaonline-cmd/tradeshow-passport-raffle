@@ -47,6 +47,8 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>Camera access is used to scan booth QR codes for your expo passport.</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
