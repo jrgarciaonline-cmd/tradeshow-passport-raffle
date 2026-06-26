@@ -61,6 +61,7 @@ export function AuthScreen({
   const noAvailableEvents = activeEvents.length === 0
   const showAdminAuth = adminUnlocked || initialView === 'admin'
   const currentView = showAdminAuth || view !== 'admin' ? view : 'scan'
+  const badgeProvidedPhone = Boolean(badgeLead?.phone?.trim())
 
   const updateRegistration = (field, value) => {
     setRegistration((current) => ({ ...current, [field]: value }))
@@ -347,12 +348,17 @@ export function AuthScreen({
             />
           </label>
           <label className="form-field">
-            <span>Phone Number</span>
+            <span>Phone Number{badgeProvidedPhone ? '' : ' *'}</span>
             <input
               type="tel"
+              required={!badgeProvidedPhone}
               value={badgeConfirm.phone}
               onChange={(event) => updateBadgeConfirm('phone', event.target.value)}
-              placeholder="Optional if not on your badge"
+              placeholder={
+                badgeProvidedPhone
+                  ? 'From your badge registration'
+                  : 'Enter your phone number'
+              }
             />
           </label>
           <div className="signup-terms">
@@ -375,7 +381,11 @@ export function AuthScreen({
           <button
             type="submit"
             className="primary"
-            disabled={!badgeConfirm.acceptedTerms || submitting}
+            disabled={
+              !badgeConfirm.acceptedTerms ||
+              submitting ||
+              !badgeConfirm.phone.trim()
+            }
           >
             {submitting ? 'Creating Passport...' : 'Create Passport'}
           </button>

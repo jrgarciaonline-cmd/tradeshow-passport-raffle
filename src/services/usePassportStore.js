@@ -559,10 +559,15 @@ export function usePassportStore() {
       return { ok: false, message: 'Please accept the terms of service to continue.' }
     }
 
+    const phone = String(profile.phone ?? '').trim()
+    if (!phone) {
+      return { ok: false, message: 'Please enter your phone number.' }
+    }
+
     const attendee = createAttendeeRecord({
       name: profile.name,
       email,
-      phone: profile.phone ?? '',
+      phone,
       role: 'Landscape Architect',
       registrantId: profile.registrantId,
       badgeBarcode: profile.badgeBarcode,
