@@ -2,11 +2,18 @@ const LEAD_INFO_URL =
   process.env.EXPERIENT_LEAD_INFO_URL ||
   'https://developer.experientswap.com/APIv1/LeadInfo'
 
+export function isExperientConfigured() {
+  return Boolean(process.env.EXPERIENT_API_KEY?.trim())
+}
+
 export function getExperientApiKey() {
-  return (
-    process.env.EXPERIENT_API_KEY ||
-    'CBajtss.0rGO8gHB85tTcsaJ1rdPqpWeouUw4XBpJHdIwNZL-Fyal1E-lPxGMw__'
-  )
+  const apiKey = String(process.env.EXPERIENT_API_KEY ?? '').trim()
+
+  if (!apiKey) {
+    throw new Error('EXPERIENT_API_KEY is not configured.')
+  }
+
+  return apiKey
 }
 
 export async function fetchLeadInfoByBarcode({ apiKey, actCode, badgeId, barcode }) {

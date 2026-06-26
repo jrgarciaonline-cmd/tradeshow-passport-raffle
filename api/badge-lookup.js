@@ -2,6 +2,7 @@ import { handleCors } from './_lib/cors.js'
 import {
   fetchLeadInfoByBarcode,
   getExperientApiKey,
+  isExperientConfigured,
   normalizeLeadInfoResult,
 } from './_lib/experientLeadInfo.js'
 import { loadEventIndex } from './_lib/passportWrite.js'
@@ -38,6 +39,14 @@ export default async function handler(request, response) {
     sendJson(response, 500, {
       ok: false,
       message: 'Badge lookup API is missing Supabase environment variables.',
+    })
+    return
+  }
+
+  if (!isExperientConfigured()) {
+    sendJson(response, 503, {
+      ok: false,
+      message: 'Badge lookup is not configured. Set EXPERIENT_API_KEY on the server.',
     })
     return
   }
