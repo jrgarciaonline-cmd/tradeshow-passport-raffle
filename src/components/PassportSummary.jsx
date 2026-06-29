@@ -1,8 +1,15 @@
+import { NavIcon } from './NavIcon'
+import { RaffleEntryPanel } from './RaffleEntryPanel'
+
 export function PassportSummary({
   completedIds,
   requiredScanCount,
   homeImageSrc,
   onShowInstructions,
+  passportComplete,
+  attendee,
+  hasEntered,
+  latestEntry,
 }) {
   const completedCount = completedIds.length
   const percent = Math.round(
@@ -35,14 +42,6 @@ export function PassportSummary({
           }}
         />
       </div>
-
-      <button
-        type="button"
-        className="home-action-button"
-        onClick={onShowInstructions}
-      >
-        How to Play
-      </button>
 
       <div
         className={`drawing-card booth-visit-progress${percent >= 100 ? ' is-complete' : ''}`}
@@ -81,6 +80,34 @@ export function PassportSummary({
           <span>{percent}% · Goal: {requiredScanCount}</span>
         </div>
       </div>
+
+      <button
+        type="button"
+        className="home-action-button"
+        onClick={onShowInstructions}
+      >
+        <NavIcon name="info" size={16} />
+        How to Play
+      </button>
+
+      {passportComplete && (
+        <div className="celebration-panel">
+          <div className="burst" aria-hidden="true">
+            ✓
+          </div>
+          <div>
+            <p className="eyebrow">Passport Complete</p>
+            <h2>Raffle unlocked</h2>
+          </div>
+        </div>
+      )}
+
+      <RaffleEntryPanel
+        disabled={!passportComplete}
+        attendee={attendee}
+        hasEntered={hasEntered}
+        latestEntry={latestEntry}
+      />
     </section>
   )
 }

@@ -5,7 +5,7 @@ export function RaffleEntryPanel({
   latestEntry,
 }) {
   return (
-    <section className="raffle-panel">
+    <div className="raffle-panel">
       <div>
         <h2>
           {disabled
@@ -44,6 +44,6 @@ export function RaffleEntryPanel({
           {new Date(latestEntry.submittedAt).toLocaleTimeString()}.
         </p>
       )}
-    </section>
+    </div>
   )
 }

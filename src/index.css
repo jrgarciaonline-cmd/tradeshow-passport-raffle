@@ -21,16 +21,24 @@
     linear-gradient(180deg, rgba(255, 255, 255, 0.44) 0%, rgba(255, 255, 255, 0.2) 100%),
     rgba(255, 255, 255, 0.12);
   --glass-nav:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.72) 0%, rgba(255, 255, 255, 0.44) 100%),
-    rgba(255, 255, 255, 0.28);
+	white;
+    /* linear-gradient(180deg, rgba(255, 255, 255, 0.72) 0%, rgba(255, 255, 255, 0.44) 100%),
+    rgba(255, 255, 255, 0.28); */
   --glass-nav-shadow:
     0 6px 20px rgba(15, 15, 35, 0.1),
     inset 0 1px 0 rgba(255, 255, 255, 0.72);
   --shell-gradient:
-    radial-gradient(circle at 18% 14%, rgba(198, 40, 40, 0.06), transparent 38%),
+    radial-gradient(circle at 18% 14%, rgba(236, 140, 208, 0.08), transparent 38%),
     radial-gradient(circle at 84% 88%, rgba(15, 28, 65, 0.05), transparent 40%),
     linear-gradient(165deg, #f5efe6 0%, #ece3d6 48%, #f2ebe2 100%);
   --sans: 'DM Sans', ui-sans-serif, system-ui, sans-serif;
+  --display: 'Special Elite', ui-serif, Georgia, serif;
+  --accent: #ec8cd0;
+  --accent-muted: rgba(236, 140, 208, 0.22);
+  --accent-soft: rgba(236, 140, 208, 0.12);
+  --btn-min-height: 40px;
+  --btn-padding-x: 16px;
+  --btn-radius: 10px;
   --text-xs: 0.75rem;
   --text-sm: 0.875rem;
 
@@ -77,12 +85,20 @@ textarea {
 }
 
 strong,
-b,
+b {
+  font-weight: 600;
+}
+
 h1,
 h2,
 h3,
-h4 {
-  font-weight: 600;
+h4,
+.app-bar-title,
+.eyebrow,
+.home-action-button,
+.instructions-screen h2 {
+  font-family: var(--display);
+  font-weight: 400;
 }
 
 p {
@@ -90,7 +106,7 @@ p {
 }
 
 :focus-visible {
-  outline: 3px solid rgba(0, 0, 0, 0.24);
+  outline: 3px solid var(--accent-muted);
   outline-offset: 2px;
 }
 

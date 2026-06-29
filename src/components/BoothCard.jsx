@@ -1,3 +1,4 @@
+import { NavIcon } from './NavIcon'
 import { getBoothLogoFrameStyle } from '../utils/boothLogoStyles'
 import { STAMP_OUTLINE_PATH, STAMP_VIEW_BOX } from '../utils/stampShape'
 import { getVisitedPostmarkLayout } from '../utils/visitedPostmark'
@@ -64,23 +65,30 @@ export function BoothCard({ booth, completed, highlighted, onShowOnMap }) {
       <div className="booth-stamp__actions">
         <button
           type="button"
-          className="booth-stamp__action primary"
+          className="booth-stamp__action booth-stamp__action--icon primary"
+          aria-label="Show on map"
           onClick={() => onShowOnMap(booth.id)}
         >
-          Show on map
+          <NavIcon name="location" size={18} />
         </button>
         {websiteUrl ? (
           <a
-            className="booth-stamp__action button-link"
+            className="booth-stamp__action booth-stamp__action--icon button-link"
             href={websiteUrl}
             target="_blank"
             rel="noreferrer"
+            aria-label="Visit website"
           >
-            Website
+            <NavIcon name="web" size={18} />
           </a>
         ) : (
-          <button type="button" className="booth-stamp__action" disabled>
-            Website
+          <button
+            type="button"
+            className="booth-stamp__action booth-stamp__action--icon"
+            aria-label="Website unavailable"
+            disabled
+          >
+            <NavIcon name="web" size={18} />
           </button>
         )}
       </div>

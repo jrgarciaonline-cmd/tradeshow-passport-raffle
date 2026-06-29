@@ -53,6 +53,25 @@ const icons = {
       />
     </>
   ),
+  info: (
+    <>
+      <circle cx="12" cy="12" r="8.25" {...stroke} />
+      <path d="M12 10.5v5.5" {...stroke} />
+      <circle cx="12" cy="7.75" r="0.75" fill="currentColor" stroke="none" />
+    </>
+  ),
+  location: (
+    <>
+      <path d="M12 21s7-4.35 7-10.5a7 7 0 1 0-14 0C5 16.65 12 21 12 21Z" {...stroke} />
+      <circle cx="12" cy="10.5" r="2.25" {...stroke} />
+    </>
+  ),
+  web: (
+    <>
+      <circle cx="12" cy="12" r="8.25" {...stroke} />
+      <path d="M4 12h16M12 4a14.5 14.5 0 0 1 0 16M12 4a14.5 14.5 0 0 0 0 16" {...stroke} />
+    </>
+  ),
 }
 
 export function NavIcon({ name, size = 18 }) {

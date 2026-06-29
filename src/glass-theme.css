@@ -22,23 +22,21 @@
 
 button,
 .button-link {
-  border: 1px solid var(--glass-border-soft);
-  border-radius: var(--glass-radius-sm);
-  background: var(--glass-surface-strong);
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
-  box-shadow: var(--glass-shadow);
+  border: 0;
+  border-radius: var(--btn-radius);
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: none;
 }
 
 .primary {
-  border-color: rgba(255, 255, 255, 0.16);
-  color: #fff;
-  background: rgba(5, 5, 5, 0.78);
-  backdrop-filter: blur(20px) saturate(160%);
-  -webkit-backdrop-filter: blur(20px) saturate(160%);
-  box-shadow:
-    0 8px 20px rgba(5, 5, 5, 0.18),
-    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  border: 0;
+  color: #1a1a1a;
+  background: var(--accent);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: none;
 }
 
 input,
@@ -55,8 +53,6 @@ textarea {
 .no-events-card,
 .auth-form,
 .auth-tabs,
-.segmented-control,
-.booth-stamp__action,
 .booth-details,
 .logo-preview,
 .raffle-panel,
@@ -115,26 +111,43 @@ textarea {
 }
 
 .bottom-nav-item.active {
-  background: rgba(255, 255, 255, 0.52);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.75);
+  background: var(--accent-soft);
+  box-shadow: none;
 }
 
 .auth-tabs .active,
-.segmented-control .active,
 .mobile-admin-tabs button.active {
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  background: rgba(5, 5, 5, 0.78);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  border: 0;
+  color: #1a1a1a;
+  background: var(--accent);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: none;
+}
+
+.segmented-control {
+  border: 0;
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: none;
+}
+
+.segmented-control button.active {
+  border: 0;
+  color: #000;
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: none;
 }
 
 .edit-banner {
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  color: #fff;
-  background: rgba(5, 5, 5, 0.78);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  border: 0;
+  color: #1a1a1a;
+  background: var(--accent);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 .raffle-profile,
@@ -181,11 +194,6 @@ textarea {
   -webkit-backdrop-filter: blur(12px);
 }
 
-.booth-stamp__action,
-.mobile-admin-wheel-card {
-  background: var(--glass-surface-subtle);
-}
-
 .booth-stamp__perforation,
 .booth-stamp__face {
   backdrop-filter: none;
@@ -220,28 +228,28 @@ textarea {
   text-shadow: none;
 }
 
+.mobile-admin-wheel-card {
+  background: var(--glass-surface-subtle);
+}
+
 .bottom-nav-item.active,
 .bottom-nav-scanner.active {
   color: #000;
 }
 
 .bottom-nav-item.active {
-  background: rgba(255, 255, 255, 0.52);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.75);
+  background: var(--accent-soft);
+  box-shadow: none;
 }
 
 .bottom-nav-scanner-ring {
-  border-color: rgba(255, 255, 255, 0.72);
-  background: rgba(255, 255, 255, 0.42);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.85),
-    0 1px 4px rgba(15, 15, 35, 0.06);
+  border: 0;
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: none;
 }
 
 .bottom-nav-scanner.active .bottom-nav-scanner-ring {
-  border-color: rgba(0, 0, 0, 0.18);
-  background: rgba(255, 255, 255, 0.62);
-  box-shadow:
-    inset 0 0 0 1px rgba(0, 0, 0, 0.08),
-    0 1px 4px rgba(15, 15, 35, 0.08);
+  border: 0;
+  background: rgba(236, 140, 208, 0.28);
+  box-shadow: none;
 }

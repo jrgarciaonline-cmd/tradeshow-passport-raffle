@@ -15,7 +15,6 @@ import { ConfettiOverlay } from './components/ConfettiOverlay'
 import { MapView } from './components/MapView'
 import { PassportSummary } from './components/PassportSummary'
 import { ProfilePanel } from './components/ProfilePanel'
-import { RaffleEntryPanel } from './components/RaffleEntryPanel'
 import { ScannerPanel } from './components/ScannerPanel'
 import { NavIcon } from './components/NavIcon'
 
@@ -421,22 +420,7 @@ function App() {
                 requiredScanCount={store.requiredScanCount}
                 homeImageSrc={store.settings?.homeImageSrc}
                 onShowInstructions={() => setActiveTab('Instructions')}
-              />
-
-              {store.passportComplete && (
-                <section className="celebration-panel">
-                  <div className="burst" aria-hidden="true">
-                    ✓
-                  </div>
-                  <div>
-                    <p className="eyebrow">Passport Complete</p>
-                    <h2>Raffle unlocked</h2>
-                  </div>
-                </section>
-              )}
-
-              <RaffleEntryPanel
-                disabled={!store.passportComplete}
+                passportComplete={store.passportComplete}
                 attendee={store.currentAttendee}
                 hasEntered={Boolean(store.currentAttendeeEntry)}
                 latestEntry={store.currentAttendeeEntry}
