@@ -38,7 +38,11 @@ export function isDataUrl(value) {
 }
 
 async function uploadBlobToStorage({ path, blob, accessToken }) {
-  const bearer = accessToken || SUPABASE_ANON_KEY
+  if (!accessToken) {
+    throw new Error(
+      'Admin authentication is required for asset uploads. Sign in again and retry.',
+    )
+  }
 
   const response = await fetch(
     `${SUPABASE_URL}/storage/v1/object/${ASSET_BUCKET}/${path}`,
@@ -46,7 +50,7 @@ async function uploadBlobToStorage({ path, blob, accessToken }) {
       method: 'POST',
       headers: {
         apikey: SUPABASE_ANON_KEY,
-        Authorization: `Bearer ${bearer}`,
+        Authorization: `Bearer ${accessToken}`,
         'Content-Type': blob.type,
         'x-upsert': 'true',
       },
@@ -56,6 +60,11 @@ async function uploadBlobToStorage({ path, blob, accessToken }) {
 
   if (!response.ok) {
     const detail = await response.text()
+    if (response.status === 403) {
+      throw new Error(
+        'Storage upload denied. Confirm you are signed in as an authorized admin and that supabase-storage-setup.sql has been applied.',
+      )
+    }
     throw new Error(detail || `Asset upload failed: ${response.status}`)
   }
 

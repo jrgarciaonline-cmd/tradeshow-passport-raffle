@@ -84,12 +84,12 @@ export function ScannerPanel({ onScan, onGoHome, onGoMap }) {
       }
       setCameraActive(true)
       sessionStorage.setItem(CAMERA_GRANTED_KEY, '1')
-      setMessage(
-        'Camera ready. Point it at a partner QR code. ' +
-          ('BarcodeDetector' in window
-            ? 'Using native QR detection.'
-            : 'Using fallback scanner.')
-      )
+    //   setMessage(
+    //     'Camera ready. ' +
+    //       ('BarcodeDetector' in window
+    //         ? 'Using native QR detection.'
+    //         : 'Using fallback scanner.')
+    //   )
     } catch (error) {
       if (error.name === 'NotAllowedError') {
         sessionStorage.removeItem(CAMERA_GRANTED_KEY)
@@ -208,15 +208,8 @@ export function ScannerPanel({ onScan, onGoHome, onGoMap }) {
   return (
     <section className="scanner-panel">
       <div>
-        <h2>Please scan the QR Code</h2>
+        <h2>Scan the QR Code</h2>
       </div>
-      <button
-        type="button"
-        className="scanner-home-button"
-        onClick={onGoHome}
-      >
-        Go to Home to check progress
-      </button>
       <div className="scan-frame">
         <video
           ref={videoRef}

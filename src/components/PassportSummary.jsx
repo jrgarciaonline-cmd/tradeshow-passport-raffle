@@ -1,5 +1,4 @@
 export function PassportSummary({
-  attendeeName,
   completedIds,
   requiredScanCount,
   homeImageSrc,
@@ -26,15 +25,17 @@ export function PassportSummary({
 
   return (
     <section className="summary-panel">
-      <img
-        className="passport-logo"
-        src="/logos/landfx-logo-400w.png"
-        alt="Land F/X Passport Raffle"
-        onError={(event) => {
-          event.currentTarget.hidden = true
-        }}
-      />
-      <h1>{attendeeName || 'Passport Guest'}</h1>
+      <div className="home-image-frame">
+        <img
+          key={homeImageSrc || '/home/HOME_IMAGE.png'}
+          src={homeImageSrc || '/home/HOME_IMAGE.png'}
+          alt=""
+          onError={(event) => {
+            event.currentTarget.hidden = true
+          }}
+        />
+      </div>
+
       <button
         type="button"
         className="home-action-button"
@@ -79,17 +80,6 @@ export function PassportSummary({
           <span>Scans remaining: {Math.max(0, requiredScanCount - completedCount)}</span>
           <span>{percent}% · Goal: {requiredScanCount}</span>
         </div>
-      </div>
-
-      <div className="home-image-frame">
-        <img
-          key={homeImageSrc || '/home/HOME_IMAGE.png'}
-          src={homeImageSrc || '/home/HOME_IMAGE.png'}
-          alt=""
-          onError={(event) => {
-            event.currentTarget.hidden = true
-          }}
-        />
       </div>
     </section>
   )

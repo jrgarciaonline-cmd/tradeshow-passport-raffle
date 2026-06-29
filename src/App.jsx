@@ -382,7 +382,6 @@ function App() {
           {hasValidAttendeeSession && activeMode === 'attendee' && activeTab === 'Home' && (
             <>
               <PassportSummary
-                attendeeName={store.currentAttendee?.name}
                 completedIds={store.completedIds}
                 requiredScanCount={store.requiredScanCount}
                 homeImageSrc={store.settings?.homeImageSrc}

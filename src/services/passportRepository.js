@@ -374,6 +374,7 @@ function writeSessionSlice(state) {
   const adminSession = state.adminSession
     ? {
         accessToken: state.adminSession.accessToken,
+        refreshToken: state.adminSession.refreshToken ?? '',
         expiresAt: state.adminSession.expiresAt,
       }
     : null

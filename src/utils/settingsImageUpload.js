@@ -10,9 +10,16 @@ export const SETTINGS_IMAGE_FIELDS = [
 const UPLOAD_FAILED_MESSAGE =
   'Image upload failed. Check Supabase Storage setup and admin login.'
 
+const ADMIN_SESSION_REQUIRED_MESSAGE =
+  'Admin session expired. Sign out, sign in again, then retry the upload.'
+
 export async function uploadSettingsImageField({ field, file, eventId, accessToken }) {
   if (!file) {
     return { ok: false, message: 'Choose an image file to upload.' }
+  }
+
+  if (!accessToken) {
+    return { ok: false, message: ADMIN_SESSION_REQUIRED_MESSAGE }
   }
 
   if (!SETTINGS_IMAGE_FIELDS.includes(field)) {
