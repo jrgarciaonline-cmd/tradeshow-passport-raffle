@@ -2598,6 +2598,22 @@ textarea {
   background: #fff;
 }
 
+.settings-image-preview {
+  display: block;
+  width: 100%;
+  max-width: 360px;
+  max-height: 180px;
+  object-fit: contain;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: #f7f7fa;
+}
+
+.settings-image-empty {
+  margin: 0;
+  font-size: var(--text-sm);
+}
+
 .raffle-panel,
 .celebration-panel {
   margin: 12px;

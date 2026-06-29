@@ -8,7 +8,8 @@ import {
   signInAdminWithSupabase,
   signInAdminWithAccessToken,
 } from './adminAuth'
-import { isDataUrl, isRemoteAssetUrl, uploadBoothLogo } from './assetStorage'
+import { isDataUrl, isRemoteAssetUrl, uploadBoothLogo, uploadEventAsset } from './assetStorage'
+import { SETTINGS_IMAGE_FIELDS } from '../utils/settingsImageUpload'
 import {
   clearAttendeeAuthSession,
   completeAttendeeAuthSession,
@@ -1293,6 +1294,72 @@ export function usePassportStore() {
     }
   }
 
+  const migrateEmbeddedSettingsImages = async () => {
+    const session = await getActiveAdminSession()
+    const eventId = activeEventIdRef.current
+    const fieldsToMigrate = SETTINGS_IMAGE_FIELDS.filter((field) =>
+      isDataUrl(state.settings?.[field]),
+    )
+
+    if (!fieldsToMigrate.length) {
+      return { ok: true, message: 'No embedded settings images need migration.' }
+    }
+
+    let migrated = 0
+    let failed = 0
+    const settingsPatch = {}
+
+    for (const field of fieldsToMigrate) {
+      try {
+        const url = await uploadEventAsset({
+          eventId,
+          assetType: field,
+          dataUrl: state.settings[field],
+          accessToken: session?.accessToken,
+        })
+
+        if (isRemoteAssetUrl(url)) {
+          settingsPatch[field] = url
+          migrated += 1
+        } else {
+          failed += 1
+        }
+      } catch (error) {
+        console.warn(error)
+        failed += 1
+      }
+    }
+
+    if (migrated === 0) {
+      return {
+        ok: false,
+        message: `Could not migrate settings images${failed ? ` (${failed} failed)` : ''}. Check Supabase Storage setup.`,
+      }
+    }
+
+    updateState(
+      (current) => ({
+        ...current,
+        settings: {
+          ...current.settings,
+          ...settingsPatch,
+        },
+      }),
+      {
+        sharedPatch: () => settingsPatch,
+      },
+    )
+    preserveLocalUntil.current.settings = Date.now() + 15000
+
+    return {
+      ok: failed === 0,
+      message:
+        failed === 0
+          ? `Migrated ${migrated} settings image${migrated === 1 ? '' : 's'} to Storage.`
+          : `Migrated ${migrated} image${migrated === 1 ? '' : 's'}; ${failed} failed.`,
+    }
+  }
+
   const deleteBooth = (boothId) => {
     updateState((current) => ({
       ...current,
@@ -1435,6 +1502,7 @@ export function usePassportStore() {
     resetWinners,
     saveBooth,
     migrateEmbeddedBoothLogos,
+    migrateEmbeddedSettingsImages,
     deleteBooth,
     placeBoothOnMap,
     saveSettings,

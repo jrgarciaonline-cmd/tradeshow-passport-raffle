@@ -10,12 +10,17 @@ import {
   requestAdminPasswordReset,
   updateSupabasePassword,
 } from '../services/adminAuth'
-import { isDataUrl, uploadBoothLogo, uploadEventAsset } from '../services/assetStorage'
+import { isDataUrl, uploadBoothLogo } from '../services/assetStorage'
 import { readOptimizedImageFile } from '../utils/imageUpload'
+import {
+  SETTINGS_IMAGE_FIELDS,
+  uploadSettingsImageField,
+} from '../utils/settingsImageUpload'
 import { getBoothLogoFrameStyle } from '../utils/boothLogoStyles'
 import { PinchZoomMap } from './PinchZoomMap'
 import { AdminToast } from './AdminToast'
 import { BoothQrGenerator } from './BoothQrGenerator'
+import { SettingsImageUploadField } from './SettingsImageUploadField'
 import { WinnerDancerShow } from './WinnerDancerShow'
 import { WinnerConfetti } from './WinnerConfetti'
 
@@ -135,9 +140,16 @@ export function AdminDashboard({ store }) {
   const [boothMessage, setBoothMessage] = useState('')
   const [logoUploadPending, setLogoUploadPending] = useState(false)
   const [migrateLogosPending, setMigrateLogosPending] = useState(false)
+  const [settingsImageUploadPending, setSettingsImageUploadPending] = useState(false)
+  const [migrateSettingsImagesPending, setMigrateSettingsImagesPending] = useState(false)
   const embeddedLogoCount = useMemo(
     () => store.booths.filter((booth) => isDataUrl(booth.logoDataUrl)).length,
     [store.booths],
+  )
+  const embeddedSettingsImageCount = useMemo(
+    () =>
+      SETTINGS_IMAGE_FIELDS.filter((field) => isDataUrl(store.settings?.[field])).length,
+    [store.settings],
   )
 
   const instructionsText = (
@@ -337,11 +349,12 @@ export function AdminDashboard({ store }) {
       })
 
       try {
+        const session = await store.getActiveAdminSession()
         imageDataUrl = await uploadBoothLogo({
           eventId: store.activeEventId,
           boothId: resolveBoothId(draft),
           dataUrl: imageDataUrl,
-          accessToken: store.adminSession?.accessToken,
+          accessToken: session?.accessToken,
         })
       } catch (error) {
         console.warn(error)
@@ -355,28 +368,28 @@ export function AdminDashboard({ store }) {
   }
 
   const uploadSettingsImage = async (field, file) => {
-    if (!file) return
+    if (!file || settingsImageUploadPending) return
 
-    let imageDataUrl = await readOptimizedImageFile(file, {
-      maxWidth: field === 'mapSrc' ? 2400 : 1400,
-      maxHeight: field === 'mapSrc' ? 2400 : 1400,
-      preferJpeg: field === 'mapSrc',
-      quality: 0.84,
-    })
-
+    setSettingsImageUploadPending(true)
     try {
-      imageDataUrl = await uploadEventAsset({
+      const session = await store.getActiveAdminSession()
+      const result = await uploadSettingsImageField({
+        field,
+        file,
         eventId: store.activeEventId,
-        assetType: field,
-        dataUrl: imageDataUrl,
-        accessToken: store.adminSession?.accessToken,
+        accessToken: session?.accessToken,
       })
-    } catch (error) {
-      console.warn(error)
-    }
 
-    store.saveSettings({ [field]: imageDataUrl })
-    setSettingsMessage('Image saved.')
+      if (!result.ok) {
+        setSettingsMessage(result.message)
+        return
+      }
+
+      store.saveSettings({ [field]: result.url })
+      setSettingsMessage('Image saved to Storage.')
+    } finally {
+      setSettingsImageUploadPending(false)
+    }
   }
 
   const saveSettingsFromForm = (form) => {
@@ -1323,44 +1336,63 @@ export function AdminDashboard({ store }) {
                   placeholder="Enter the terms attendees must accept before signing up..."
                 />
               </label>
-              <label className="form-field asset-upload-field">
-                <span>Home screen image</span>
-                <input
-                  type="file"
-                  accept="image/png,image/jpeg,image/jpg"
-                  onChange={(event) =>
-                    uploadSettingsImage('homeImageSrc', event.target.files?.[0])
-                  }
-                />
-                <small>Recommended: 1200 x 700 px PNG/JPG.</small>
-              </label>
-              <label className="form-field asset-upload-field">
-                <span>Raffle completed image</span>
-                <input
-                  type="file"
-                  accept="image/png,image/jpeg,image/jpg"
-                  onChange={(event) =>
-                    uploadSettingsImage('raffleCompleteImageSrc', event.target.files?.[0])
-                  }
-                />
-                <small>Recommended: 1200 x 800 px transparent PNG/JPG.</small>
-              </label>
-              <label className="form-field asset-upload-field">
-                <span>Expo map image</span>
-                <input
-                  type="file"
-                  accept="image/png,image/jpeg,image/jpg"
-                  onChange={(event) =>
-                    uploadSettingsImage('mapSrc', event.target.files?.[0])
-                  }
-                />
-                <small>
-                  Recommended: 3000 x 2000 px or larger PNG/JPG. Keep the same crop
-                  if replacing later so saved booth pins stay aligned.
-                </small>
-              </label>
-              <button type="submit" className="primary">
-                Save Settings
+              {embeddedSettingsImageCount > 0 && (
+                <div className="admin-inline-actions">
+                  <p className="muted">
+                    {embeddedSettingsImageCount} settings image
+                    {embeddedSettingsImageCount === 1 ? '' : 's'} still stored inline in
+                    event data.
+                  </p>
+                  <button
+                    type="button"
+                    className="secondary"
+                    disabled={migrateSettingsImagesPending || settingsImageUploadPending}
+                    onClick={async () => {
+                      setMigrateSettingsImagesPending(true)
+                      try {
+                        const result = await store.migrateEmbeddedSettingsImages()
+                        setSettingsMessage(result.message)
+                      } finally {
+                        setMigrateSettingsImagesPending(false)
+                      }
+                    }}
+                  >
+                    {migrateSettingsImagesPending
+                      ? 'Migrating images…'
+                      : 'Migrate settings images to Storage'}
+                  </button>
+                </div>
+              )}
+              <SettingsImageUploadField
+                label="Home screen image"
+                field="homeImageSrc"
+                currentSrc={store.settings?.homeImageSrc}
+                helpText="Recommended: 1200 x 700 px PNG/JPG."
+                disabled={settingsImageUploadPending}
+                onUpload={(file) => uploadSettingsImage('homeImageSrc', file)}
+              />
+              <SettingsImageUploadField
+                label="Raffle completed image"
+                field="raffleCompleteImageSrc"
+                currentSrc={store.settings?.raffleCompleteImageSrc}
+                helpText="Recommended: 1200 x 800 px transparent PNG/JPG."
+                disabled={settingsImageUploadPending}
+                onUpload={(file) => uploadSettingsImage('raffleCompleteImageSrc', file)}
+              />
+              <SettingsImageUploadField
+                label="Expo map image"
+                field="mapSrc"
+                currentSrc={store.settings?.mapSrc}
+                helpText="Recommended: 3000 x 2000 px or larger PNG/JPG. Keep the same crop if replacing later so saved booth pins stay aligned."
+                disabled={settingsImageUploadPending}
+                onUpload={(file) => uploadSettingsImage('mapSrc', file)}
+              />
+              <button
+                type="submit"
+                className="primary"
+                disabled={settingsImageUploadPending}
+              >
+                {settingsImageUploadPending ? 'Uploading image…' : 'Save Settings'}
               </button>
             </form>
           </section>

@@ -1,6 +1,9 @@
 # Tradeshow Passport Raffle
 
 A React + Vite PWA for tradeshow passport stamp collection and raffle entry.
+Using Ionic Capacitor as a wrapper for mobile app release.
+Supabase for data.
+Vercel for hosting.
 
 ## Environment variables
 

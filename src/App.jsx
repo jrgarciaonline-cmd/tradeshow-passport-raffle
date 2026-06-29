@@ -552,7 +552,10 @@ function App() {
               events={store.events}
               activeEvent={store.activeEvent}
               activeEventId={store.activeEventId}
-              adminAccessToken={store.adminSession?.accessToken}
+              getAdminAccessToken={async () => {
+                const session = await store.getActiveAdminSession()
+                return session?.accessToken ?? null
+              }}
               onSelectEvent={store.selectEvent}
               onSaveEvent={store.saveEvent}
               onDuplicateEvent={store.duplicateEvent}
@@ -560,6 +563,7 @@ function App() {
               onUnarchiveEvent={store.unarchiveEvent}
               onSaveBooth={store.saveBooth}
               onMigrateEmbeddedBoothLogos={store.migrateEmbeddedBoothLogos}
+              onMigrateEmbeddedSettingsImages={store.migrateEmbeddedSettingsImages}
               onDeleteBooth={store.deleteBooth}
               onPlaceBooth={store.placeBoothOnMap}
               onAddRaffleEntry={store.addRaffleEntry}
