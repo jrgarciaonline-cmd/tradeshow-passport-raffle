@@ -1,5 +1,5 @@
 import { Capacitor } from '@capacitor/core'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import './App.css'
 import './glass-theme.css'
 import './passport-background.css'
@@ -59,6 +59,8 @@ function App() {
   const [query, setQuery] = useState('')
   const [category, setCategory] = useState('All')
   const [celebrationKey, setCelebrationKey] = useState('')
+  const [scannerCameraActive, setScannerCameraActive] = useState(false)
+  const profileReturnTab = useRef('Home')
 
   const playCelebration = (keyPrefix = 'manual') => {
     setCelebrationKey(`${keyPrefix}:${Date.now()}`)
@@ -130,6 +132,25 @@ function App() {
   const shouldShowAuth =
     activeMode !== 'admin' && !hasValidAttendeeSession
   const showTopBar = activeMode === 'admin' || !hasValidAttendeeSession
+  const hideBottomNav =
+    hasValidAttendeeSession &&
+    activeMode === 'attendee' &&
+    activeTab === 'QR Scanner' &&
+    scannerCameraActive
+
+  const handleScannerCameraActiveChange = useCallback((active) => {
+    setScannerCameraActive(active)
+  }, [])
+
+  const handleProfileOpen = useCallback(() => {
+    if (activeTab === 'Profile') return
+    profileReturnTab.current = activeTab
+    setActiveTab('Profile')
+  }, [activeTab])
+
+  const handleProfileClose = useCallback(() => {
+    setActiveTab(profileReturnTab.current || 'Home')
+  }, [])
 
   const handleAdminToggle = () => {
     if (activeMode === 'admin') {
@@ -249,6 +270,12 @@ function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- only refresh when opening Map
   }, [activeTab])
 
+  useEffect(() => {
+    if (activeTab !== 'QR Scanner') {
+      setScannerCameraActive(false)
+    }
+  }, [activeTab])
+
   if (isAdminRoute) {
     return <AdminDashboard store={store} />
   }
@@ -260,7 +287,9 @@ function App() {
           hasValidAttendeeSession && activeMode === 'attendee'
             ? 'has-vision-nav'
             : 'no-bottom-nav'
-        }${showTopBar ? '' : ' phone-shell--no-top-bar'}`}
+        }${hideBottomNav ? ' phone-shell--nav-hidden' : ''}${
+          showTopBar ? '' : ' phone-shell--no-top-bar'
+        }`}
         aria-label="Trade show passport app"
       >
         <ConfettiOverlay
@@ -340,14 +369,16 @@ function App() {
                 }
               />
             )}
-            <button
-              type="button"
-              className="icon-button app-float-button"
-              aria-label="Open profile"
-              onClick={() => setActiveTab('Profile')}
-            >
-              <NavIcon name="profile" size={18} />
-            </button>
+            {activeTab === 'Home' && (
+              <button
+                type="button"
+                className="icon-button app-float-button app-float-button--profile"
+                aria-label="Open profile"
+                onClick={handleProfileOpen}
+              >
+                <NavIcon name="profile" size={22} />
+              </button>
+            )}
           </div>
         )}
         {offlineSyncMessage && (
@@ -356,7 +387,11 @@ function App() {
           </div>
         )}
 
-        <div className={`app-content${activeTab === 'Map' ? ' is-map-view' : ''}`}>
+        <div
+          className={`app-content${
+            activeTab === 'Map' ? ' is-map-view' : ''
+          }${hideBottomNav ? ' is-scanner-camera' : ''}`}
+        >
           {shouldShowAuth && (
             <AuthScreen
               activeEvent={attendeeActiveEvent}
@@ -516,6 +551,7 @@ function App() {
             <ProfilePanel
               attendee={store.currentAttendee}
               onSignOut={handleSignOut}
+              onClose={handleProfileClose}
             />
           )}
 
@@ -537,6 +573,7 @@ function App() {
               onScan={handleScan}
               onGoHome={() => setActiveTab('Home')}
               onGoMap={() => setActiveTab('Map')}
+              onCameraActiveChange={handleScannerCameraActiveChange}
             />
           )}
 
@@ -579,7 +616,13 @@ function App() {
         </div>
 
         {hasValidAttendeeSession && activeMode === 'attendee' && (
-          <nav className="bottom-nav bottom-nav--vision" aria-label="Attendee views">
+          <nav
+            className={`bottom-nav bottom-nav--vision${
+              hideBottomNav ? ' bottom-nav--hidden' : ''
+            }`}
+            aria-label="Attendee views"
+            aria-hidden={hideBottomNav}
+          >
             {leftNavTabs.map((tab) => (
               <button
                 type="button"

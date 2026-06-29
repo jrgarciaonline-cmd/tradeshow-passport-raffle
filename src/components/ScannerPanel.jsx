@@ -4,7 +4,7 @@ import { getBoothLogoFrameStyle } from '../utils/boothLogoStyles'
 
 const CAMERA_GRANTED_KEY = 'passport-camera-granted'
 
-export function ScannerPanel({ onScan, onGoHome, onGoMap }) {
+export function ScannerPanel({ onScan, onGoHome, onGoMap, onCameraActiveChange }) {
   const videoRef = useRef(null)
   const canvasRef = useRef(document.createElement('canvas'))
   const streamRef = useRef(null)
@@ -205,8 +205,13 @@ export function ScannerPanel({ onScan, onGoHome, onGoMap }) {
 
   useEffect(() => stopCamera, [stopCamera])
 
+  useEffect(() => {
+    onCameraActiveChange?.(cameraActive)
+    return () => onCameraActiveChange?.(false)
+  }, [cameraActive, onCameraActiveChange])
+
   return (
-    <section className="scanner-panel">
+    <section className={`scanner-panel${cameraActive ? ' is-camera-active' : ''}`}>
       <div>
         <h2>Scan the QR Code</h2>
       </div>

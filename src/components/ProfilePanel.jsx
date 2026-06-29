@@ -1,7 +1,17 @@
-export function ProfilePanel({ attendee, onSignOut }) {
+export function ProfilePanel({ attendee, onSignOut, onClose }) {
   if (!attendee) {
     return (
       <section className="profile-panel">
+        <header className="profile-panel-header">
+          <button
+            type="button"
+            className="profile-back-button"
+            onClick={onClose}
+            aria-label="Back"
+          >
+            ‹ Back
+          </button>
+        </header>
         <p className="empty-state">No profile information available.</p>
       </section>
     )
@@ -9,7 +19,17 @@ export function ProfilePanel({ attendee, onSignOut }) {
 
   return (
     <section className="profile-panel">
-      <h2>Profile</h2>
+      <header className="profile-panel-header">
+        <button
+          type="button"
+          className="profile-back-button"
+          onClick={onClose}
+          aria-label="Back"
+        >
+          ‹ Back
+        </button>
+        <h2>Profile</h2>
+      </header>
       <dl className="profile-details">
         <div>
           <dt>Name</dt>
