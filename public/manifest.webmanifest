@@ -4,13 +4,49 @@
   "description": "A mobile-first trade show passport raffle mockup.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#f4f1eb",
+  "background_color": "#007b70",
   "theme_color": "#007b70",
   "icons": [
     {
-      "src": "/pwa-icon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
+      "src": "/assets/icons/icon-48.webp",
+      "type": "image/webp",
+      "sizes": "48x48",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/assets/icons/icon-72.webp",
+      "type": "image/webp",
+      "sizes": "72x72",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/assets/icons/icon-96.webp",
+      "type": "image/webp",
+      "sizes": "96x96",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/assets/icons/icon-128.webp",
+      "type": "image/webp",
+      "sizes": "128x128",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/assets/icons/icon-192.webp",
+      "type": "image/webp",
+      "sizes": "192x192",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/assets/icons/icon-256.webp",
+      "type": "image/webp",
+      "sizes": "256x256",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/assets/icons/icon-512.webp",
+      "type": "image/webp",
+      "sizes": "512x512",
       "purpose": "any maskable"
     }
   ]

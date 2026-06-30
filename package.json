@@ -11,6 +11,7 @@
     "backfill:normalized": "node scripts/backfill-normalized-schema.mjs",
     "load-test:scans": "node scripts/load-test-scans.mjs",
     "build": "vite build",
+    "assets:generate": "node scripts/generate-native-assets.mjs",
     "env:mobile": "node scripts/prepare-mobile-env.mjs",
     "build:mobile": "node scripts/check-mobile-env.mjs && vite build && cap sync",
     "open:android": "cap open android",
@@ -30,6 +31,7 @@
     "react-dom": "^19.2.6"
   },
   "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
     "@eslint/js": "^10.0.1",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",

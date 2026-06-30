@@ -3,6 +3,7 @@ import { resolveApiUrl } from './apiBaseUrl'
 import { readAttendeeAuthSession } from './attendeeAuth'
 import { BUNDLED_HOME_IMAGE_SRC } from '../utils/homeImageSrc'
 import { getUploadedAssetTimestamp } from '../utils/mapSrc'
+import { phonesMatch } from '../utils/phone'
 
 const STORAGE_KEY = 'tradeshow-passport-raffle-v2'
 const SESSION_STORAGE_KEY = 'tradeshow-passport-session-v1'
@@ -310,6 +311,76 @@ async function getReadContext(overrides = {}) {
   return { adminAccessToken, attendeeAccessToken }
 }
 
+function normalizeEmail(email) {
+  return String(email ?? '').trim().toLowerCase()
+}
+
+function findAttendeeInSharedState(sharedState, { email, phone, attendeeId }) {
+  const attendees = sharedState?.attendees ?? []
+
+  if (attendeeId) {
+    return attendees.find((item) => item.id === attendeeId) ?? null
+  }
+
+  const normalizedEmail = normalizeEmail(email)
+  return (
+    attendees.find(
+      (item) =>
+        normalizeEmail(item.email) === normalizedEmail && phonesMatch(item.phone, phone),
+    ) ?? null
+  )
+}
+
+function buildAttendeeSessionFromSharedState(sharedState, attendee) {
+  const completedIds = sharedState?.attendeeProgress?.[attendee.id] ?? []
+
+  return {
+    ok: true,
+    attendee,
+    completedIds,
+    attendeeProgress: completedIds.length ? { [attendee.id]: completedIds } : {},
+    attendeeLocation: sharedState?.attendeeLocation?.[attendee.id]
+      ? { [attendee.id]: sharedState.attendeeLocation[attendee.id] }
+      : {},
+  }
+}
+
+async function loadAttendeeSessionFromRemote(eventId, criteria) {
+  const sharedState = await loadRemoteSharedLegacy(eventId)
+  if (!sharedState) {
+    return { ok: false, message: 'Unable to load event registration data.' }
+  }
+
+  const attendee = findAttendeeInSharedState(sharedState, criteria)
+  if (!attendee) {
+    return {
+      ok: false,
+      message: criteria.attendeeId
+        ? 'No saved passport was found for this session.'
+        : 'No attendee found with that email and phone number.',
+    }
+  }
+
+  return buildAttendeeSessionFromSharedState(sharedState, attendee)
+}
+
+async function saveSharedPatchDirect(patch, eventId = DEFAULT_EVENT_ID) {
+  const sharedState = await loadRemoteShared(eventId)
+  const nextSharedState = mergeSharedPatch(sharedState, patch)
+
+  await requestSupabase(`${SUPABASE_TABLE}?on_conflict=id`, {
+    method: 'POST',
+    headers: {
+      Prefer: 'resolution=merge-duplicates,return=minimal',
+    },
+    body: JSON.stringify({
+      id: getSharedRowId(eventId),
+      data: nextSharedState,
+      updated_at: new Date().toISOString(),
+    }),
+  })
+}
+
 async function requestWriteProxy(body, options = {}) {
   const adminAccessToken = options.adminAccessToken ?? (await adminAccessTokenGetter())
   const headers = {
@@ -331,10 +402,23 @@ async function requestWriteProxy(body, options = {}) {
       signal: controller.signal,
     })
 
-    const result = await response.json().catch(() => ({
-      ok: false,
-      message: 'Write proxy returned an invalid response.',
-    }))
+    const responseText = await response.text()
+    let result
+
+    try {
+      result = responseText
+        ? JSON.parse(responseText)
+        : { ok: false, message: 'Write API returned an empty response.' }
+    } catch {
+      const preview = responseText.slice(0, 160).replace(/\s+/g, ' ').trim()
+      const error = new Error(
+        preview
+          ? `Write API returned an unexpected response (${response.status}): ${preview}`
+          : `Write API returned an unexpected response (${response.status}). Confirm VITE_API_BASE_URL points at your deployed Vercel app with /api/passport-write enabled.`,
+      )
+      error.status = response.status
+      throw error
+    }
 
     if (!response.ok || !result.ok) {
       const error = new Error(result.message || `Write proxy failed: ${response.status}`)
@@ -1141,20 +1225,21 @@ export const passportRepository = {
     }
   },
   async verifyAttendeeSignIn({ eventId, email, phone }) {
-    if (!isWriteProxyEnabled()) {
-      return {
-        ok: false,
-        message: 'Server sign-in verification is unavailable.',
+    if (isWriteProxyEnabled()) {
+      try {
+        return await requestWriteProxy({
+          action: 'verify_attendee_signin',
+          eventId,
+          email,
+          phone,
+        })
+      } catch (error) {
+        console.warn('Write proxy sign-in failed, falling back to Supabase read.', error)
       }
     }
 
     try {
-      return await requestWriteProxy({
-        action: 'verify_attendee_signin',
-        eventId,
-        email,
-        phone,
-      })
+      return await loadAttendeeSessionFromRemote(eventId, { email, phone })
     } catch (error) {
       return {
         ok: false,
@@ -1163,19 +1248,20 @@ export const passportRepository = {
     }
   },
   async restoreAttendeeSession({ eventId, attendeeId }) {
-    if (!isWriteProxyEnabled()) {
-      return {
-        ok: false,
-        message: 'Server session restore is unavailable.',
+    if (isWriteProxyEnabled()) {
+      try {
+        return await requestWriteProxy({
+          action: 'restore_attendee_session',
+          eventId,
+          attendeeId,
+        })
+      } catch (error) {
+        console.warn('Write proxy session restore failed, falling back to Supabase read.', error)
       }
     }
 
     try {
-      return await requestWriteProxy({
-        action: 'restore_attendee_session',
-        eventId,
-        attendeeId,
-      })
+      return await loadAttendeeSessionFromRemote(eventId, { attendeeId })
     } catch (error) {
       return {
         ok: false,
@@ -1213,30 +1299,24 @@ export const passportRepository = {
   async saveSharedPatch(patch, eventId = DEFAULT_EVENT_ID, options = {}) {
     try {
       if (isWriteProxyEnabled()) {
-        await requestWriteProxy({
-          action: 'patch',
-          eventId,
-          patch,
-          scanToken: options.scanToken,
-          idempotencyKey: options.idempotencyKey,
-        })
-        return { ok: true, queued: false }
+        try {
+          await requestWriteProxy({
+            action: 'patch',
+            eventId,
+            patch,
+            scanToken: options.scanToken,
+            idempotencyKey: options.idempotencyKey,
+          })
+          return { ok: true, queued: false }
+        } catch (proxyError) {
+          console.warn(
+            'Write proxy save failed, falling back to direct Supabase save.',
+            proxyError,
+          )
+        }
       }
 
-      const sharedState = await loadRemoteShared(eventId)
-      const nextSharedState = mergeSharedPatch(sharedState, patch)
-
-      await requestSupabase(`${SUPABASE_TABLE}?on_conflict=id`, {
-        method: 'POST',
-        headers: {
-          Prefer: 'resolution=merge-duplicates,return=minimal',
-        },
-        body: JSON.stringify({
-          id: getSharedRowId(eventId),
-          data: nextSharedState,
-          updated_at: new Date().toISOString(),
-        }),
-      })
+      await saveSharedPatchDirect(patch, eventId)
       return { ok: true, queued: false }
     } catch (error) {
       console.warn(error)

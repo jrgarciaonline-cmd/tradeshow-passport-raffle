@@ -64,6 +64,12 @@ MARKETING_VERSION = 1.0;
 
 ### Step 2 — Build web + sync to iOS
 
+If you changed `public/appstore.png`, regenerate native icons first:
+
+```bash
+npm run assets:generate
+```
+
 ```bash
 cd /Users/forrestt/Sites/tradeshow-passport-raffle
 npm run build:mobile
