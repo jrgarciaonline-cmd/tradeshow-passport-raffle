@@ -183,16 +183,6 @@ export function AuthScreen({
           />
         </div>
       </button>
-      <div>
-        <h1>Passport Raffle</h1>
-        <p>
-          {noAvailableEvents
-            ? 'No passport raffle events are available right now.'
-            : activeEvent?.name
-            ? activeEvent.name
-            : 'Scan your badge to collect booth stamps and unlock your raffle entry.'}
-        </p>
-      </div>
 
       {noAvailableEvents && currentView !== 'admin' && (
         <div className="no-events-card">

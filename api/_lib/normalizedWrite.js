@@ -98,7 +98,7 @@ function attendeeToRow(eventId, attendee) {
     event_id: eventId,
     name: attendee.name ?? '',
     email: String(attendee.email ?? '').trim().toLowerCase(),
-    phone: attendee.phone ?? '',
+    phone: String(attendee.phone ?? '').trim(),
     role: attendee.role ?? '',
     terms_accepted_at: attendee.acceptedTermsAt ?? attendee.createdAt ?? null,
     created_at: attendee.createdAt ?? new Date().toISOString(),
@@ -263,7 +263,15 @@ export async function dualWritePatch(eventId, patch, mergedState) {
   if (patch.attendees?.length) {
     const attendeeRows = patch.attendees
       .filter((attendee) => isUuid(attendee.id))
-      .map((attendee) => attendeeToRow(eventId, attendee))
+      .map((patchAttendee) => {
+        const mergedAttendee = mergedState.attendees?.find(
+          (item) =>
+            item.id === patchAttendee.id ||
+            String(item.email ?? '').trim().toLowerCase() ===
+              String(patchAttendee.email ?? '').trim().toLowerCase(),
+        )
+        return attendeeToRow(eventId, { ...(mergedAttendee ?? {}), ...patchAttendee })
+      })
     if (attendeeRows.length) {
       await upsertRows('attendees', dedupeByEmail(attendeeRows), 'event_id,email')
     }

@@ -23,6 +23,7 @@ import {
 import { lookupBadgeLead } from './badgeLookup'
 import { passportRepository, setAdminAccessTokenGetter } from './passportRepository'
 import { parseScanInput } from '../utils/scanToken'
+import { phonesMatch } from '../utils/phone'
 
 function normalizeSignupCode(value) {
   return String(value ?? '').trim().toLowerCase()
@@ -182,12 +183,50 @@ export function usePassportStore() {
 
     let cancelled = false
 
+    const hydrateAttendeeSession = async (nextState) => {
+      if (
+        nextState.session?.type !== 'attendee' ||
+        !nextState.session.attendeeId ||
+        nextState.attendees.some((item) => item.id === nextState.session.attendeeId) ||
+        !passportRepository.isWriteProxyEnabled()
+      ) {
+        return nextState
+      }
+
+      const restored = await passportRepository.restoreAttendeeSession({
+        eventId: nextState.activeEventId,
+        attendeeId: nextState.session.attendeeId,
+      })
+
+      if (!restored.ok || !restored.attendee) {
+        return nextState
+      }
+
+      return {
+        ...nextState,
+        attendees: [
+          ...nextState.attendees.filter((item) => item.id !== restored.attendee.id),
+          restored.attendee,
+        ],
+        completedIds: restored.completedIds ?? [],
+        attendeeProgress: {
+          ...nextState.attendeeProgress,
+          ...(restored.attendeeProgress ?? {}),
+        },
+        attendeeLocation: {
+          ...nextState.attendeeLocation,
+          ...(restored.attendeeLocation ?? {}),
+        },
+      }
+    }
+
     passportRepository
       .bootstrapFromRemote(activeEventIdRef.current)
-      .then((next) => {
+      .then(async (next) => {
         if (cancelled) return
-        passportRepository.save(next)
-        setState(next)
+        const resolved = await hydrateAttendeeSession(next)
+        passportRepository.save(resolved)
+        setState(resolved)
       })
       .catch((error) => {
         console.warn(error)
@@ -500,7 +539,7 @@ export function usePassportStore() {
     return saveEvent({ ...event, status: 'hidden' })
   }
 
-  const registerAttendee = (profile) => {
+  const registerAttendee = async (profile) => {
     const email = normalizeEmail(profile.email)
     const role =
       profile.role === 'Other' ? profile.otherRole.trim() : profile.role.trim()
@@ -523,6 +562,7 @@ export function usePassportStore() {
       role,
       signupMethod: 'manual',
     })
+    const eventId = activeEventIdRef.current
 
     updateState((current) => ({
       ...current,
@@ -532,10 +572,30 @@ export function usePassportStore() {
       ],
       session: { type: 'attendee', attendeeId: attendee.id },
       completedIds: current.attendeeProgress[attendee.id] ?? [],
-    }), { sharedPatch: { attendees: [attendee] } })
+    }))
+
+    const saveResult = await passportRepository.saveSharedPatch(
+      { attendees: [attendee] },
+      eventId,
+    )
+
+    if (!saveResult.ok && !saveResult.queued) {
+      updateState((current) => ({
+        ...current,
+        session: null,
+        attendees: current.attendees.filter((item) => item.id !== attendee.id),
+        completedIds: [],
+      }))
+      return {
+        ok: false,
+        message:
+          saveResult.message ||
+          'Registration could not be saved. Check your connection and try again.',
+      }
+    }
 
     if (isAttendeeAuthEnabled()) {
-      sendAttendeeMagicLink(email, state.activeEventId).catch((error) => {
+      sendAttendeeMagicLink(email, eventId).catch((error) => {
         console.warn(error)
       })
       return {
@@ -547,7 +607,7 @@ export function usePassportStore() {
     return { ok: true, message: `Welcome, ${attendee.name}.` }
   }
 
-  const registerAttendeeFromBadge = (profile) => {
+  const registerAttendeeFromBadge = async (profile) => {
     const email = normalizeEmail(profile.email)
     const signupValidation = validateEventSignupCode(activeEvent, profile.signupCode)
     if (!signupValidation.ok) return signupValidation
@@ -574,6 +634,7 @@ export function usePassportStore() {
       badgeBarcode: profile.badgeBarcode,
       signupMethod: 'badge',
     })
+    const eventId = activeEventIdRef.current
 
     updateState((current) => ({
       ...current,
@@ -583,7 +644,27 @@ export function usePassportStore() {
       ],
       session: { type: 'attendee', attendeeId: attendee.id },
       completedIds: current.attendeeProgress[attendee.id] ?? [],
-    }), { sharedPatch: { attendees: [attendee] } })
+    }))
+
+    const saveResult = await passportRepository.saveSharedPatch(
+      { attendees: [attendee] },
+      eventId,
+    )
+
+    if (!saveResult.ok && !saveResult.queued) {
+      updateState((current) => ({
+        ...current,
+        session: null,
+        attendees: current.attendees.filter((item) => item.id !== attendee.id),
+        completedIds: [],
+      }))
+      return {
+        ok: false,
+        message:
+          saveResult.message ||
+          'Registration could not be saved. Check your connection and try again.',
+      }
+    }
 
     return { ok: true, message: `Welcome, ${attendee.name}.` }
   }
@@ -592,7 +673,7 @@ export function usePassportStore() {
     return lookupBadgeLead({ eventId, signupCode, barcode })
   }
 
-  const signInAttendee = ({ email, phone }) => {
+  const signInAttendee = async ({ email, phone }) => {
     if (isAttendeeAuthEnabled()) {
       return {
         ok: false,
@@ -601,11 +682,35 @@ export function usePassportStore() {
     }
 
     const normalizedEmail = normalizeEmail(email)
-    const attendee = state.attendees.find(
-      (item) =>
-        item.email === normalizedEmail &&
-        item.phone.replace(/\D/g, '') === phone.replace(/\D/g, ''),
-    )
+    let attendee = null
+    let completedIds = []
+    let attendeeProgress = {}
+    let attendeeLocation = {}
+
+    if (passportRepository.isWriteProxyEnabled()) {
+      const result = await passportRepository.verifyAttendeeSignIn({
+        eventId: state.activeEventId,
+        email: normalizedEmail,
+        phone,
+      })
+
+      if (result.ok && result.attendee) {
+        attendee = result.attendee
+        completedIds = result.completedIds ?? []
+        attendeeProgress = result.attendeeProgress ?? {}
+        attendeeLocation = result.attendeeLocation ?? {}
+      } else if (!result.ok) {
+        return result
+      }
+    }
+
+    if (!attendee) {
+      attendee = state.attendees.find(
+        (item) =>
+          item.email === normalizedEmail && phonesMatch(item.phone, phone),
+      )
+      completedIds = attendee ? state.attendeeProgress[attendee.id] ?? [] : []
+    }
 
     if (!attendee) {
       return {
@@ -614,10 +719,31 @@ export function usePassportStore() {
       }
     }
 
+    const trimmedPhone = String(phone ?? '').trim()
+    if (trimmedPhone && !String(attendee.phone ?? '').trim()) {
+      attendee = { ...attendee, phone: trimmedPhone }
+      await passportRepository.saveSharedPatch(
+        { attendees: [attendee] },
+        state.activeEventId,
+      )
+    }
+
     updateState((current) => ({
       ...current,
+      attendees: [
+        ...current.attendees.filter((item) => item.id !== attendee.id),
+        attendee,
+      ],
       session: { type: 'attendee', attendeeId: attendee.id },
-      completedIds: current.attendeeProgress[attendee.id] ?? [],
+      completedIds,
+      attendeeProgress: {
+        ...current.attendeeProgress,
+        ...attendeeProgress,
+      },
+      attendeeLocation: {
+        ...current.attendeeLocation,
+        ...attendeeLocation,
+      },
     }))
 
     return { ok: true, message: `Welcome back, ${attendee.name}.` }

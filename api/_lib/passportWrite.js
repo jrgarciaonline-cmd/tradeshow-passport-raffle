@@ -113,6 +113,16 @@ function normalizeEmail(email) {
   return String(email ?? '').trim().toLowerCase()
 }
 
+function normalizePhone(value) {
+  return String(value ?? '').replace(/\D/g, '')
+}
+
+function phonesMatch(left, right) {
+  const normalizedLeft = normalizePhone(left)
+  const normalizedRight = normalizePhone(right)
+  return Boolean(normalizedLeft && normalizedRight && normalizedLeft === normalizedRight)
+}
+
 function validateAttendeeRecord(attendee) {
   const email = normalizeEmail(attendee?.email)
   const name = String(attendee?.name ?? '').trim()
@@ -351,6 +361,64 @@ export async function applyValidatedPatch({
   }
 
   return nextSharedState
+}
+
+function buildAttendeeSessionPayload(sharedState, attendee) {
+  const completedIds = sharedState?.attendeeProgress?.[attendee.id] ?? []
+
+  return {
+    attendee,
+    completedIds,
+    attendeeProgress: completedIds.length ? { [attendee.id]: completedIds } : {},
+    attendeeLocation: sharedState?.attendeeLocation?.[attendee.id]
+      ? { [attendee.id]: sharedState.attendeeLocation[attendee.id] }
+      : {},
+  }
+}
+
+export async function verifyAttendeeSignIn({ eventId, email, phone }) {
+  const normalizedEmail = normalizeEmail(email)
+  const normalizedPhone = normalizePhone(phone)
+
+  if (!eventId || !normalizedEmail || !normalizedPhone) {
+    const error = new Error('Email and phone number are required.')
+    error.status = 400
+    throw error
+  }
+
+  const sharedState = await loadSharedState(eventId)
+  const attendee = sharedState?.attendees?.find(
+    (item) =>
+      normalizeEmail(item.email) === normalizedEmail &&
+      phonesMatch(item.phone, normalizedPhone),
+  )
+
+  if (!attendee) {
+    const error = new Error('No attendee found with that email and phone number.')
+    error.status = 404
+    throw error
+  }
+
+  return buildAttendeeSessionPayload(sharedState, attendee)
+}
+
+export async function restoreAttendeeSession({ eventId, attendeeId }) {
+  if (!eventId || !attendeeId) {
+    const error = new Error('eventId and attendeeId are required.')
+    error.status = 400
+    throw error
+  }
+
+  const sharedState = await loadSharedState(eventId)
+  const attendee = sharedState?.attendees?.find((item) => item.id === attendeeId)
+
+  if (!attendee) {
+    const error = new Error('No saved passport was found for this session.')
+    error.status = 404
+    throw error
+  }
+
+  return buildAttendeeSessionPayload(sharedState, attendee)
 }
 
 export async function getAuthUser(accessToken) {

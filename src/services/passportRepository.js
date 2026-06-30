@@ -723,7 +723,7 @@ function mergeSharedState(state, sharedState, options = {}) {
         : state.booths,
     entries: Array.isArray(sharedState.entries) ? sharedState.entries : state.entries,
     winners: Array.isArray(sharedState.winners) ? sharedState.winners : state.winners,
-    attendees: Array.isArray(sharedState.attendees)
+    attendees: sharedState.attendees?.length
       ? sharedState.attendees
       : state.attendees,
     attendeeProgress,
@@ -1092,6 +1092,9 @@ export const passportRepository = {
     writeState(state)
   },
   isCloudFirstEnabled,
+  isWriteProxyEnabled() {
+    return isWriteProxyEnabled()
+  },
   bundledHomeImageSrc: BUNDLED_HOME_IMAGE_SRC,
   bootstrapFromRemote,
   mergeShared(state, sharedState, options) {
@@ -1135,6 +1138,49 @@ export const passportRepository = {
     } catch (error) {
       console.warn(error)
       return null
+    }
+  },
+  async verifyAttendeeSignIn({ eventId, email, phone }) {
+    if (!isWriteProxyEnabled()) {
+      return {
+        ok: false,
+        message: 'Server sign-in verification is unavailable.',
+      }
+    }
+
+    try {
+      return await requestWriteProxy({
+        action: 'verify_attendee_signin',
+        eventId,
+        email,
+        phone,
+      })
+    } catch (error) {
+      return {
+        ok: false,
+        message: error.message || 'Unable to verify sign-in.',
+      }
+    }
+  },
+  async restoreAttendeeSession({ eventId, attendeeId }) {
+    if (!isWriteProxyEnabled()) {
+      return {
+        ok: false,
+        message: 'Server session restore is unavailable.',
+      }
+    }
+
+    try {
+      return await requestWriteProxy({
+        action: 'restore_attendee_session',
+        eventId,
+        attendeeId,
+      })
+    } catch (error) {
+      return {
+        ok: false,
+        message: error.message || 'Unable to restore session.',
+      }
     }
   },
   isNormalizedReadsEnabled,
@@ -1201,7 +1247,7 @@ export const passportRepository = {
         })
         return { ok: false, queued: true }
       }
-      return { ok: false, queued: false }
+      return { ok: false, queued: false, message: error.message || 'Unable to save changes.' }
     }
   },
   async recordScan({

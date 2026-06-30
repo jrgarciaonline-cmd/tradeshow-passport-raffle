@@ -5,8 +5,10 @@ import {
   getRequestingAdmin,
   loadEventIndex,
   loadSharedState,
+  restoreAttendeeSession,
   saveEventIndex,
   saveSharedState,
+  verifyAttendeeSignIn,
 } from './_lib/passportWrite.js'
 import { enforceBodySize } from './_lib/requestBody.js'
 import { enforceRateLimit, getClientIp } from './_lib/rateLimit.js'
@@ -24,6 +26,11 @@ const PUBLIC_WRITE_RATE_LIMIT = {
 
 const ATTENDEE_AUTH_RATE_LIMIT = {
   limit: 20,
+  windowMs: 60 * 1000,
+}
+
+const ATTENDEE_SIGNIN_RATE_LIMIT = {
+  limit: 30,
   windowMs: 60 * 1000,
 }
 
@@ -121,6 +128,59 @@ export default async function handler(request, response) {
       }
 
       const result = await completeAttendeeAuth({ eventId, accessToken })
+      sendJson(response, 200, { ok: true, ...result })
+      return
+    }
+
+    if (action === 'verify_attendee_signin') {
+      const eventId = String(body.eventId ?? '').trim()
+      const email = String(body.email ?? '')
+      const phone = String(body.phone ?? '')
+
+      if (!eventId || !email.trim() || !phone.trim()) {
+        sendJson(response, 400, {
+          ok: false,
+          message: 'eventId, email, and phone are required.',
+        })
+        return
+      }
+
+      if (
+        !enforceRateLimit(response, {
+          key: `verify-attendee-signin:${clientIp}`,
+          ...ATTENDEE_SIGNIN_RATE_LIMIT,
+        })
+      ) {
+        return
+      }
+
+      const result = await verifyAttendeeSignIn({ eventId, email, phone })
+      sendJson(response, 200, { ok: true, ...result })
+      return
+    }
+
+    if (action === 'restore_attendee_session') {
+      const eventId = String(body.eventId ?? '').trim()
+      const attendeeId = String(body.attendeeId ?? '').trim()
+
+      if (!eventId || !attendeeId) {
+        sendJson(response, 400, {
+          ok: false,
+          message: 'eventId and attendeeId are required.',
+        })
+        return
+      }
+
+      if (
+        !enforceRateLimit(response, {
+          key: `restore-attendee-session:${clientIp}`,
+          ...ATTENDEE_SIGNIN_RATE_LIMIT,
+        })
+      ) {
+        return
+      }
+
+      const result = await restoreAttendeeSession({ eventId, attendeeId })
       sendJson(response, 200, { ok: true, ...result })
       return
     }

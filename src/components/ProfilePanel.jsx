@@ -39,6 +39,10 @@ export function ProfilePanel({ attendee, onSignOut, onClose }) {
           <dt>Email address</dt>
           <dd>{attendee.email}</dd>
         </div>
+        <div>
+          <dt>Phone number</dt>
+          <dd>{attendee.phone?.trim() || 'Not provided'}</dd>
+        </div>
       </dl>
       <button type="button" className="primary profile-sign-out" onClick={onSignOut}>
         Log out
