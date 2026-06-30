@@ -1284,6 +1284,30 @@ button:disabled {
   object-fit: contain;
 }
 
+.home-image-frame__loading {
+  width: min(80vw, 240px);
+  aspect-ratio: 4 / 3;
+  border-radius: 12px;
+  background: linear-gradient(
+    90deg,
+    rgba(0, 0, 0, 0.04) 0%,
+    rgba(0, 0, 0, 0.08) 50%,
+    rgba(0, 0, 0, 0.04) 100%
+  );
+  background-size: 200% 100%;
+  animation: home-image-loading 1.2s ease-in-out infinite;
+}
+
+@keyframes home-image-loading {
+  0% {
+    background-position: 100% 0;
+  }
+
+  100% {
+    background-position: -100% 0;
+  }
+}
+
 .drawing-card.booth-visit-progress {
   justify-self: center;
   width: min(100%, 320px);
@@ -1627,19 +1651,25 @@ button:disabled {
 }
 
 .auth-logo-button {
-  width: min(260px, 84%);
+  display: block;
+  width: 100%;
   height: auto;
   min-height: 0;
-  justify-self: center;
+  justify-self: stretch;
   border: 0;
   padding: 0;
   background: transparent;
   cursor: default;
 }
 
-.auth-logo-button .auth-logo {
-  width: 100%;
-  max-height: 78px;
+.auth-home-image-frame {
+  margin: 0;
+  min-height: 120px;
+}
+
+.auth-home-image-frame img {
+  width: min(80vw, 320px);
+  max-width: 88%;
 }
 
 .auth-screen.no-events {

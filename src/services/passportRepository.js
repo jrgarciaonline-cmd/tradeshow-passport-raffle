@@ -1,10 +1,12 @@
 import { defaultBoothCategories, defaultBooths, defaultInstructions } from '../data/mockData'
 import { resolveApiUrl } from './apiBaseUrl'
 import { readAttendeeAuthSession } from './attendeeAuth'
+import { BUNDLED_HOME_IMAGE_SRC } from '../utils/homeImageSrc'
 import { getUploadedAssetTimestamp } from '../utils/mapSrc'
 
 const STORAGE_KEY = 'tradeshow-passport-raffle-v2'
 const SESSION_STORAGE_KEY = 'tradeshow-passport-session-v1'
+const ASSET_SETTINGS_CACHE_KEY = 'tradeshow-passport-asset-settings-v1'
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY
 const SUPABASE_TABLE = 'passport_state'
@@ -353,6 +355,75 @@ async function requestWriteProxy(body, options = {}) {
   }
 }
 
+function isCachedRemoteAssetUrl(value) {
+  return (
+    typeof value === 'string' &&
+    (value.startsWith('http://') || value.startsWith('https://'))
+  )
+}
+
+function readAssetSettingsCache(eventId = DEFAULT_EVENT_ID) {
+  try {
+    const stored = window.localStorage.getItem(ASSET_SETTINGS_CACHE_KEY)
+    if (!stored) return {}
+
+    const parsed = JSON.parse(stored)
+    const cached = parsed?.[eventId]
+    if (!cached || typeof cached !== 'object') return {}
+
+    return {
+      ...(isCachedRemoteAssetUrl(cached.homeImageSrc)
+        ? { homeImageSrc: cached.homeImageSrc }
+        : {}),
+      ...(isCachedRemoteAssetUrl(cached.mapSrc) ? { mapSrc: cached.mapSrc } : {}),
+      ...(isCachedRemoteAssetUrl(cached.raffleCompleteImageSrc)
+        ? { raffleCompleteImageSrc: cached.raffleCompleteImageSrc }
+        : {}),
+    }
+  } catch {
+    return {}
+  }
+}
+
+function writeAssetSettingsCache(eventId, settings = {}) {
+  if (!eventId || !settings) return
+
+  const nextEntry = {
+    homeImageSrc: isCachedRemoteAssetUrl(settings.homeImageSrc)
+      ? settings.homeImageSrc
+      : '',
+    mapSrc: isCachedRemoteAssetUrl(settings.mapSrc) ? settings.mapSrc : '',
+    raffleCompleteImageSrc: isCachedRemoteAssetUrl(settings.raffleCompleteImageSrc)
+      ? settings.raffleCompleteImageSrc
+      : '',
+  }
+
+  if (
+    !nextEntry.homeImageSrc &&
+    !nextEntry.mapSrc &&
+    !nextEntry.raffleCompleteImageSrc
+  ) {
+    return
+  }
+
+  try {
+    const stored = window.localStorage.getItem(ASSET_SETTINGS_CACHE_KEY)
+    const parsed = stored ? JSON.parse(stored) : {}
+    window.localStorage.setItem(
+      ASSET_SETTINGS_CACHE_KEY,
+      JSON.stringify({
+        ...parsed,
+        [eventId]: {
+          ...(parsed?.[eventId] ?? {}),
+          ...nextEntry,
+        },
+      }),
+    )
+  } catch {
+    // Ignore cache write failures.
+  }
+}
+
 function readSessionSlice() {
   try {
     const stored = window.localStorage.getItem(SESSION_STORAGE_KEY)
@@ -388,6 +459,8 @@ function writeSessionSlice(state) {
       adminSession,
     }),
   )
+
+  writeAssetSettingsCache(state.activeEventId, state.settings)
 }
 
 function sanitizeAppState(state) {
@@ -416,6 +489,8 @@ function loadLocalShell() {
   const sessionSlice = readSessionSlice()
   const activeEventId = sessionSlice?.activeEventId ?? DEFAULT_EVENT_ID
 
+  const cachedAssetSettings = readAssetSettingsCache(activeEventId)
+
   return sanitizeAppState({
     ...initialState,
     ...getEventBaseState(activeEventId),
@@ -423,6 +498,10 @@ function loadLocalShell() {
     session: sessionSlice?.session ?? null,
     adminAuthenticated: sessionSlice?.adminAuthenticated ?? false,
     adminSession: sessionSlice?.adminSession ?? null,
+    settings: {
+      ...getEventBaseState(activeEventId).settings,
+      ...cachedAssetSettings,
+    },
   })
 }
 
@@ -1013,6 +1092,7 @@ export const passportRepository = {
     writeState(state)
   },
   isCloudFirstEnabled,
+  bundledHomeImageSrc: BUNDLED_HOME_IMAGE_SRC,
   bootstrapFromRemote,
   mergeShared(state, sharedState, options) {
     return mergeSharedState(state, sharedState, options)

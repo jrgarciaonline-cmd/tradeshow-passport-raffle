@@ -6,6 +6,7 @@ import './passport-background.css'
 import { defaultInstructions } from './data/mockData'
 import { useAppDeepLinks } from './hooks/useAppDeepLinks'
 import { ensureAdminAuthRoute, isAdminPath } from './services/adminDeepLink'
+import { passportRepository } from './services/passportRepository'
 import { usePassportStore } from './services/usePassportStore'
 import { AdminDashboard } from './components/AdminDashboard'
 import { AdminPanel } from './components/AdminPanel'
@@ -130,7 +131,8 @@ function App() {
   )
   const shouldShowAuth =
     activeMode !== 'admin' && !hasValidAttendeeSession
-  const showTopBar = activeMode === 'admin' || !hasValidAttendeeSession
+  const showTopBar =
+    (activeMode === 'admin' || !hasValidAttendeeSession) && !shouldShowAuth
   const hideBottomNav =
     hasValidAttendeeSession &&
     activeMode === 'attendee' &&
@@ -397,6 +399,7 @@ function App() {
               activeEvents={store.activeEvents}
               key={authView}
               initialView={authView}
+              homeImageSrc={store.settings?.homeImageSrc}
               attendeeMagicLinkEnabled={store.isAttendeeMagicLinkEnabled?.()}
               onRegister={store.registerAttendee}
               onRegisterFromBadge={store.registerAttendeeFromBadge}

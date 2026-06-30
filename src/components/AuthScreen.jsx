@@ -1,5 +1,11 @@
 import { useRef, useState } from 'react'
 import { BadgeScanPanel } from './BadgeScanPanel'
+import {
+  BUNDLED_HOME_IMAGE_SRC,
+  isBundledHomeImageSrc,
+  resolveAppAssetUrl,
+  resolveHomeImageSrc,
+} from '../utils/homeImageSrc'
 
 const emptyRegistration = {
   name: '',
@@ -34,6 +40,7 @@ export function AuthScreen({
   activeEvent,
   activeEvents = [],
   initialView = 'scan',
+  homeImageSrc,
   attendeeMagicLinkEnabled = false,
   onRegister,
   onRegisterFromBadge,
@@ -62,6 +69,17 @@ export function AuthScreen({
   const showAdminAuth = adminUnlocked || initialView === 'admin'
   const currentView = showAdminAuth || view !== 'admin' ? view : 'scan'
   const badgeProvidedPhone = Boolean(badgeLead?.phone?.trim())
+  const resolvedHomeImageSrc = resolveHomeImageSrc(homeImageSrc)
+  const bundledHomeImageSrc = resolveAppAssetUrl(BUNDLED_HOME_IMAGE_SRC)
+
+  const handleHomeImageError = (event) => {
+    if (event.currentTarget.src !== bundledHomeImageSrc) {
+      event.currentTarget.src = bundledHomeImageSrc
+      return
+    }
+
+    event.currentTarget.hidden = true
+  }
 
   const updateRegistration = (field, value) => {
     setRegistration((current) => ({ ...current, [field]: value }))
@@ -154,13 +172,16 @@ export function AuthScreen({
         type="button"
         className="auth-logo-button"
         onClick={handleLogoTap}
-        aria-label="Land F/X logo"
+        aria-label="Event logo"
       >
-        <img
-          className="auth-logo"
-          src="/logos/landfx-logo-400w.png"
-          alt="Land F/X"
-        />
+        <div className="home-image-frame auth-home-image-frame">
+          <img
+            key={isBundledHomeImageSrc(homeImageSrc) ? 'bundled' : resolvedHomeImageSrc}
+            src={resolvedHomeImageSrc}
+            alt={activeEvent?.name || 'Event logo'}
+            onError={handleHomeImageError}
+          />
+        </div>
       </button>
       <div>
         <h1>Passport Raffle</h1>
@@ -251,10 +272,10 @@ export function AuthScreen({
             Enter the event access code provided at the show to begin badge signup.
           </p>
           <label className="form-field">
-            <span>Event Access Code</span>
             <input
               required
               autoComplete="off"
+              aria-label="Event access code"
               value={signupCode}
               onChange={(event) => setSignupCode(event.target.value)}
               placeholder="Enter event code"
@@ -527,9 +548,6 @@ export function AuthScreen({
             await submitResult(onSignIn(signIn))
           }}
         >
-          <p className="auth-step-copy">
-            Already signed up? Sign in with the email and phone you used during registration.
-          </p>
           <label className="form-field">
             <span>Email</span>
             <input
@@ -565,16 +583,6 @@ export function AuthScreen({
                 ? 'Sending link...'
                 : 'Email Me a Sign-In Link'
               : 'Open Passport'}
-          </button>
-          <button
-            type="button"
-            className="button-link auth-fallback-link"
-            onClick={() => {
-              setView('scan')
-              resetScanFlow()
-            }}
-          >
-            Need to sign up? Scan your badge
           </button>
         </form>
       )}

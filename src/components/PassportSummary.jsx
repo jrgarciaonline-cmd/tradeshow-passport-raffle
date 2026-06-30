@@ -1,5 +1,10 @@
 import { NavIcon } from './NavIcon'
 import { RaffleEntryPanel } from './RaffleEntryPanel'
+import {
+  BUNDLED_HOME_IMAGE_SRC,
+  resolveAppAssetUrl,
+  resolveHomeImageSrc,
+} from '../utils/homeImageSrc'
 
 export function PassportSummary({
   completedIds,
@@ -29,17 +34,26 @@ export function PassportSummary({
             ? 'Keep Exploring'
             : 'Start Collecting'
   const showStampTrail = requiredScanCount > 0 && requiredScanCount <= 15
+  const resolvedHomeImageSrc = resolveHomeImageSrc(homeImageSrc)
+  const bundledHomeImageSrc = resolveAppAssetUrl(BUNDLED_HOME_IMAGE_SRC)
+
+  const handleHomeImageError = (event) => {
+    if (event.currentTarget.src !== bundledHomeImageSrc) {
+      event.currentTarget.src = bundledHomeImageSrc
+      return
+    }
+
+    event.currentTarget.hidden = true
+  }
 
   return (
     <section className="summary-panel">
       <div className="home-image-frame">
         <img
-          key={homeImageSrc || '/home/HOME_IMAGE.png'}
-          src={homeImageSrc || '/home/HOME_IMAGE.png'}
+          key={resolvedHomeImageSrc}
+          src={resolvedHomeImageSrc}
           alt=""
-          onError={(event) => {
-            event.currentTarget.hidden = true
-          }}
+          onError={handleHomeImageError}
         />
       </div>
 
