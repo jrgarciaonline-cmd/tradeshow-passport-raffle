@@ -28,8 +28,9 @@ export async function fetchLeadInfoByBarcode({ apiKey, actCode, badgeId, barcode
   const payload = await response.json().catch(() => null)
 
   if (!response.ok) {
+    const firstMessage = payload?.Messages?.[0]
     const message =
-      payload?.Messages?.[0] ||
+      (typeof firstMessage === 'string' ? firstMessage : firstMessage?.Message) ||
       payload?.message ||
       'Unable to look up badge information.'
     const error = new Error(message)
@@ -40,15 +41,24 @@ export async function fetchLeadInfoByBarcode({ apiKey, actCode, badgeId, barcode
   return payload
 }
 
+function formatExperientMessage(entry) {
+  if (!entry) return ''
+  if (typeof entry === 'string') return entry.trim()
+  return String(entry.Message ?? '').trim()
+}
+
 export function normalizeLeadInfoResult(result) {
   const lead = result?.LeadInfo ?? {}
   const firstName = String(lead.FirstName ?? '').trim()
   const lastName = String(lead.LastName ?? '').trim()
   const name = [firstName, lastName].filter(Boolean).join(' ').trim()
+  const messages = Array.isArray(result?.Messages)
+    ? result.Messages.map(formatExperientMessage).filter(Boolean)
+    : []
 
   return {
     success: Boolean(result?.Success),
-    messages: Array.isArray(result?.Messages) ? result.Messages : [],
+    messages,
     lead: {
       firstName,
       lastName,

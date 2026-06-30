@@ -1,5 +1,9 @@
 {
   "appId": "com.landfx.passport",
   "appName": "Land F/X Passport",
-  "webDir": "dist"
+  "webDir": "dist",
+  "ios": {
+    "contentInset": "automatic",
+    "webContentsDebuggingEnabled": true
+  }
 }

@@ -5,6 +5,7 @@ import {
   isExperientConfigured,
   normalizeLeadInfoResult,
 } from './_lib/experientLeadInfo.js'
+import { normalizeBarcodeForLookup } from './_lib/normalizeBarcode.js'
 import { loadEventIndex } from './_lib/passportWrite.js'
 import { enforceBodySize } from './_lib/requestBody.js'
 import { enforceRateLimit, getClientIp } from './_lib/rateLimit.js'
@@ -66,7 +67,7 @@ export default async function handler(request, response) {
   const body = request.body ?? {}
   const eventId = String(body.eventId ?? '').trim()
   const signupCode = normalizeSignupCode(body.signupCode)
-  const barcode = String(body.barcode ?? '').trim()
+  const barcode = normalizeBarcodeForLookup(body.barcode)
 
   if (!eventId || !signupCode || !barcode) {
     sendJson(response, 400, {

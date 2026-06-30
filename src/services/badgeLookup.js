@@ -1,12 +1,19 @@
 import { resolveApiUrl } from './apiBaseUrl'
+import { normalizeBarcodeForLookup } from './normalizeBarcode'
 
 export async function lookupBadgeLead({ eventId, signupCode, barcode }) {
-  console.log('[badge lookup] request:', { eventId, signupCode, barcode })
+  const normalizedBarcode = normalizeBarcodeForLookup(barcode)
+  console.log('[badge lookup] request:', {
+    eventId,
+    signupCode,
+    barcode: normalizedBarcode,
+    rawBarcode: barcode !== normalizedBarcode ? barcode : undefined,
+  })
 
   const response = await fetch(resolveApiUrl('/api/badge-lookup'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ eventId, signupCode, barcode }),
+    body: JSON.stringify({ eventId, signupCode, barcode: normalizedBarcode }),
   })
 
   const result = await response.json().catch(() => ({

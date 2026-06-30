@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import jsQR from 'jsqr'
+import { normalizeBarcodeForLookup } from '../services/normalizeBarcode'
 
 export function BadgeScanPanel({ onScan, disabled = false }) {
   const videoRef = useRef(null)
@@ -21,10 +22,10 @@ export function BadgeScanPanel({ onScan, disabled = false }) {
 
   const submitCode = useCallback(
     (code) => {
-      const trimmed = String(code ?? '').trim()
-      if (!trimmed || disabled) return
+      const normalized = normalizeBarcodeForLookup(code)
+      if (!normalized || disabled) return
       stopCamera()
-      onScan(trimmed)
+      onScan(normalized)
     },
     [disabled, onScan, stopCamera],
   )

@@ -71,7 +71,14 @@ npm run build:mobile
 
 Should finish in **< 1 second** after Vite build. If it errors, fix `.env.production` first.
 
-### Step 3 — Archive (Terminal 1)
+### Step 3 — Archive
+
+**Prefer Xcode GUI** on Xcode 26.6+ (CLI `xcodebuild archive` can deadlock at `ExecuteExternalTool clang` — see Troubleshooting).
+
+After `npm run open:ios`: **Product → Archive** → **Distribute App → App Store Connect → Upload**.
+
+<details>
+<summary>CLI archive (optional — may hang on Xcode 26.6)</summary>
 
 ```bash
 xcodebuild -project ios/App/App.xcodeproj \
@@ -82,7 +89,9 @@ xcodebuild -project ios/App/App.xcodeproj \
   archive > /tmp/xcode-archive.log 2>&1
 ```
 
-**Terminal will go silent** — that's normal (output goes to the log).
+**Terminal will go silent** — that's normal (output goes to the log). If the log stops at `ExecuteExternalTool … clang` for more than ~2 min, Ctrl+C and use GUI Archive instead.
+
+</details>
 
 ### Step 4 — Watch progress (Terminal 2)
 
@@ -162,7 +171,35 @@ open /tmp/LandFXPassport.xcarchive
 | Problem | Fix |
 |---------|-----|
 | Terminal silent after `cap sync` | Normal — watch `/tmp/xcode-archive.log` |
-| Hangs at `clang -v` for hours | Close Xcode, `sudo killall -CONT usbmuxd`, reboot, retry |
+| Hangs at `ExecuteExternalTool … clang -v` | **Xcode 26 `SWBBuildService` pipe deadlock** — not a slow compile. See below |
+| Hangs at `clang -v` for hours | Same deadlock. Use **Xcode GUI Archive** instead of CLI `xcodebuild` |
+
+### Stuck at `ExecuteExternalTool … clang -v` (Xcode 26)
+
+This line looks like a hung compiler, but `clang` is usually **blocked writing to a pipe** while `SWBBuildService` waits on IPC. Confirmed on Xcode 26.6 / macOS 26.5: CLI `xcodebuild` can sit at this line forever; running the same `clang …` command by hand finishes instantly.
+
+**Unstick now:**
+
+```bash
+# Ctrl+C the stuck terminal first, then:
+killall xcodebuild SWBBuildService clang ibtoold 2>/dev/null
+pgrep -x Xcode || echo "Xcode GUI closed ✓"
+```
+
+**Reliable workaround — archive from Xcode GUI (skip CLI `xcodebuild`):**
+
+```bash
+npm run build:mobile
+npm run open:ios
+```
+
+In Xcode: select **Any iOS Device (arm64)** → **Product → Archive** → **Distribute App → App Store Connect → Upload**.
+
+To watch progress, use **Report navigator** (⌘9) in Xcode — not `tail -f` on a CLI log.
+
+**If GUI also hangs:** quit Xcode, `rm -rf ~/Library/Developer/Xcode/DerivedData/*`, reboot, retry GUI archive only (no terminal `xcodebuild`).
+
+**Do not use** `| tee`, `| tail`, or any pipe on `xcodebuild` stdout on Xcode 26 — it can worsen pipe deadlocks.
 | `ARCHIVE INTERRUPTED` | You Ctrl+C'd — run again, don't cancel early |
 | Organizer shows old name "App" | Archive with scheme `Land F-X Passport` (Organizer uses scheme name, not target name) |
 | Missing Compliance in TestFlight | App Store Connect → build → **Manage** → encryption **Yes**, non-exempt **No** (HTTPS only) |
